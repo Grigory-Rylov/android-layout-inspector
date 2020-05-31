@@ -5,7 +5,6 @@ import com.android.layoutinspector.model.ViewProperty
 import com.github.grishberg.gropedtables.GroupedTable
 import com.github.grishberg.gropedtables.GroupedTableDataModel
 import com.github.grishberg.gropedtables.TableRowInfo
-import java.awt.Dimension
 import javax.swing.JComponent
 import javax.swing.JScrollPane
 

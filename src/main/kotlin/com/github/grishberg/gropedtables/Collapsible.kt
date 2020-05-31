@@ -1,6 +1,7 @@
 package com.github.grishberg.gropedtables
 
 import java.awt.BorderLayout
+import java.awt.Color
 import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.JTable
@@ -20,6 +21,7 @@ class Collapsible(
         collapseBtn = JButton(title)
         this.tableData = tableData
         layout = BorderLayout()
+        table.setGridColor(Color.GRAY)
         table.fillsViewportHeight = true
         table.model = TableModel()
         isCollapsed = collapsed

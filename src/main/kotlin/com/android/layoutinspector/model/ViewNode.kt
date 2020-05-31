@@ -150,7 +150,7 @@ data class ViewNode constructor(private val parent: ViewNode?, val name: String,
         return Collections.enumeration(children)
     }
 
-    private fun typeAsString(): String {
+    fun typeAsString(): String {
         val lastDotPost = name.lastIndexOf(".")
         if (lastDotPost >= 0) {
             return name.substring(lastDotPost + 1)

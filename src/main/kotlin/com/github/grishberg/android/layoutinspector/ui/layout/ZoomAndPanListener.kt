@@ -268,6 +268,10 @@ class ZoomAndPanListener(
         setCoordTransform(coordTransform)
     }
 
+    fun setScale(scale: Double) {
+        coordTransform.scale(scale, scale)
+    }
+
     interface MouseEventsListener {
         fun onMouseClicked(screenPoint: Point, tranformed: Point2D)
         fun onMouseMove(screenPoint: Point, tranformed: Point2D)

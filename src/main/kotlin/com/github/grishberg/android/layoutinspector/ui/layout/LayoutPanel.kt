@@ -30,6 +30,7 @@ class LayoutPanel : JPanel() {
                 logic.onLayoutSelectedAction?.onMouseExited()
             }
         }
+        zoomAndPanListener.setScale(0.25)
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {

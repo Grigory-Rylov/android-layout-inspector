@@ -181,6 +181,9 @@ class Main : JFrame("Yet Another Android Layout Inspector"), LayoutResultOutput,
 
         override fun onNodeSelected(node: ViewNode) {
             treePanel.onNodeSelected(node)
+            propertiesPanel.showProperties(node)
+            splitPane2.revalidate()
+            splitPane2.repaint()
         }
 
         override fun onMouseExited() {
