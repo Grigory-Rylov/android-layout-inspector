@@ -14,6 +14,7 @@ class NodeViewTreeCellRenderer : TreeCellRenderer {
     val viewGroupIcon = createImageIcon("icons/rectangle.png")
 
     private val hoveredTextColor = Color(45, 71, 180)
+    private val selectionHoveredText1Color = Color(186, 225, 238)
     private val hiddenTextColor = Color(0, 0, 0, 127)
 
     private val textViewRenderer = TextViewRenderer()
@@ -28,18 +29,19 @@ class NodeViewTreeCellRenderer : TreeCellRenderer {
         row: Int,
         hasFocus: Boolean
     ): Component {
+        defaultCellRenderer.getTreeCellRendererComponent(
+            tree,
+            value,
+            selected,
+            expanded,
+            leaf,
+            row,
+            hasFocus
+        )
         if (value !is ViewNode) {
-            return defaultCellRenderer.getTreeCellRendererComponent(
-                tree,
-                value,
-                selected,
-                expanded,
-                leaf,
-                row,
-                hasFocus
-            )
+            return defaultCellRenderer
         }
-
+        val hovered = value == hoveredNode
         val visible = value.isDrawn
         if (isLayout(value)) {
             defaultCellRenderer.icon = viewGroupIcon
@@ -47,18 +49,23 @@ class NodeViewTreeCellRenderer : TreeCellRenderer {
 
         val text = value.getText()
         if (text != null) {
-            textViewRenderer.setNameAndText(value.typeAsString(), value.getElliptizedText(text))
-            textViewRenderer.setSelected(selected)
+            textViewRenderer.setText(value.typeAsString(), value.getElliptizedText(text))
+            textViewRenderer.selected = selected
+            textViewRenderer.hovered = hovered
             return textViewRenderer
         }
 
         if (!visible) {
             defaultCellRenderer.foreground = hiddenTextColor
         }
-        if (value == hoveredNode) {
-            defaultCellRenderer.foreground = hoveredTextColor
+        if (hovered) {
+            if (selected) {
+                defaultCellRenderer.foreground = selectionHoveredText1Color
+            } else {
+                defaultCellRenderer.foreground = hoveredTextColor
+            }
         }
-        return defaultCellRenderer.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus)
+        return defaultCellRenderer
     }
 
     private fun isLayout(value: ViewNode): Boolean {

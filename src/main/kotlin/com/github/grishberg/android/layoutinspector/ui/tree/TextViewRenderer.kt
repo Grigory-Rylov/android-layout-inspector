@@ -1,96 +1,122 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
 
-import sun.swing.DefaultLookup
 import java.awt.Color
+import java.awt.Dimension
+import java.awt.FontMetrics
+import java.awt.Graphics
 import javax.swing.ImageIcon
-import javax.swing.JTextPane
+import javax.swing.JPanel
 import javax.swing.UIManager
-import javax.swing.text.AttributeSet
-import javax.swing.text.SimpleAttributeSet
-import javax.swing.text.StyleConstants
-import javax.swing.text.StyleContext
+import kotlin.math.max
 
-
-class TextViewRenderer : JTextPane() {
-    private val iconTextGap = 4
-
-    private var drawDashedFocusIndicator: Boolean = false
-    private var drawsFocusBorderAroundIcon: Boolean = false
+class TextViewRenderer : JPanel() {
+    private val icon = createImageIcon("icons/text.png")
     private val selectionBorderColor: Color = UIManager.getColor("Tree.selectionBorderColor")
     private val selectionForeground: Color = UIManager.getColor("Tree.selectionForeground")
     private val selectionBackground: Color = UIManager.getColor("Tree.selectionBackground")
     private val textForeground: Color = UIManager.getColor("Tree.textForeground")
     private val textBackground: Color = UIManager.getColor("Tree.textBackground")
-    // If drawDashedFocusIndicator is true, the following are used.
 
-    private val textLabelColor = Color(0, 0, 0, 127)
-    private val icon = createImageIcon("icons/text.png")
+    private val text2Foreground: Color = Color(0, 0, 0, 127)
+    private val text2SelectedForeground: Color = Color(0, 0, 0, 127)
+    private val hoveredText1Color = Color(45, 71, 180)
+    private val hoveredText2Color = Color(57, 90, 227)
 
-    private var selected = false
+    private val selectionHoveredText1Color = Color(186, 225, 238)
+    private val selectionHoveredText2Color = Color(186, 225, 238, 127)
 
-    private var isDropCell = false
+    private val hiddenText1Color = Color(0, 0, 0, 127)
+    private val hiddenText2Color = Color(0, 0, 0, 90)
+
     private var text1: String = ""
     private var text2: String = ""
+    private val iconGap = 4
+    private val fontMetrics: FontMetrics = getFontMetrics(font)
 
-    init {
-        drawsFocusBorderAroundIcon = DefaultLookup.getBoolean(this, ui, "Tree.drawsFocusBorderAroundIcon", false)
-        drawDashedFocusIndicator = DefaultLookup.getBoolean(this, ui, "Tree.drawDashedFocusIndicator", false)
-        background = null
-        setCaret(NoTextSelectionCaret(this))
-        caret.isVisible = false
-        setEditable(false)
+    var nodeVisible: Boolean = true
+    var selected: Boolean = false
+    var hovered = false
+
+    fun setText(t1: String, t2: String) {
+        text1 = t1
+        text2 = " - \"$t2\""
+        preferredSize = calculateDimension(text1, text2)
+        repaint()
     }
 
-
-    fun setNameAndText(name: String, text: String) {
-        setEditable(true)
-        setText("")
-        text1 = name
-        text2 = text
-        insertIcon(icon)
-        appendSpace(this)
-        appendToPane(this, name, Color.BLACK);
-        appendToPane(this, "- \"$text\"", textLabelColor)
-        caretPosition = 0
-        setEditable(false)
-
+    private fun calculateDimension(t1: String, t2: String): Dimension {
+        val w = icon.iconWidth + iconGap + fontMetrics.stringWidth(t1) + fontMetrics.stringWidth(t2)
+        return Dimension(w, max(icon.iconHeight, fontMetrics.height))
     }
 
-    fun setSelected(sel: Boolean) {
-        selected = sel
-        setNameAndText(text1, text2)
-    }
+    override fun paintComponent(g: Graphics) {
 
-    private fun appendToPane(tp: JTextPane, msg: String, c: Color) {
-        val sc = StyleContext.getDefaultStyleContext()
-        val color = if (selected) selectionForeground else c
-        var aset: AttributeSet? = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, color)
+        var left = 0
+        g.drawImage(icon.image, 0, 0, this)
+        left += icon.iconWidth + iconGap
+
         if (selected) {
-            aset = sc.addAttribute(aset, StyleConstants.Background, selectionBackground)
+            g.color = selectionBackground
+            val textWidth = fontMetrics.stringWidth(text1) + fontMetrics.stringWidth(text2)
+            g.fillRect(left, 0, textWidth, height)
         }
-        aset = sc.addAttribute(aset, StyleConstants.Alignment, StyleConstants.ALIGN_LEFT)
-        val len = tp.document.length
-        tp.caretPosition = len
-        tp.setCharacterAttributes(aset, false)
-        tp.replaceSelection(msg)
+
+        val text1Foreground = text1Foreground()
+        val text2Foreground = text2Foreground()
+
+        val textHeight = fontMetrics.ascent - fontMetrics.descent - fontMetrics.leading
+        val textTop = textHeight + (icon.iconHeight - textHeight) / 2
+
+        g.color = text1Foreground
+        g.drawString(text1, left, textTop)
+        left += fontMetrics.stringWidth(text1)
+
+        g.color = text2Foreground
+        g.drawString(text2, left, textTop)
     }
 
-    private fun appendSpace(tp: JTextPane) {
-        val len = tp.document.length
-        tp.caretPosition = len
-        tp.setCharacterAttributes(SimpleAttributeSet.EMPTY, false)
-        tp.replaceSelection(" ")
+    private fun text1Foreground(): Color {
+        if (hovered) {
+            if (selected) {
+                return selectionHoveredText1Color
+            }
+            return hoveredText1Color
+        }
+        if (!nodeVisible) {
+            return hiddenText1Color
+        }
+        if (selected) {
+            return selectionForeground
+        }
+
+        return textForeground
+    }
+
+    private fun text2Foreground(): Color {
+        if (hovered) {
+            if (selected) {
+                return selectionHoveredText2Color
+            }
+            return hoveredText2Color
+        }
+        if (!nodeVisible) {
+            return hiddenText2Color
+        }
+        if (selected) {
+            return text2SelectedForeground
+        }
+
+        return text2Foreground
     }
 
     /** Returns an ImageIcon, or null if the path was invalid.  */
-    private fun createImageIcon(path: String): ImageIcon? {
+    private fun createImageIcon(path: String): ImageIcon {
         val imgURL = ClassLoader.getSystemResource(path)
         return if (imgURL != null) {
             ImageIcon(imgURL)
         } else {
-            System.err.println("Couldn't find file: $path")
-            null
+            throw IllegalStateException("$path not found")
         }
     }
 }
