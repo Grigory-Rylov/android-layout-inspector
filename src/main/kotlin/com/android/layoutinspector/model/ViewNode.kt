@@ -104,7 +104,7 @@ data class ViewNode constructor(private val parent: ViewNode?, val name: String,
         }
     }
 
-    override fun toString(): String {
+    fun getFormattedName(): String {
         val idPrefix = if (id != null && id != "NO_ID") id else null
 
         val text = getText()
@@ -121,6 +121,8 @@ data class ViewNode constructor(private val parent: ViewNode?, val name: String,
         }
         return typeAsString
     }
+
+    override fun toString() = "$name@$hash"
 
     override fun getChildAt(childIndex: Int): ViewNode {
         return children[childIndex]

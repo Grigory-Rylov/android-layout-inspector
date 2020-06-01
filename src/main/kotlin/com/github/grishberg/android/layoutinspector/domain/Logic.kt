@@ -49,7 +49,7 @@ class Logic(
             val dpPerPixels = (density / 160.0)
             logger.d("$TAG: dp per pixels = $dpPerPixels")
 
-            val task = LayoutInspectorCaptureTask()
+            val task = LayoutInspectorCaptureTask(logger)
 
             val liResult = task.capture(window, recordOptions.timeoutInSeconds)
 

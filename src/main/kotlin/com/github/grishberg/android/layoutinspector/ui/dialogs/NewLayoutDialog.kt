@@ -26,6 +26,7 @@ private const val TAG = "NewLayoutDialog"
 private const val TITLE = "Select Layout recording parameters"
 private const val SETTINGS_PKG = "package"
 private const val SETTINGS_TIMEOUT = "timeoutInSeconds"
+private const val SETTINGS_ADB_INITIAL_COMMAND = "adbInitialCommand"
 
 class NewLayoutDialog(
     private val owner: Frame,
@@ -45,6 +46,7 @@ class NewLayoutDialog(
         private set
 
     init {
+        settings.setStringValue(SETTINGS_ADB_INITIAL_COMMAND, "")
         val format = NumberFormat.getInstance()
         val formatter = NumberFormatter(format)
         formatter.valueClass = Integer::class.java
@@ -154,6 +156,8 @@ class NewLayoutDialog(
             logger.d("$TAG: found client: $element")
             clientListModel.addElement(element)
         }
+        pack()
+        repaint()
     }
 
     private inner class CliensListener : ClientsChangedListener {

@@ -57,7 +57,8 @@ class WindowsDialog(
         clientWindowListModel.clear()
         val windows = GlobalScope.async(Dispatchers.IO) {
             val windows =
-                ClientWindow.getAll(options.client, options.timeoutInSeconds.toLong(), TimeUnit.SECONDS) ?: emptyList()
+                ClientWindow.getAll(logger, options.client, options.timeoutInSeconds.toLong(), TimeUnit.SECONDS)
+                    ?: emptyList()
             return@async windows
         }
         val windowList = windows.await()

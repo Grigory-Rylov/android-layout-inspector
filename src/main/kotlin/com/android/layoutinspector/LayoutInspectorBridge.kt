@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package com.android.layoutinspector
+import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ClientWindow
 import com.android.layoutinspector.model.ViewNode
 import com.android.layoutinspector.parser.ViewNodeParser
@@ -22,12 +23,17 @@ import java.io.IOException
 import java.io.ObjectOutputStream
 import java.util.concurrent.TimeUnit
 
+private const val TAG = "LayoutInspectorBridge"
+
 object LayoutInspectorBridge {
     @JvmStatic
     val V2_MIN_API = 23
     @JvmStatic
     fun captureView(
-        window: ClientWindow, options: LayoutInspectorCaptureOptions, timeoutInSeconds: Long
+        logger: AppLogger,
+        window: ClientWindow,
+        options: LayoutInspectorCaptureOptions,
+        timeoutInSeconds: Long
     ): LayoutInspectorResult {
         val hierarchy =
             window.loadWindowData(options, timeoutInSeconds, TimeUnit.SECONDS) ?: return LayoutInspectorResult(
@@ -38,7 +44,10 @@ object LayoutInspectorBridge {
             )
         var root: ViewNode?
         try {
+            logger.d("$TAG parse hierarchy")
             root = ViewNodeParser.parse(hierarchy, options.version)
+            logger.d("$TAG parse hierarchy done. root is $root")
+
         } catch (e: StringIndexOutOfBoundsException) {
             return LayoutInspectorResult(null, "Unexpected error: $e")
         } catch (e: IOException) {
@@ -51,14 +60,16 @@ object LayoutInspectorBridge {
             )
         }
         //  Get the preview of the root node
+        logger.d("$TAG Get the preview of the root node")
         val preview = window.loadViewImage(
             root,
-            10,
+            timeoutInSeconds,
             TimeUnit.SECONDS
         ) ?: return LayoutInspectorResult(
             null,
             "Unable to obtain preview image"
         )
+        logger.d("$TAG preview downloaded")
         val bytes = ByteArrayOutputStream(4096)
         var output: ObjectOutputStream? = null
         try {

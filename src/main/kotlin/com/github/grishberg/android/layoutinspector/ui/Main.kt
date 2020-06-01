@@ -33,6 +33,7 @@ private const val INITIAL_SCREEN_WIDTH = 1024
 private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 400
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 300
+private const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdbOnExit"
 private const val VERSION = "20.06.01.00"
 
 // create a class MainWindow extending JFrame
@@ -60,6 +61,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     // Constructor of MainWindow class
     init {
+        settings.setBoolValue(SETTINGS_SHOULD_STOP_ADB, settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, true))
+
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
         layoutPanel = LayoutPanel()
@@ -107,7 +110,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         windowsDialog = WindowsDialog(this, logger)
 
         adb = AdbWrapperImpl(true, InspectorLogger())
-        val deviceProvider = DeviceProvider(adb)
+        val deviceProvider = DeviceProvider(adb, settings)
         val clientsWindowsProvider = ClientsProvider()
 
         val devicesInputDialog = NewLayoutDialog(this, deviceProvider, clientsWindowsProvider, logger, settings)
@@ -129,7 +132,9 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     private fun doOnClose() {
         settings.save()
-        adb.stop()
+        if (settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, true)) {
+            adb.stop()
+        }
     }
 
     private fun createMenu(fileMenu: JMenu) {

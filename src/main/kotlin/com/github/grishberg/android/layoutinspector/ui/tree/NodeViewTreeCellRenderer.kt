@@ -47,6 +47,8 @@ class NodeViewTreeCellRenderer : TreeCellRenderer {
             defaultCellRenderer.icon = viewGroupIcon
         }
 
+        defaultCellRenderer.text = value.getFormattedName()
+
         val text = value.getText()
         if (text != null) {
             textViewRenderer.setText(value.typeAsString(), value.getElliptizedText(text))
