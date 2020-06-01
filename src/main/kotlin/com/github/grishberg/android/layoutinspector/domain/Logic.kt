@@ -32,7 +32,7 @@ class Logic(
         }
     }
 
-    fun requestCapture() {
+    fun startRecording() {
         GlobalScope.launch(errorHandler) {
             val recordOptions = devicesInput.getLayoutOptions() ?: return@launch
 

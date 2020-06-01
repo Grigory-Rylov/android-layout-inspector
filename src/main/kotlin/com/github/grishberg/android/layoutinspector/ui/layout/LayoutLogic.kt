@@ -109,17 +109,15 @@ class LayoutLogic(
         return Dimension(screenshot!!.width, screenshot!!.height)
     }
 
-
     fun draw(g: Graphics2D, at: AffineTransform) {
-        g.transform = at
         if (screenshot != null) {
-            g.drawImage(screenshot, 0, 0, panel) // see javadoc for more info on the parameters
+            g.drawImage(screenshot, at, panel) // see javadoc for more info on the parameters
         }
 
         g.stroke = BasicStroke(1f)
         for (element in rectangles) {
             g.color = borderColor
-            val transformedShape: Shape = element.rect
+            val transformedShape: Shape = at.createTransformedShape(element.rect)
             val bounds = transformedShape.bounds
 
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
@@ -128,10 +126,9 @@ class LayoutLogic(
         selectedRectangle?.let {
             g.stroke = BasicStroke(5f)
             g.color = selectedColor
-            val bounds = it.bounds
+            val bounds = at.createTransformedShape(it).bounds
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
-        g.dispose()
     }
 
     fun selectNode(viewNode: ViewNode) {

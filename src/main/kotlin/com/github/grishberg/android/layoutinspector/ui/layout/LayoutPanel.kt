@@ -8,6 +8,7 @@ import java.awt.Point
 import java.awt.geom.Point2D
 import javax.swing.JPanel
 
+private const val DEFAULT_SCALE = 0.25
 
 class LayoutPanel : JPanel() {
     private val logic = LayoutLogic(this)
@@ -26,11 +27,11 @@ class LayoutPanel : JPanel() {
                 logic.processMouseHover(transformedPoint)
             }
 
-            override fun onMouseExited(){
+            override fun onMouseExited() {
                 logic.onLayoutSelectedAction?.onMouseExited()
             }
         }
-        zoomAndPanListener.setScale(0.25)
+        zoomAndPanListener.setScale(DEFAULT_SCALE)
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {
@@ -40,6 +41,7 @@ class LayoutPanel : JPanel() {
 
     fun selectNode(viewNode: ViewNode) {
         logic.selectNode(viewNode)
+        repaint()
     }
 
     override fun getPreferredSize() = logic.getPreferredSize()
@@ -47,10 +49,24 @@ class LayoutPanel : JPanel() {
     override fun paintComponent(g: Graphics) {
         super.paintComponent(g)
 
-        logic.draw((g.create() as Graphics2D), zoomAndPanListener.getCoordTransform())
+        if (ui != null) {
+            val scratchGraphics = g.create() as Graphics2D
+            try {
+                ui.update(scratchGraphics, this)
+                logic.draw(scratchGraphics, zoomAndPanListener.getCoordTransform())
+            } finally {
+                scratchGraphics!!.dispose()
+            }
+        }
     }
 
     fun setOnLayoutSelectedAction(action: LayoutLogic.OnLayoutSelectedAction) {
         logic.onLayoutSelectedAction = action
+    }
+
+    fun resetZoom() {
+        zoomAndPanListener.resetZoom()
+        zoomAndPanListener.setScale(0.25)
+        repaint()
     }
 }

@@ -1,5 +1,7 @@
 package com.github.grishberg.android.layoutinspector.ui
 
+import com.github.grishberg.android.layoutinspector.domain.Logic
+import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
 import java.awt.KeyboardFocusManager
 import java.awt.Toolkit
 import java.awt.event.ActionEvent
@@ -10,7 +12,9 @@ import javax.swing.JTextField
 import javax.swing.KeyStroke
 
 class KeyBinder(
-    keyBinderComponent: JComponent
+    keyBinderComponent: JComponent,
+    private val layoutPanel: LayoutPanel,
+    private val logic: Logic
 ) {
     val condition = JComponent.WHEN_IN_FOCUSED_WINDOW
     val inputMap = keyBinderComponent.getInputMap(condition)
@@ -21,9 +25,9 @@ class KeyBinder(
         //addKeyMapWithCtrl(KeyEvent.VK_C, CopySelectedFullClassNameAction())
         //addKeyMapWithCtrl(KeyEvent.VK_F, GoToFindAction())
         //addKeyMap(KeyEvent.VK_ESCAPE, RemoveSelectionAction())
-        //addKeyMapWithCtrl(KeyEvent.VK_O, OpenFileDialogAction())
-        //addKeyMapWithCtrl(KeyEvent.VK_N, NewTraceAction())
-        //addKeyMap(KeyEvent.VK_Z, ResetZoomAction())
+        addKeyMapWithCtrl(KeyEvent.VK_O, OpenFileDialogAction())
+        addKeyMapWithCtrl(KeyEvent.VK_N, NewTraceAction())
+        addKeyMap(KeyEvent.VK_Z, ResetZoomAction())
     }
 
     private fun addKeyMapWithCtrl(keyCode: Int, action: AbstractAction) {
@@ -57,5 +61,26 @@ class KeyBinder(
             return true
         }
         return false
+    }
+
+    private inner class OpenFileDialogAction : AbstractAction() {
+        override fun actionPerformed(e: ActionEvent) {
+            if (shouldSkip(e)) return
+            logic.openFile()
+        }
+    }
+
+    private inner class NewTraceAction : AbstractAction() {
+        override fun actionPerformed(e: ActionEvent) {
+            if (shouldSkip(e)) return
+            logic.startRecording()
+        }
+    }
+
+    private inner class ResetZoomAction : AbstractAction() {
+        override fun actionPerformed(e: ActionEvent) {
+            if (shouldSkip(e)) return
+            layoutPanel.resetZoom()
+        }
     }
 }

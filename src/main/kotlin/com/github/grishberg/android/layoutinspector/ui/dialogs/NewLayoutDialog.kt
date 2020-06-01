@@ -28,7 +28,7 @@ private const val SETTINGS_PKG = "package"
 private const val SETTINGS_TIMEOUT = "timeoutInSeconds"
 
 class NewLayoutDialog(
-    owner: Frame,
+    private val owner: Frame,
     private val deviceProvider: DeviceProvider,
     private val clientsProvider: ClientsProvider,
     private val logger: AppLogger,

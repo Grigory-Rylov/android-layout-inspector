@@ -33,9 +33,10 @@ private const val INITIAL_SCREEN_WIDTH = 1024
 private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 400
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 300
+private const val VERSION = "20.06.01.00"
 
 // create a class MainWindow extending JFrame
-class Main : JFrame("Yet Another Android Layout Inspector"), LayoutResultOutput, DialogsInput {
+class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), LayoutResultOutput, DialogsInput {
 
     // Declaration of objects of the
     // JScrollPane class.
@@ -55,6 +56,7 @@ class Main : JFrame("Yet Another Android Layout Inspector"), LayoutResultOutput,
     private val logger: AppLogger = SimpleConsoleLogger("")
     private val settings = JsonSettings(logger)
     private val fileChooser = JFileChooser()
+    private val mainPanel: JPanel
 
     // Constructor of MainWindow class
     init {
@@ -74,7 +76,7 @@ class Main : JFrame("Yet Another Android Layout Inspector"), LayoutResultOutput,
             JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS
         )
 
-        val mainPanel = JPanel(BorderLayout())
+        mainPanel = JPanel(BorderLayout())
         splitPane1 = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, layoutPanel, treeScrollPane)
         splitPane2 = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, splitPane1, propertiesPanel.getComponent())
         splitPane2.resizeWeight = 1.0
@@ -115,10 +117,14 @@ class Main : JFrame("Yet Another Android Layout Inspector"), LayoutResultOutput,
         logic = Logic(devicesInputDialog, windowsDialog, this, logger, fileSystem, this)
 
         Runtime.getRuntime().addShutdownHook(Thread(this::doOnClose))
-        logic.requestCapture()
+        logic.startRecording()
 
 
         setSize(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT)
+    }
+
+    fun initUi() {
+        KeyBinder(mainPanel, layoutPanel, logic)
     }
 
     private fun doOnClose() {
@@ -148,16 +154,15 @@ class Main : JFrame("Yet Another Android Layout Inspector"), LayoutResultOutput,
         return file
     }
 
-    private fun startRecording() {
-        logic.requestCapture()
+    internal fun startRecording() {
+        logic.startRecording()
     }
 
-    private fun openExistingFile() {
+    internal fun openExistingFile() {
         logic.openFile()
     }
 
     override fun showResult(resultOutput: LayoutFileData) {
-        println("showResult")
         layoutPanel.showLayoutResult(resultOutput)
         treePanel.showLayoutResult(resultOutput)
         splitPane1.invalidate()
@@ -253,6 +258,7 @@ class Main : JFrame("Yet Another Android Layout Inspector"), LayoutResultOutput,
             val sl = Main()
             // Function to set visibilty of JFrame.
             sl.isVisible = true
+            sl.initUi()
         }
     }
 }
