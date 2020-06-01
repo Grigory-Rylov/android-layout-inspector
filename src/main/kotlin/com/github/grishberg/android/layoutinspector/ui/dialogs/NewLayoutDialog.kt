@@ -36,12 +36,15 @@ class NewLayoutDialog(
     private val settings: Settings
 ) : JDialog(owner, TITLE, true), LayoutRecordOptionsInput {
     private val timeoutField: JFormattedTextField
+    private val clientListModel = DefaultListModel<ClientWrapper>()
+
+    private val devicesModel = DevicesCompoBoxModel()
     private val devicesComboBox: JComboBox<IDevice>
     private val refreshButton: JButton
     private val startButton: JButton
     private val clientsList: JList<ClientWrapper>
-    private val clientListModel = DefaultListModel<ClientWrapper>()
     private val clientsChangedListener = CliensListener()
+    private val deviceChangedAction = DeviceChangedActions()
     var result: LayoutRecordOptions? = null
         private set
 
@@ -61,6 +64,7 @@ class NewLayoutDialog(
         }
 
         devicesComboBox = JComboBox()
+        devicesComboBox.model = devicesModel
         devicesComboBox.setToolTipText("Device selector")
         devicesComboBox.addItemListener {
             if (it.stateChange != ItemEvent.SELECTED) {
@@ -112,10 +116,29 @@ class NewLayoutDialog(
     }
 
     private fun startRecording() {
-        val client = clientListModel[clientsList.selectedIndex]
+        var currentDeviceIndex: Int = clientsList.selectedIndex
+        if (currentDeviceIndex < 0) {
+            logger.w("$TAG: startRecording() selectedIndex = $currentDeviceIndex")
+            if (clientListModel.size() == 1) {
+                currentDeviceIndex = 0
+            } else {
+                JOptionPane.showMessageDialog(
+                    this, "Select device before starting", "Select device",
+                    JOptionPane.ERROR_MESSAGE
+                )
+                return
+            }
+
+        }
+        doStartRecording(currentDeviceIndex)
+    }
+
+    private fun doStartRecording(currentDeviceIndex: Int) {
+        val client = clientListModel[currentDeviceIndex]
         val device = devicesComboBox.selectedItem as IDevice
         val timeoutInSeconds = timeoutField.text.toInt()
         result = LayoutRecordOptions(device, client.client, timeoutInSeconds)
+        deviceProvider.deviceChangedActions.remove(deviceChangedAction)
         isVisible = false
     }
 
@@ -127,6 +150,7 @@ class NewLayoutDialog(
     }
 
     fun showDialog() {
+        deviceProvider.deviceChangedActions.add(deviceChangedAction)
         setLocationRelativeTo(owner)
         result = null
         populateWithDevices()
@@ -170,6 +194,24 @@ class NewLayoutDialog(
             }
             SwingUtilities.invokeLater {
                 populateWithClients(device)
+            }
+        }
+    }
+
+    private inner class DeviceChangedActions : DeviceProvider.DeviceChangedAction {
+        override fun deviceConnected(device: IDevice) {
+            if (!devicesModel.contains(device)) {
+                devicesComboBox.addItem(device)
+                if (devicesModel.size == 1) {
+                    devicesComboBox.selectedItem = device
+                }
+            }
+        }
+
+        override fun deviceDisconnected(device: IDevice) {
+            devicesComboBox.removeItem(device)
+            if (devicesModel.size == 0) {
+                devicesComboBox.selectedItem = null
             }
         }
     }

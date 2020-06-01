@@ -1,6 +1,0 @@
-{
-  "package": "ru.yandex.searchplugin.beta",
-  "timeoutInSeconds": 60.0,
-  "shouldStopAdbOnExit": true,
-  "adbInitialCommand": ""
-}

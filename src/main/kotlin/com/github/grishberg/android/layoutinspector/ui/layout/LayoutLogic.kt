@@ -110,6 +110,9 @@ class LayoutLogic(
     }
 
     fun draw(g: Graphics2D, at: AffineTransform) {
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+            RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+
         if (screenshot != null) {
             g.drawImage(screenshot, at, panel) // see javadoc for more info on the parameters
         }
