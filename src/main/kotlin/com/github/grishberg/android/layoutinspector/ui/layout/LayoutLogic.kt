@@ -127,7 +127,7 @@ class LayoutLogic(
         }
 
         selectedRectangle?.let {
-            g.stroke = BasicStroke(5f)
+            g.stroke = BasicStroke(3f)
             g.color = selectedColor
             val bounds = at.createTransformedShape(it).bounds
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)

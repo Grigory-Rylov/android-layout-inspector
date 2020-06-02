@@ -16,6 +16,7 @@ class NodeViewTreeCellRenderer : TreeCellRenderer {
     private val hoveredTextColor = Color(45, 71, 180)
     private val selectionHoveredText1Color = Color(186, 225, 238)
     private val hiddenTextColor = Color(0, 0, 0, 127)
+    private val selectionHiddenTextColor = Color(200, 200, 200)
 
     private val textViewRenderer = TextViewRenderer()
     private val defaultCellRenderer = DefaultTreeCellRenderer()
@@ -58,7 +59,11 @@ class NodeViewTreeCellRenderer : TreeCellRenderer {
         }
 
         if (!visible) {
-            defaultCellRenderer.foreground = hiddenTextColor
+            if (selected) {
+                defaultCellRenderer.foreground = selectionHiddenTextColor
+            } else {
+                defaultCellRenderer.foreground = hiddenTextColor
+            }
         }
         if (hovered) {
             if (selected) {
