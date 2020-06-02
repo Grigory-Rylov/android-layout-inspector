@@ -5,6 +5,8 @@ import com.android.layoutinspector.model.ViewProperty
 import com.github.grishberg.gropedtables.GroupedTable
 import com.github.grishberg.gropedtables.GroupedTableDataModel
 import com.github.grishberg.gropedtables.TableRowInfo
+import java.math.RoundingMode
+import java.text.DecimalFormat
 import javax.swing.JComponent
 import javax.swing.JScrollPane
 
@@ -13,10 +15,10 @@ import javax.swing.JScrollPane
  * Shows nodes info.
  */
 class PropertiesPanel {
-    private val treeTable = GroupedTable().apply {
-        //minimumSize = Dimension(200,480)
-    }
+    private val treeTable = GroupedTable()
     private val scrollPanel = JScrollPane(treeTable)
+    private var sizeInDp = false
+    var dpPerPixels: Double = 1.0
 
     fun getComponent(): JComponent = scrollPanel
 
@@ -26,7 +28,15 @@ class PropertiesPanel {
         treeTable.repaint()
     }
 
-    private class TreeTableModel(
+    fun setSizeDpMode(enabled: Boolean) {
+        val shouldInvalidate = sizeInDp != enabled
+        sizeInDp = enabled
+        if (shouldInvalidate) {
+            treeTable.invalidateTable()
+        }
+    }
+
+    private inner class TreeTableModel(
         private val node: ViewNode
     ) : GroupedTableDataModel {
 
@@ -46,7 +56,7 @@ class PropertiesPanel {
         override fun getGroupName(groupIndex: Int): String = headers[groupIndex]
     }
 
-    private class ParameterModel(
+    private inner class ParameterModel(
         private val properties: List<ViewProperty>
     ) : TableRowInfo {
         override fun getColumnName(col: Int): String {
@@ -61,12 +71,22 @@ class PropertiesPanel {
         override fun getRowCount() = properties.size
 
         override fun getValueAt(row: Int, col: Int): String {
-            val currentProperty = properties[row]
+            val currentProperty: ViewProperty = properties[row]
 
             if (col == 0) {
                 return currentProperty.name
             }
+            if (sizeInDp && currentProperty.isSizeProperty && dpPerPixels > 0) {
+                return roundOffDecimal(currentProperty.intValue.toDouble() / dpPerPixels) + " dp"
+            }
             return currentProperty.value
         }
     }
+
+    fun roundOffDecimal(number: Double): String {
+        val df = DecimalFormat("#.##")
+        df.roundingMode = RoundingMode.CEILING
+        return df.format(number)
+    }
 }
+

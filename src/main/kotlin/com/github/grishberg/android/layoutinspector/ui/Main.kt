@@ -29,12 +29,14 @@ import java.net.Socket
 import java.net.SocketException
 import javax.swing.*
 
+
 private const val INITIAL_SCREEN_WIDTH = 1024
 private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 400
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 300
-private const val VERSION = "20.06.01.00"
+private const val VERSION = "20.06.02.00"
 const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdb"
+private const val SETTINGS_SIZE_IN_DP = "sizeInDp"
 
 // create a class MainWindow extending JFrame
 class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), LayoutResultOutput, DialogsInput {
@@ -68,6 +70,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         layoutPanel = LayoutPanel()
         treePanel = TreePanel()
         propertiesPanel = PropertiesPanel()
+        propertiesPanel.setSizeDpMode(settings.getBoolValueOrDefault(SETTINGS_SIZE_IN_DP, false))
 
         val selectionAction = TreeNodeSelectedAction()
         treePanel.nodeSelectedAction = selectionAction
@@ -140,6 +143,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     private fun createMenu(fileMenu: JMenu) {
         val menuBar = JMenuBar()
         menuBar.add(fileMenu)
+        menuBar.add(createViewMenu())
         jMenuBar = menuBar
     }
 
@@ -159,6 +163,41 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         return file
     }
 
+    private fun createViewMenu(): JMenu? {
+        val viewMenu = JMenu("View")
+
+        val pixelsMode = JRadioButtonMenuItem("Size in px")
+        val dpMode = JRadioButtonMenuItem("Size in dp")
+
+        val bg = ButtonGroup()
+        bg.add(pixelsMode)
+        bg.add(dpMode)
+
+        viewMenu.add(pixelsMode)
+        viewMenu.add(dpMode)
+
+        if (settings.getBoolValueOrDefault(SETTINGS_SIZE_IN_DP, false)) {
+            dpMode.isSelected = true
+        } else {
+            pixelsMode.isSelected = true
+        }
+
+        pixelsMode.addActionListener { e: ActionEvent ->
+            setSizeDpMode(false)
+            settings.setBoolValue(SETTINGS_SIZE_IN_DP, false)
+        }
+        dpMode.addActionListener { e: ActionEvent ->
+            setSizeDpMode(true)
+            settings.setBoolValue(SETTINGS_SIZE_IN_DP, true)
+        }
+
+        return viewMenu
+    }
+
+    private fun setSizeDpMode(enabled: Boolean) {
+        propertiesPanel.setSizeDpMode(enabled)
+    }
+
     internal fun startRecording() {
         logic.startRecording()
     }
@@ -170,6 +209,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     override fun showResult(resultOutput: LayoutFileData) {
         layoutPanel.showLayoutResult(resultOutput)
         treePanel.showLayoutResult(resultOutput)
+        propertiesPanel.dpPerPixels = resultOutput.dpPerPixels
         splitPane1.invalidate()
     }
 

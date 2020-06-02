@@ -14,7 +14,7 @@ class GroupedTable : JPanel() {
 
     private val expandedGroups = mutableSetOf<String>()
     private val collapsedExpandAction = CollapsedExpandAction()
-    val constraints = GridBagConstraints()
+    private val constraints = GridBagConstraints()
 
     init {
         layout = BorderLayout()
@@ -62,6 +62,14 @@ class GroupedTable : JPanel() {
 
     fun collapseAll() {
         children.forEach { it.collapse() }
+    }
+
+    fun invalidateTable() {
+        for (c in children) {
+            c.invalidate()
+            c.revalidate()
+            c.repaint()
+        }
     }
 
     private inner class CollapsedExpandAction : CollapsibleTable.CollapseExpandAction {

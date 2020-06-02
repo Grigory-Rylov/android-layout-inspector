@@ -14,9 +14,22 @@
  * limitations under the License.
  */
 package com.android.layoutinspector.parser
+
 import com.android.layoutinspector.model.ViewProperty
+
 object ViewPropertyParser {
-    fun parse(propertyFullName: String, value: String) : ViewProperty {
+    private val availableProprtyFullNames = listOf(
+        "layout:mBottom", "layout:mLeft", "layout:mRight", "layout:mTop",
+        "layout:getHeight()", "layout:getWidth()", "layout:getBaseline()", "layout:layout_bottomMargin",
+        "layout:layout_endMargin", "layout:layout_leftMargin", "layout:layout_rightMargin", "layout:layout_startMargin",
+        "layout:layout_topMargin", "layout:layout_height", "layout:layout_width", "layout:getWidth()",
+        "measurement:mMeasuredHeight", "measurement:mMeasuredWidth", "measurement:mMinHeight", "measurement:mMinWidth",
+        "measurement:getMeasuredHeightAndState()", "measurement:getMeasuredWidthAndState()",
+        "drawing:getPivotX()", "drawing:getPivotY()", "drawing:getTranslationX()", "drawing:getTranslationY()",
+        "drawing:getTranslationZ()", "drawing:getX()", "drawing:getY()", "drawing:getZ()"
+    )
+
+    fun parse(propertyFullName: String, value: String): ViewProperty {
         val colonIndex = propertyFullName.indexOf(':')
         var category: String?
         var name: String?
@@ -27,6 +40,24 @@ object ViewPropertyParser {
             category = null
             name = propertyFullName
         }
-        return ViewProperty(propertyFullName, name, category, value)
+        var isSizeProperty = isSizeProperty(category, propertyFullName, value)
+        var intValue = 0
+
+        try {
+            intValue = Integer.valueOf(value)
+        } catch (e: NumberFormatException) {
+            isSizeProperty = false
+        }
+        return ViewProperty(propertyFullName, name, category, value, isSizeProperty, intValue)
+    }
+
+    private fun isSizeProperty(category: String?, propertyFullName: String, value: String): Boolean {
+        if (value == "null" || value == "-1" || value == "0" || value == "-2147483648") {
+            return false
+        }
+        if (category == "padding") {
+            return true
+        }
+        return availableProprtyFullNames.contains(propertyFullName)
     }
 }

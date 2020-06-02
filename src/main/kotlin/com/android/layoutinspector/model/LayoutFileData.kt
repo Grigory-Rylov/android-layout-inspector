@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 package com.android.layoutinspector.model
+
 import com.android.layoutinspector.LayoutInspectorCaptureOptions
 import java.awt.image.BufferedImage
+
 /**
  * Data model for a parsed .li file. Create using methods in [com.android.layoutinspector.parser.LayoutFileDataParser]
  */

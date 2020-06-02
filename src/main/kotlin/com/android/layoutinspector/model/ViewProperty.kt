@@ -25,9 +25,11 @@ data class ViewProperty(
     val fullName: String,
     val name: String,
     val category: String?,
-    val value: String
-) :
-    Comparable<ViewProperty> {
+    val value: String,
+    val isSizeProperty: Boolean = false,
+    val intValue: Int = 0
+) : Comparable<ViewProperty> {
+
     override fun toString(): String {
         return "$fullName=$value"
     }
