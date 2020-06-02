@@ -4,9 +4,7 @@ import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
-import java.awt.event.ActionEvent
-import java.awt.event.ActionListener
-import java.awt.event.KeyEvent
+import java.awt.event.*
 import javax.swing.*
 import javax.swing.table.AbstractTableModel
 
@@ -42,6 +40,11 @@ class CollapsibleTable(
                 expand()
             }
         }
+        table.addFocusListener(object : FocusAdapter() {
+            override fun focusLost(e: FocusEvent) {
+                table.clearSelection()
+            }
+        })
         add(collapseBtn, BorderLayout.NORTH)
     }
 
