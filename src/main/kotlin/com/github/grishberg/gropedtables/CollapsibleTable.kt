@@ -84,29 +84,31 @@ class CollapsibleTable(
 
     private inner class CopyAction : ActionListener {
         override fun actionPerformed(e: ActionEvent) {
-            if (e.getActionCommand().compareTo("Copy") == 0) {
-                val sbf = StringBuffer()
-                val numcols: Int = table.columnModel.columnCount
-                val numrows: Int = table.getSelectedRowCount()
-
-                if (numrows < 1) {
-                    JOptionPane.showMessageDialog(
-                        null, "Invalid Copy Selection",
-                        "Invalid Copy Selection", JOptionPane.ERROR_MESSAGE
-                    )
-                    return
-                }
-                val rowsselected = table.getSelectedRows().first()
-
-                for (j in 0 until numcols) {
-                    sbf.append(table.getValueAt(rowsselected, j))
-                    if (j < numcols - 1) sbf.append("\t")
-                }
-
-                val stringSelection = StringSelection(sbf.toString())
-                val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-                clipboard.setContents(stringSelection, null)
+            if (e.actionCommand.compareTo("Copy") != 0) {
+                return
             }
+            val sbf = StringBuffer()
+            val numcols: Int = table.columnModel.columnCount
+            val numrows: Int = table.getSelectedRowCount()
+
+            if (numrows < 1) {
+                JOptionPane.showMessageDialog(
+                    null, "Invalid Copy Selection",
+                    "Invalid Copy Selection", JOptionPane.ERROR_MESSAGE
+                )
+                return
+            }
+            val rowsselected = table.getSelectedRows().first()
+
+            for (j in 0 until numcols) {
+                sbf.append(table.getValueAt(rowsselected, j))
+                if (j < numcols - 1) sbf.append("\t")
+            }
+
+            val stringSelection = StringSelection(sbf.toString())
+            val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+            clipboard.setContents(stringSelection, null)
+
         }
     }
 
