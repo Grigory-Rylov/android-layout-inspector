@@ -4,13 +4,12 @@ import java.awt.BorderLayout
 import java.awt.Color
 import javax.swing.JButton
 import javax.swing.JPanel
-import javax.swing.JTable
 import javax.swing.table.AbstractTableModel
 
-class Collapsible(
+class CollapsibleTable(
     private val title: String, tableData: TableRowInfo, collapsed: Boolean
 ) : JPanel() {
-    private val table = JTable()
+    private val table = TableWithCutOffCellsTooltip()
     private val collapseBtn: JButton
     private val tableData: TableRowInfo
     private var isCollapsed: Boolean

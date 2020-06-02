@@ -1,26 +1,36 @@
 package com.github.grishberg.gropedtables
 
-import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
-import java.awt.Color
-import javax.swing.Box
-import javax.swing.BoxLayout
+import java.awt.BorderLayout
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
 import javax.swing.JComponent
+import javax.swing.JPanel
 
 
-class GroupedTable : Box(BoxLayout.Y_AXIS) {
-    private val children = mutableListOf<Collapsible>()
+class GroupedTable : JPanel() {
+    private val tableContainer = JPanel()
+
+    private val children = mutableListOf<CollapsibleTable>()
 
     private val expandedGroups = mutableSetOf<String>()
     private val collapsedExpandAction = CollapsedExpandAction()
+    val constraints = GridBagConstraints()
 
     init {
-        background = Color.CYAN
-        //border = EmptyBorder(8, 8, 8, 8)
+        layout = BorderLayout()
+        add(tableContainer, BorderLayout.NORTH)
+
+        // children
+        tableContainer.layout = GridBagLayout()
+
+        constraints.anchor = GridBagConstraints.PAGE_START
+        constraints.fill = GridBagConstraints.HORIZONTAL
+        constraints.weightx = 1.0
+        constraints.gridx = 0
     }
 
     fun updateData(data: GroupedTableDataModel, allExpanded: Boolean = false) {
-        val builder = LabeledGridBuilder()
-        removeAll()
+        tableContainer.removeAll()
         children.clear()
         val groupsCount = data.getGroupsCount()
         for (i in 0 until groupsCount) {
@@ -33,17 +43,17 @@ class GroupedTable : Box(BoxLayout.Y_AXIS) {
                 expandedGroups.contains(groupName)
             }
 
-            val collapsible = Collapsible(groupName, data.getTableRowInfo(i), !shouldExpand)
+            val collapsible = CollapsibleTable(groupName, data.getTableRowInfo(i), !shouldExpand)
             collapsible.collapsedAction = collapsedExpandAction
             addSingleComponent(collapsible)
             children.add(collapsible)
         }
-        add(builder.content)
         repaint()
     }
 
     private fun addSingleComponent(component: JComponent) {
-        add(component)
+        //add(component, cons)
+        tableContainer.add(component, constraints)
     }
 
     fun expandAll() {
@@ -54,7 +64,7 @@ class GroupedTable : Box(BoxLayout.Y_AXIS) {
         children.forEach { it.collapse() }
     }
 
-    private inner class CollapsedExpandAction : Collapsible.CollapseExpandAction {
+    private inner class CollapsedExpandAction : CollapsibleTable.CollapseExpandAction {
         override fun onCollapsed(groupName: String) {
             expandedGroups.remove(groupName)
         }
