@@ -35,6 +35,17 @@ Also you can switch to *DP* dimension mode.
 ### Find
 **Ctrl + f** - Open find dialog (type text and press **Enter**)
 
+## Troubleshooting
+Sometimes Android Studio holds debug ports and Layout Inspector cannot find applications on device.
+Try to close Android Studio, close **Record new layout** dialog and open dialog again.
+You can set value to `true` for key `shouldStopAdbAfterJob` in `android-layout-inspector-settings.json` to allow forcibly disconnect ADB connection after end of operations, sometimes it can help without closing AS.
+
+## Settings
+Settings are stored in `android-layout-inspector-settings.json` :
+
+ - `shouldStopAdbAfterJob` allows to forcibly close ADB after operations and after exit
+ - `remoteDeviceAddress` if not empty - try to connect to remote device with address `"remoteDeviceAddress"` and before connection to ADB (experimental)
+
 # License
 
 Yet another android layout inspector is released under the [Apache License, Version 2.0](LICENSE.txt).
