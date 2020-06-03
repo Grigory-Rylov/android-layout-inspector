@@ -14,7 +14,8 @@ import javax.swing.KeyStroke
 class KeyBinder(
     keyBinderComponent: JComponent,
     private val layoutPanel: LayoutPanel,
-    private val logic: Logic
+    private val logic: Logic,
+    private val main: Main
 ) {
     val condition = JComponent.WHEN_IN_FOCUSED_WINDOW
     val inputMap = keyBinderComponent.getInputMap(condition)
@@ -23,11 +24,11 @@ class KeyBinder(
 
     init {
         //addKeyMapWithCtrl(KeyEvent.VK_C, CopySelectedFullClassNameAction())
-        //addKeyMapWithCtrl(KeyEvent.VK_F, GoToFindAction())
         //addKeyMap(KeyEvent.VK_ESCAPE, RemoveSelectionAction())
         addKeyMapWithCtrl(KeyEvent.VK_O, OpenFileDialogAction())
         addKeyMapWithCtrl(KeyEvent.VK_N, NewTraceAction())
         addKeyMap(KeyEvent.VK_Z, ResetZoomAction())
+        addKeyMapWithCtrl(KeyEvent.VK_F, GoToFindAction())
     }
 
     private fun addKeyMapWithCtrl(keyCode: Int, action: AbstractAction) {
@@ -81,6 +82,13 @@ class KeyBinder(
         override fun actionPerformed(e: ActionEvent) {
             if (shouldSkip(e)) return
             layoutPanel.resetZoom()
+        }
+    }
+
+    private inner class GoToFindAction : AbstractAction() {
+        override fun actionPerformed(e: ActionEvent) {
+            if (shouldSkip(e)) return
+            main.showFindDialog()
         }
     }
 }

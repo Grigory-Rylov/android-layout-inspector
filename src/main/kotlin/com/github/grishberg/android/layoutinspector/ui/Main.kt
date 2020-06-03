@@ -12,6 +12,7 @@ import com.github.grishberg.android.layoutinspector.domain.Logic
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.providers.ClientsProvider
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
+import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.WindowsDialog
@@ -24,6 +25,8 @@ import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
 import com.github.grishberg.tracerecorder.exceptions.DebugPortBusyException
 import java.awt.BorderLayout
 import java.awt.event.ActionEvent
+import java.awt.event.ActionListener
+import java.awt.event.KeyEvent
 import java.io.File
 import java.net.Socket
 import java.net.SocketException
@@ -56,6 +59,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     private val fileMenu: JMenu
     private val loadingDialog: LoadingDialog
     private val windowsDialog: WindowsDialog
+    private val findDialog: FindDialog
+
     private val logger: AppLogger = SimpleConsoleLogger("")
     private val settings = JsonSettings(logger)
     private val fileChooser = JFileChooser()
@@ -75,6 +80,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         val selectionAction = TreeNodeSelectedAction()
         treePanel.nodeSelectedAction = selectionAction
         layoutPanel.setOnLayoutSelectedAction(selectionAction)
+        findDialog = FindDialog(this, treePanel)
+        addEscapeListener(findDialog)
 
         val treeScrollPane = JScrollPane(
             treePanel,
@@ -94,8 +101,6 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         statusLabel = JLabel()
         mainPanel.add(statusLabel, BorderLayout.NORTH)
         contentPane = mainPanel
-
-        val toolbarPanel = JPanel(BorderLayout(2, 2))
 
         fileMenu = createFileMenu()
         createMenu(fileMenu)
@@ -117,6 +122,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         val clientsWindowsProvider = ClientsProvider()
 
         val devicesInputDialog = NewLayoutDialog(this, deviceProvider, clientsWindowsProvider, logger, settings)
+        addEscapeListener(devicesInputDialog)
 
         loadingDialog = LoadingDialog(this)
         val fileSystem = LayoutFileSystem(logger)
@@ -130,7 +136,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     }
 
     fun initUi() {
-        KeyBinder(mainPanel, layoutPanel, logic)
+        KeyBinder(mainPanel, layoutPanel, logic, this)
     }
 
     private fun doOnClose() {
@@ -210,6 +216,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         layoutPanel.showLayoutResult(resultOutput)
         treePanel.showLayoutResult(resultOutput)
         propertiesPanel.dpPerPixels = resultOutput.dpPerPixels
+        findDialog.rootNode = resultOutput.node
         splitPane1.invalidate()
     }
 
@@ -251,6 +258,10 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         if (settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, true)) {
             adb.stop()
         }
+    }
+
+    internal fun showFindDialog() {
+        findDialog.showDialog()
     }
 
     private fun isPortAlreadyUsed(port: Int): Boolean {
@@ -306,6 +317,15 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
             // Function to set visibilty of JFrame.
             sl.isVisible = true
             sl.initUi()
+        }
+
+        fun addEscapeListener(dialog: JDialog) {
+            val escListener = ActionListener { dialog.isVisible = false }
+            dialog.rootPane.registerKeyboardAction(
+                escListener,
+                KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+            )
         }
     }
 }

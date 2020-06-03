@@ -29,11 +29,6 @@ hs_err_pid*
 
 .DS_Store
 
-/.idea/workspace.xml
-/.idea/gradle.xml
-/.idea/jarRepositories.xml
-/.idea/misc.xml
-/.idea/uiDesigner.xml
-/.idea/vcs.xml
+/.idea
 log.txt
 android-layout-inspector-settings.json
