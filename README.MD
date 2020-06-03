@@ -1,4 +1,5 @@
 #Yet another android layout inspector
+
 More stable Android Layout inspector than Android Studio Layout Inspector.
 Allows you to switch between displaying dimensions in **PX** and **DP** (only for new layout captures, not for opened files)
 
