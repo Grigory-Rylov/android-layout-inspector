@@ -76,7 +76,7 @@ class PropertiesPanel {
             if (col == 0) {
                 return currentProperty.name
             }
-            if (sizeInDp && currentProperty.isSizeProperty && dpPerPixels > 0) {
+            if (sizeInDp && currentProperty.isSizeProperty && dpPerPixels > 1) {
                 return roundOffDecimal(currentProperty.intValue.toDouble() / dpPerPixels) + " dp"
             }
             return currentProperty.value

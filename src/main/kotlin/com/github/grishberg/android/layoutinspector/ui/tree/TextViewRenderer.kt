@@ -10,8 +10,9 @@ import javax.swing.JPanel
 import javax.swing.UIManager
 import kotlin.math.max
 
-class TextViewRenderer : JPanel() {
-    private val icon = createImageIcon("icons/text.png")
+class TextViewRenderer(
+    private val icon: ImageIcon
+) : JPanel() {
     private val selectionBorderColor: Color = UIManager.getColor("Tree.selectionBorderColor")
     private val selectionForeground: Color = UIManager.getColor("Tree.selectionForeground")
     private val selectionBackground: Color = UIManager.getColor("Tree.selectionBackground")
@@ -28,6 +29,8 @@ class TextViewRenderer : JPanel() {
 
     private val hiddenText1Color = Color(0, 0, 0, 127)
     private val hiddenText2Color = Color(0, 0, 0, 90)
+
+    private val selectionHiddenTextColor = Color(220, 220, 220)
 
     private var text1: String = ""
     private var text2: String = ""
@@ -84,6 +87,9 @@ class TextViewRenderer : JPanel() {
             return hoveredText1Color
         }
         if (!nodeVisible) {
+            if (selected) {
+                return selectionHiddenTextColor
+            }
             return hiddenText1Color
         }
         if (selected) {
@@ -101,6 +107,9 @@ class TextViewRenderer : JPanel() {
             return hoveredText2Color
         }
         if (!nodeVisible) {
+            if (selected) {
+                return selectionHiddenTextColor
+            }
             return hiddenText2Color
         }
         if (selected) {
@@ -108,15 +117,5 @@ class TextViewRenderer : JPanel() {
         }
 
         return text2Foreground
-    }
-
-    /** Returns an ImageIcon, or null if the path was invalid.  */
-    private fun createImageIcon(path: String): ImageIcon {
-        val imgURL = ClassLoader.getSystemResource(path)
-        return if (imgURL != null) {
-            ImageIcon(imgURL)
-        } else {
-            throw IllegalStateException("$path not found")
-        }
     }
 }

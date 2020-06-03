@@ -17,18 +17,25 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
     var nodeSelectedAction: OnNodeSelectedAction? = null
     private var selectedFromLayoutClick = false
     private val copyTypeStroke =
-        KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().menuShortcutKeyMask, false)
+            KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().menuShortcutKeyMask, false)
+
+    private val copyFullNameStroke = KeyStroke.getKeyStroke(
+            KeyEvent.VK_C,
+            Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.ALT_MASK,
+            false
+    )
     private val copyIdStroke = KeyStroke.getKeyStroke(
-        KeyEvent.VK_C,
-        Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.SHIFT_MASK,
-        false
+            KeyEvent.VK_C,
+            Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.SHIFT_MASK,
+            false
     )
 
     private val viewNodeRenderer = NodeViewTreeCellRenderer()
 
     init {
         isRootVisible = true
-        registerKeyboardAction(CopyTypeAction(), "Copy", copyTypeStroke, JComponent.WHEN_FOCUSED)
+        registerKeyboardAction(CopyShortNameAction(), "Copy", copyTypeStroke, JComponent.WHEN_FOCUSED)
+        registerKeyboardAction(CopyFullNameAction(), "Copy", copyFullNameStroke, JComponent.WHEN_FOCUSED)
         registerKeyboardAction(CopyIdAction(), "Copy", copyIdStroke, JComponent.WHEN_FOCUSED)
 
         addTreeSelectionListener {
@@ -98,7 +105,7 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
         repaint()
     }
 
-    private inner class CopyTypeAction : ActionListener {
+    private inner class CopyShortNameAction : ActionListener {
         override fun actionPerformed(e: ActionEvent) {
             if (e.actionCommand.compareTo("Copy") != 0) {
                 return
@@ -108,9 +115,21 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
             }
 
             val selectedValue = selectionPath.lastPathComponent as ViewNode
-            val stringSelection = StringSelection(selectedValue.typeAsString())
-            val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-            clipboard.setContents(stringSelection, null)
+            copyToClipboard(selectedValue.typeAsString())
+        }
+    }
+
+    private inner class CopyFullNameAction : ActionListener {
+        override fun actionPerformed(e: ActionEvent) {
+            if (e.actionCommand.compareTo("Copy") != 0) {
+                return
+            }
+            if (selectionPath == null) {
+                return
+            }
+
+            val selectedValue = selectionPath.lastPathComponent as ViewNode
+            copyToClipboard(selectedValue.name)
         }
     }
 
@@ -131,10 +150,14 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
             } else {
                 id
             }
-            val stringSelection = StringSelection(rawId)
-            val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-            clipboard.setContents(stringSelection, null)
+            copyToClipboard(rawId)
         }
+    }
+
+    private fun copyToClipboard(rawId: String) {
+        val stringSelection = StringSelection(rawId)
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        clipboard.setContents(stringSelection, null)
     }
 
     interface OnNodeSelectedAction {
