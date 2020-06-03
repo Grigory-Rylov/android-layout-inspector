@@ -5,7 +5,7 @@ import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.common.SimpleConsoleLogger
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
-import com.android.layoutinspector.settings.JsonSettings
+import com.github.grishberg.android.layoutinspector.settings.JsonSettings
 import com.github.grishberg.android.layoutinspector.domain.DialogsInput
 import com.github.grishberg.android.layoutinspector.domain.LayoutResultOutput
 import com.github.grishberg.android.layoutinspector.domain.Logic

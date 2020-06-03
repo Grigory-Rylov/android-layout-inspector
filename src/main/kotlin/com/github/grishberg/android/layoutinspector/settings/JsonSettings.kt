@@ -1,4 +1,4 @@
-package com.android.layoutinspector.settings
+package com.github.grishberg.android.layoutinspector.settings
 
 import com.android.layoutinspector.common.AppLogger
 import com.google.gson.GsonBuilder

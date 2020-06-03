@@ -4,7 +4,7 @@ import com.android.ddmlib.AndroidDebugBridge
 import com.android.ddmlib.AndroidDebugBridge.IDeviceChangeListener
 import com.android.ddmlib.IDevice
 import com.android.layoutinspector.common.AppLogger
-import com.android.layoutinspector.settings.Settings
+import com.github.grishberg.android.layoutinspector.settings.Settings
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.exceptions.DeviceTimeoutException
 import kotlinx.coroutines.Dispatchers

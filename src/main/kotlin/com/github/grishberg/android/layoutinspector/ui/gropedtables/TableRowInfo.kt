@@ -1,4 +1,4 @@
-package com.github.grishberg.gropedtables
+package com.github.grishberg.android.layoutinspector.ui.gropedtables
 
 interface TableRowInfo {
     fun getColumnName(col: Int): String

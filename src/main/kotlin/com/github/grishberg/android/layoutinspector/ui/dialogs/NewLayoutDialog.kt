@@ -4,7 +4,7 @@ import com.android.ddmlib.ClientsChangedListener
 import com.android.ddmlib.ClientsListenerSetter
 import com.android.ddmlib.IDevice
 import com.android.layoutinspector.common.AppLogger
-import com.android.layoutinspector.settings.Settings
+import com.github.grishberg.android.layoutinspector.settings.Settings
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptions
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptionsInput
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider

@@ -2,9 +2,9 @@ package com.github.grishberg.android.layoutinspector.ui.info
 
 import com.android.layoutinspector.model.ViewNode
 import com.android.layoutinspector.model.ViewProperty
-import com.github.grishberg.gropedtables.GroupedTable
-import com.github.grishberg.gropedtables.GroupedTableDataModel
-import com.github.grishberg.gropedtables.TableRowInfo
+import com.github.grishberg.android.layoutinspector.ui.gropedtables.GroupedTable
+import com.github.grishberg.android.layoutinspector.ui.gropedtables.GroupedTableDataModel
+import com.github.grishberg.android.layoutinspector.ui.gropedtables.TableRowInfo
 import java.math.RoundingMode
 import java.text.DecimalFormat
 import javax.swing.JComponent
