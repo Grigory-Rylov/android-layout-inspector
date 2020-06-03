@@ -12,7 +12,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 
 private const val TAG = "DeviceProvider"
-private const val SETTINGS_ADB_INITIAL_COMMAND = "adbInitialCommand"
+private const val SETTINGS_ADB_INITIAL_DEVICE_ADDRESS = "adbConnectToAddress"
 
 class DeviceProvider(
     private val logger: AppLogger,
@@ -48,10 +48,12 @@ class DeviceProvider(
     suspend fun requestDevices(): List<IDevice> {
         val result = GlobalScope.async(Dispatchers.IO) {
             if (!adb.isConnected()) {
-                adb.connect()
-                val initialAdbCommand = settings.getStringValue(SETTINGS_ADB_INITIAL_COMMAND)
-                if (initialAdbCommand != null && initialAdbCommand.isNotEmpty()) {
-                    //TODO: connect to device
+
+                val initialConnectionDeviceAddress = settings.getStringValue(SETTINGS_ADB_INITIAL_DEVICE_ADDRESS)
+                if (initialConnectionDeviceAddress != null && initialConnectionDeviceAddress.isNotEmpty()) {
+                    adb.connect(initialConnectionDeviceAddress)
+                } else {
+                    adb.connect()
                 }
                 waitForDevices(adb)
             }
@@ -67,7 +69,7 @@ class DeviceProvider(
             try {
                 Thread.sleep(100)
                 count++
-            } catch (ignored: InterruptedException) {
+            } catch (ignored: Throwable) {
             }
             if (count > timeout * 10) {
                 adb.stop()

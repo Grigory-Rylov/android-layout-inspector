@@ -7,7 +7,6 @@ import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.settings.Settings
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptions
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptionsInput
-import com.github.grishberg.android.layoutinspector.process.providers.ClientsProvider
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
 import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import kotlinx.coroutines.Dispatchers
@@ -24,17 +23,15 @@ import javax.swing.text.NumberFormatter
 
 private const val TAG = "NewLayoutDialog"
 private const val TITLE = "Select Layout recording parameters"
-private const val SETTINGS_PKG = "package"
 private const val SETTINGS_TIMEOUT = "timeoutInSeconds"
-private const val SETTINGS_ADB_INITIAL_COMMAND = "adbInitialCommand"
+private const val SETTINGS_ADB_INITIAL_REMOTE_ADDRESS = "remoteDeviceAddress"
 
 class NewLayoutDialog(
     private val owner: Frame,
     private val deviceProvider: DeviceProvider,
-    private val clientsProvider: ClientsProvider,
     private val logger: AppLogger,
     private val settings: Settings
-) : JDialog(owner, TITLE, true), LayoutRecordOptionsInput {
+) : CloseByEscapeDialog(owner, TITLE, true), LayoutRecordOptionsInput {
     private val timeoutField: JFormattedTextField
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
@@ -49,7 +46,7 @@ class NewLayoutDialog(
         private set
 
     init {
-        settings.setStringValue(SETTINGS_ADB_INITIAL_COMMAND, "")
+        settings.setStringValue(SETTINGS_ADB_INITIAL_REMOTE_ADDRESS, "")
         val format = NumberFormat.getInstance()
         val formatter = NumberFormatter(format)
         formatter.valueClass = Integer::class.java
@@ -65,7 +62,7 @@ class NewLayoutDialog(
 
         devicesComboBox = JComboBox()
         devicesComboBox.model = devicesModel
-        devicesComboBox.setToolTipText("Device selector")
+        devicesComboBox.toolTipText = "Device selector"
         devicesComboBox.addItemListener {
             if (it.stateChange != ItemEvent.SELECTED) {
                 return@addItemListener

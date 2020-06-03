@@ -10,7 +10,6 @@ import com.github.grishberg.android.layoutinspector.domain.DialogsInput
 import com.github.grishberg.android.layoutinspector.domain.LayoutResultOutput
 import com.github.grishberg.android.layoutinspector.domain.Logic
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
-import com.github.grishberg.android.layoutinspector.process.providers.ClientsProvider
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
@@ -25,8 +24,6 @@ import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
 import com.github.grishberg.tracerecorder.exceptions.DebugPortBusyException
 import java.awt.BorderLayout
 import java.awt.event.ActionEvent
-import java.awt.event.ActionListener
-import java.awt.event.KeyEvent
 import java.io.File
 import java.net.Socket
 import java.net.SocketException
@@ -37,8 +34,8 @@ private const val INITIAL_SCREEN_WIDTH = 1024
 private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 300
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
-private const val VERSION = "20.06.02.00"
-const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdb"
+private const val VERSION = "20.06.03.00"
+const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdbAfterJob"
 private const val SETTINGS_SIZE_IN_DP = "sizeInDp"
 
 // create a class MainWindow extending JFrame
@@ -68,7 +65,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     // Constructor of MainWindow class
     init {
-        settings.setBoolValue(SETTINGS_SHOULD_STOP_ADB, settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, true))
+        settings.setBoolValue(SETTINGS_SHOULD_STOP_ADB, settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, false))
 
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
@@ -80,8 +77,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         val selectionAction = TreeNodeSelectedAction()
         treePanel.nodeSelectedAction = selectionAction
         layoutPanel.setOnLayoutSelectedAction(selectionAction)
-        findDialog = FindDialog(this, treePanel)
-        addEscapeListener(findDialog)
+        findDialog = FindDialog(this)
+        findDialog.foundAction = selectionAction
 
         val treeScrollPane = JScrollPane(
             treePanel,
@@ -119,10 +116,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         adb = AdbWrapperImpl(true, InspectorLogger())
         val deviceProvider = DeviceProvider(logger, adb, settings)
-        val clientsWindowsProvider = ClientsProvider()
 
-        val devicesInputDialog = NewLayoutDialog(this, deviceProvider, clientsWindowsProvider, logger, settings)
-        addEscapeListener(devicesInputDialog)
+        val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settings)
 
         loadingDialog = LoadingDialog(this)
         val fileSystem = LayoutFileSystem(logger)
@@ -141,7 +136,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     private fun doOnClose() {
         settings.save()
-        if (settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, true)) {
+        if (settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, false)) {
             adb.stop()
         }
     }
@@ -197,6 +192,11 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
             settings.setBoolValue(SETTINGS_SIZE_IN_DP, true)
         }
 
+        viewMenu.addSeparator()
+
+        val openFind = JMenuItem("Find")
+        viewMenu.add(openFind)
+        openFind.addActionListener { arg0: ActionEvent? -> showFindDialog() }
         return viewMenu
     }
 
@@ -216,7 +216,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         layoutPanel.showLayoutResult(resultOutput)
         treePanel.showLayoutResult(resultOutput)
         propertiesPanel.dpPerPixels = resultOutput.dpPerPixels
-        findDialog.rootNode = resultOutput.node
+        findDialog.updateRootNode(resultOutput.node)
         splitPane1.invalidate()
     }
 
@@ -224,7 +224,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         statusLabel.text = error
     }
 
-    private inner class TreeNodeSelectedAction : TreePanel.OnNodeSelectedAction, LayoutLogic.OnLayoutSelectedAction {
+    private inner class TreeNodeSelectedAction : TreePanel.OnNodeSelectedAction, LayoutLogic.OnLayoutSelectedAction,
+        FindDialog.OnFoundAction {
         override fun onViewNodeSelected(node: ViewNode) {
             layoutPanel.selectNode(node)
             propertiesPanel.showProperties(node)
@@ -246,6 +247,12 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         override fun onMouseExited() {
             treePanel.removeHovered()
         }
+
+        override fun onFound(results: List<ViewNode>) = Unit
+
+        override fun onSelectedFoundItem(node: ViewNode) {
+            onNodeSelected(node)
+        }
     }
 
     override fun showLoading() {
@@ -255,7 +262,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     override fun hideLoading() {
         loadingDialog.isVisible = false
-        if (settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, true)) {
+        if (settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, false)) {
             adb.stop()
         }
     }
@@ -317,15 +324,6 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
             // Function to set visibilty of JFrame.
             sl.isVisible = true
             sl.initUi()
-        }
-
-        fun addEscapeListener(dialog: JDialog) {
-            val escListener = ActionListener { dialog.isVisible = false }
-            dialog.rootPane.registerKeyboardAction(
-                escListener,
-                KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
-                JComponent.WHEN_IN_FOCUSED_WINDOW
-            )
         }
     }
 }
