@@ -5,6 +5,8 @@ Allows you to switch between displaying dimensions in **PX** and **DP** (only fo
 
 ![preview](assets/preview.png)
 
+![Searching mode](assets/find.png)
+
 ## Download
 ![GitHub All Releases](https://img.shields.io/github/downloads/Grigory-Rylov/android-layout-inspector/total?color=%234caf50&style=for-the-badge)  
 - [Download latest release](https://github.com/Grigory-Rylov/android-layout-inspector/releases)
