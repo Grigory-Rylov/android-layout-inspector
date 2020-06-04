@@ -143,7 +143,7 @@ class NodeViewTreeCellRenderer(
             return frameLayoutIcon
         }
 
-        if (nodeTypeShort == "AppBarLayout") {
+        if (nodeTypeShort == "AppBarLayout" || node.name == "com.android.internal.widget.ActionBarContainer") {
             return appBarIcon
         }
 
@@ -151,7 +151,7 @@ class NodeViewTreeCellRenderer(
             return constraintLayoutIcon
         }
 
-        if (nodeTypeShort == "CollapsingToolbarLayout") {
+        if (nodeTypeShort == "CollapsingToolbarLayout" || nodeTypeShort == "Toolbar") {
             return toolbarIcon
         }
 
