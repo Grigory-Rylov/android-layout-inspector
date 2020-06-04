@@ -40,6 +40,7 @@ class NewLayoutDialog(
     private val clientWindowsTimeout = settings.getIntValueOrDefault(SETTINGS_WAIT_FOR_CLIENT_WINDOWS_TIMEOUT, 10)
 
     private val timeoutField: JFormattedTextField
+    private val showAllPrecesses: JCheckBox
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
     private val devicesModel = DevicesCompoBoxModel()
@@ -80,6 +81,15 @@ class NewLayoutDialog(
             populateWithClients(device)
         }
 
+        showAllPrecesses = JCheckBox("any processes")
+        showAllPrecesses.addActionListener {
+            val device = devicesComboBox.selectedItem as IDevice?
+
+            if (device != null) {
+                populateWithClients(device)
+            }
+        }
+
         clientsList = JList(clientListModel)
         clientsList.selectionMode = ListSelectionModel.SINGLE_SELECTION
         val listScroll = JScrollPane(clientsList)
@@ -103,6 +113,7 @@ class NewLayoutDialog(
         val panelBuilder = LabeledGridBuilder()
         panelBuilder.addLabeledComponent("device: ", devicesComboBox)
         panelBuilder.addSingleComponent(JLabel("Applications:"))
+        panelBuilder.addSingleComponent(showAllPrecesses)
         panelBuilder.addSingleComponent(listScroll)
         panelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
         panelBuilder.addSingleComponent(startButton)
@@ -191,7 +202,7 @@ class NewLayoutDialog(
 
     private fun populateWithClients(device: IDevice) {
         GlobalScope.launch(Dispatchers.Swing) {
-            val clients = getClientsWithWindow(device)
+            val clients = getClientsWithWindow(device, showAllPrecesses.isSelected)
             clientListModel.clear()
             for (c in clients) {
                 clientListModel.addElement(c)
@@ -202,11 +213,18 @@ class NewLayoutDialog(
         }
     }
 
-    private suspend fun getClientsWithWindow(device: IDevice): List<ClientWrapper> {
+    private suspend fun getClientsWithWindow(device: IDevice, allProcesses: Boolean): List<ClientWrapper> {
         val async = GlobalScope.async {
             val clientsWithWindow = mutableListOf<ClientWrapper>()
             val clients = device.clients
             for (c in clients) {
+                if (allProcesses) {
+                    val element = ClientWrapper(c)
+                    logger.d("$TAG: found client: $element")
+                    clientsWithWindow.add(element)
+                    continue
+                }
+
                 val windows =
                     ClientWindow.getAll(logger, c, clientWindowsTimeout.toLong(), TimeUnit.SECONDS) ?: emptyList()
 

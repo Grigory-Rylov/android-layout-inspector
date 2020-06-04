@@ -7,7 +7,6 @@ import java.awt.datatransfer.StringSelection
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.awt.event.KeyEvent
-import javax.swing.ImageIcon
 import javax.swing.JComponent
 import javax.swing.JTree
 import javax.swing.KeyStroke
@@ -56,23 +55,7 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
         setCellRenderer(viewNodeRenderer)
     }
 
-    /** Returns an ImageIcon, or null if the path was invalid.  */
-    private fun createImageIcon(path: String): ImageIcon? {
-        val imgURL = ClassLoader.getSystemResource(path)
-        return if (imgURL != null) {
-            ImageIcon(imgURL)
-        } else {
-            System.err.println("Couldn't find file: $path")
-            null
-        }
-    }
-
-
     fun showLayoutResult(resultOutput: LayoutFileData) {
-        if (resultOutput.node == null) {
-            return
-        }
-
         resultOutput.node?.let {
             model = ViewNodeTreeModel(it)
             expandAllNodes(this)
