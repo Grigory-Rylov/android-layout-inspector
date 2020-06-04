@@ -4,19 +4,23 @@ import com.android.ddmlib.ClientsChangedListener
 import com.android.ddmlib.ClientsListenerSetter
 import com.android.ddmlib.IDevice
 import com.android.layoutinspector.common.AppLogger
-import com.github.grishberg.android.layoutinspector.settings.Settings
+import com.android.layoutinspector.model.ClientWindow
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptions
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptionsInput
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
+import com.github.grishberg.android.layoutinspector.settings.Settings
+import com.github.grishberg.android.layoutinspector.ui.SETTINGS_ANDROID_HOME
 import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import java.awt.Dimension
 import java.awt.Frame
 import java.awt.event.*
 import java.text.NumberFormat
+import java.util.concurrent.TimeUnit
 import javax.swing.*
 import javax.swing.text.NumberFormatter
 
@@ -25,6 +29,7 @@ private const val TAG = "NewLayoutDialog"
 private const val TITLE = "Select Layout recording parameters"
 private const val SETTINGS_TIMEOUT = "timeoutInSeconds"
 private const val SETTINGS_ADB_INITIAL_REMOTE_ADDRESS = "remoteDeviceAddress"
+private const val SETTINGS_WAIT_FOR_CLIENT_WINDOWS_TIMEOUT = "clientWindowsTimeout"
 
 class NewLayoutDialog(
     private val owner: Frame,
@@ -32,6 +37,8 @@ class NewLayoutDialog(
     private val logger: AppLogger,
     private val settings: Settings
 ) : CloseByEscapeDialog(owner, TITLE, true), LayoutRecordOptionsInput {
+    private val clientWindowsTimeout = settings.getIntValueOrDefault(SETTINGS_WAIT_FOR_CLIENT_WINDOWS_TIMEOUT, 10)
+
     private val timeoutField: JFormattedTextField
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
@@ -110,6 +117,19 @@ class NewLayoutDialog(
             override fun componentHidden(e: ComponentEvent?) = Unit
             override fun componentShown(e: ComponentEvent?) = Unit
         })
+
+        checkAndroidHome()
+    }
+
+    private fun checkAndroidHome() {
+        if (settings.getStringValueOrDefault(SETTINGS_ANDROID_HOME, "").isEmpty()) {
+            JOptionPane.showMessageDialog(
+                owner,
+                "For recording need to set ANDROID_HOME env variable." +
+                        "\nIf value is already set, start app from terminal 'java -jar android-methods-profiler.jar'" +
+                        "\nOr set '" + SETTINGS_ANDROID_HOME + "' in android-layout-inspector-settings.json"
+            )
+        }
     }
 
     private fun startRecording() {
@@ -170,15 +190,35 @@ class NewLayoutDialog(
     }
 
     private fun populateWithClients(device: IDevice) {
-        clientListModel.clear()
-        val clients = device.clients
-        for (c in clients) {
-            val element = ClientWrapper(c)
-            logger.d("$TAG: found client: $element")
-            clientListModel.addElement(element)
+        GlobalScope.launch(Dispatchers.Swing) {
+            val clients = getClientsWithWindow(device)
+            clientListModel.clear()
+            for (c in clients) {
+                clientListModel.addElement(c)
+            }
+            pack()
+            repaint()
+
         }
-        pack()
-        repaint()
+    }
+
+    private suspend fun getClientsWithWindow(device: IDevice): List<ClientWrapper> {
+        val async = GlobalScope.async {
+            val clientsWithWindow = mutableListOf<ClientWrapper>()
+            val clients = device.clients
+            for (c in clients) {
+                val windows =
+                    ClientWindow.getAll(logger, c, clientWindowsTimeout.toLong(), TimeUnit.SECONDS) ?: emptyList()
+
+                if (windows.isNotEmpty()) {
+                    val element = ClientWrapper(c)
+                    logger.d("$TAG: found client: $element, windows count: ${windows.size}")
+                    clientsWithWindow.add(element)
+                }
+            }
+            return@async clientsWithWindow
+        }
+        return async.await()
     }
 
     private inner class CliensListener : ClientsChangedListener {

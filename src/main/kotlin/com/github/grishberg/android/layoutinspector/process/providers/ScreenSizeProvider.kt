@@ -37,20 +37,4 @@ class ScreenSizeProvider {
 
         return receiver.output
     }
-
-    @Throws(
-        TimeoutException::class,
-        AdbCommandRejectedException::class,
-        ShellCommandUnresponsiveException::class,
-        IOException::class
-    )
-    private fun executeShellCommand(
-        command: String?,
-        receiver: IShellOutputReceiver?,
-        maxTimeToOutputResponse: Long,
-        maxTimeUnits: TimeUnit?
-    ) {
-    }
-
-
 }

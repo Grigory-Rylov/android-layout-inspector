@@ -5,12 +5,12 @@ import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.common.SimpleConsoleLogger
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
-import com.github.grishberg.android.layoutinspector.settings.JsonSettings
 import com.github.grishberg.android.layoutinspector.domain.DialogsInput
 import com.github.grishberg.android.layoutinspector.domain.LayoutResultOutput
 import com.github.grishberg.android.layoutinspector.domain.Logic
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
+import com.github.grishberg.android.layoutinspector.settings.JsonSettings
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
@@ -37,6 +37,8 @@ private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
 private const val VERSION = "20.06.04.00"
 const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdbAfterJob"
 private const val SETTINGS_SIZE_IN_DP = "sizeInDp"
+const val SETTINGS_ANDROID_HOME = "androidHome"
+
 
 // create a class MainWindow extending JFrame
 class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), LayoutResultOutput, DialogsInput {
@@ -65,6 +67,10 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     // Constructor of MainWindow class
     init {
+        val androidHome = System.getenv("ANDROID_HOME")
+        if (androidHome != null) {
+            settings.setStringValue(SETTINGS_ANDROID_HOME, androidHome)
+        }
         settings.setBoolValue(SETTINGS_SHOULD_STOP_ADB, settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, false))
 
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
@@ -114,7 +120,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         windowsDialog = WindowsDialog(this, logger)
 
-        adb = AdbWrapperImpl(true, InspectorLogger())
+        adb = AdbWrapperImpl(true, InspectorLogger(), settings.getStringValue(SETTINGS_ANDROID_HOME))
         val deviceProvider = DeviceProvider(logger, adb, settings)
 
         val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settings)

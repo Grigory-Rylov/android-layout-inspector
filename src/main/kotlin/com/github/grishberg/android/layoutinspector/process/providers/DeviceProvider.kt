@@ -40,7 +40,6 @@ class DeviceProvider(
             }
 
             override fun deviceChanged(device: IDevice, changeMask: Int) {
-                logger.d("$TAG: deviceChanged $device")
             }
         })
     }
