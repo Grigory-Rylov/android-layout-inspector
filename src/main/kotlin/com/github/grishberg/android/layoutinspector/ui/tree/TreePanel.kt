@@ -17,20 +17,21 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
     var nodeSelectedAction: OnNodeSelectedAction? = null
     private var selectedFromLayoutClick = false
     private val copyTypeStroke =
-            KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().menuShortcutKeyMask, false)
+        KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().menuShortcutKeyMask, false)
 
     private val copyFullNameStroke = KeyStroke.getKeyStroke(
-            KeyEvent.VK_C,
-            Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.ALT_MASK,
-            false
+        KeyEvent.VK_C,
+        Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.ALT_MASK,
+        false
     )
     private val copyIdStroke = KeyStroke.getKeyStroke(
-            KeyEvent.VK_C,
-            Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.SHIFT_MASK,
-            false
+        KeyEvent.VK_C,
+        Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.SHIFT_MASK,
+        false
     )
 
-    private val viewNodeRenderer = NodeViewTreeCellRenderer()
+    private val foundItems = mutableListOf<ViewNode>()
+    private val viewNodeRenderer = NodeViewTreeCellRenderer(foundItems)
 
     init {
         isRootVisible = true
@@ -102,6 +103,17 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
 
     fun removeHovered() {
         viewNodeRenderer.hoveredNode = null
+        repaint()
+    }
+
+    fun highlightFoundItems(items: List<ViewNode>) {
+        foundItems.clear()
+        foundItems.addAll(items)
+        repaint()
+    }
+
+    fun removeFoundItemsHighlighting() {
+        foundItems.clear()
         repaint()
     }
 

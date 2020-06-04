@@ -35,6 +35,9 @@ Also you can switch to *DP* dimension mode.
 ### Find
 **Ctrl + f** - Open find dialog (type text and press **Enter**)
 
+### Layouts
+**z** - reset zoom to 25%
+
 ## Troubleshooting
 Sometimes Android Studio holds debug ports and Layout Inspector cannot find applications on device.
 Try to close Android Studio, close **Record new layout** dialog and open dialog again.

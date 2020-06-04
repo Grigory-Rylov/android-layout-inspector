@@ -3,42 +3,84 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 import com.android.layoutinspector.model.ViewNode
 import java.awt.Color
 import java.awt.Component
-import java.awt.Image
 import javax.swing.ImageIcon
 import javax.swing.JTree
-import javax.swing.tree.DefaultTreeCellRenderer
+import javax.swing.UIManager
 import javax.swing.tree.TreeCellRenderer
 
-private const val ICON_SIZE = 16
 
-class NodeViewTreeCellRenderer : TreeCellRenderer {
+class NodeViewTreeCellRenderer(
+    private val foundItems: List<ViewNode>
+) : TreeCellRenderer {
     var hoveredNode: ViewNode? = null
+    private val iconsStore = IconsStore()
 
-    val fabIcon = createImageIcon("icons/fab.png")
-    val appBarIcon = createImageIcon("icons/appbar.png")
-    val coordinatorLayoutIcon = createImageIcon("icons/coordinator_layout.png")
-    val constraintLayoutIcon = createImageIcon("icons/constraint_layout.png")
-    val frameLayoutIcon = createImageIcon("icons/frame_layout.png")
-    val linearLayoutIcon = createImageIcon("icons/linear_layout.png")
-    val cardViewIcon = createImageIcon("icons/cardView.png")
-    val viewStubIcon = createImageIcon("icons/viewstub.png")
-    val toolbarIcon = createImageIcon("icons/toolbar.png")
-    val listViewIcon = createImageIcon("icons/recyclerView.png")
-    val relativeLsyoutIcon = createImageIcon("icons/relativeLayout.png")
-    val textIcon = createImageIcon("icons/text.png")
-    val imageViewIcon = createImageIcon("icons/imageView.png")
-    val nestedScrollViewIcon = createImageIcon("icons/nestedScrollView.png")
-    val viewSwitcherIcon = createImageIcon("icons/viewSwitcher.png")
-    val viewPagerIcon = createImageIcon("icons/viewPager.png")
-    val viewIcon = createImageIcon("icons/view.png")
+    private val textIcon = iconsStore.createImageIcon("icons/text.png")
+    private val fabIcon = iconsStore.createImageIcon("icons/fab.png")
+    private val appBarIcon = iconsStore.createImageIcon("icons/appbar.png")
+    private val coordinatorLayoutIcon = iconsStore.createImageIcon("icons/coordinator_layout.png")
+    private val constraintLayoutIcon = iconsStore.createImageIcon("icons/constraint_layout.png")
+    private val frameLayoutIcon = iconsStore.createImageIcon("icons/frame_layout.png")
+    private val linearLayoutIcon = iconsStore.createImageIcon("icons/linear_layout.png")
+    private val cardViewIcon = iconsStore.createImageIcon("icons/cardView.png")
+    private val viewStubIcon = iconsStore.createImageIcon("icons/viewstub.png")
+    private val toolbarIcon = iconsStore.createImageIcon("icons/toolbar.png")
+    private val listViewIcon = iconsStore.createImageIcon("icons/recyclerView.png")
+    private val relativeLsyoutIcon = iconsStore.createImageIcon("icons/relativeLayout.png")
+    private val imageViewIcon = iconsStore.createImageIcon("icons/imageView.png")
+    private val nestedScrollViewIcon = iconsStore.createImageIcon("icons/nestedScrollView.png")
+    private val viewSwitcherIcon = iconsStore.createImageIcon("icons/viewSwitcher.png")
+    private val viewPagerIcon = iconsStore.createImageIcon("icons/viewPager.png")
+    private val viewIcon = iconsStore.createImageIcon("icons/view.png")
 
-    private val hoveredTextColor = Color(45, 71, 180)
-    private val selectionHoveredText1Color = Color(220, 225, 238)
-    private val hiddenTextColor = Color(0, 0, 0, 127)
-    private val selectionHiddenTextColor = Color(220, 220, 220)
+    private val text1ForegroundColor = UIManager.getColor("Tree.textForeground")
+    private val textBackground: Color = UIManager.getColor("Tree.textBackground")
+
+    private val selectionForeground1 = UIManager.getColor("Tree.selectionForeground")
+
+    private val text2ForegroundColor = Color(0, 0, 0, 127)
+    private val selectionForeground2: Color = Color(0, 0, 0, 127)
+
+    private val hoveredText1Color = Color(45, 71, 180)
+    private val hoveredText2Color = Color(57, 90, 227)
+
+    private val selectionHoveredText1Color = Color(240, 245, 248)
+    private val selectionHoveredText2Color = Color(186, 225, 255, 220)
+
+    private val hiddenText1Color = Color(0, 0, 0, 127)
+    private val hiddenText2Color = Color(0, 0, 0, 90)
+
+    private val selectionHiddenText1Color = Color(220, 220, 220)
+    private val selectionHiddenText2Color = Color(220, 220, 220)
+
+    private val foundTextColor = Color(204, 42, 49)
+    private val selectedFoundTextColor = Color(255, 202, 185)
+
+    private val text1Foreground =
+        TextForegroundColor(
+            text1ForegroundColor,
+            selectionForeground1,
+            hiddenText1Color,
+            selectionHiddenText1Color,
+            hoveredText1Color,
+            selectionHoveredText1Color,
+            foundTextColor,
+            selectedFoundTextColor
+        )
+    private val text2Foreground =
+        TextForegroundColor(
+            text2ForegroundColor,
+            selectionForeground2,
+            hiddenText2Color,
+            selectionHiddenText2Color,
+            hoveredText2Color,
+            selectionHoveredText2Color,
+            foundTextColor,
+            selectedFoundTextColor
+        )
 
     private val textViewRenderer = TextViewRenderer(textIcon)
-    private val defaultCellRenderer = DefaultTreeCellRenderer()
+    private val defaultCellRenderer = SimpleViewNodeRenderer()
 
     override fun getTreeCellRendererComponent(
         tree: JTree?,
@@ -63,33 +105,28 @@ class NodeViewTreeCellRenderer : TreeCellRenderer {
         }
         val hovered = value == hoveredNode
         val visible = value.isDrawn
-
-        defaultCellRenderer.text = value.getFormattedName()
-
         val text = value.getText()
+        val highlighted = foundItems.contains(value)
+
+        val isTextView = text != null
+        val item: TreeItem = if (isTextView) {
+            textViewRenderer
+        } else {
+            defaultCellRenderer
+        }
+
+        var foreground1 = text1Foreground.textForeground(selected, hovered, highlighted, visible)
+        var foreground2 = text2Foreground.textForeground(selected, hovered, highlighted, visible)
+        item.setForeground(foreground1, foreground2)
+
         if (text != null) {
-            textViewRenderer.setText(value.typeAsString(), value.getElliptizedText(text))
+            item.setTitle(value.typeAsString(), value.getElliptizedText(text))
             textViewRenderer.selected = selected
             textViewRenderer.hovered = hovered
             return textViewRenderer
         }
-
-        defaultCellRenderer.icon = iconForNode(value)
-
-        if (!visible) {
-            if (selected) {
-                defaultCellRenderer.foreground = selectionHiddenTextColor
-            } else {
-                defaultCellRenderer.foreground = hiddenTextColor
-            }
-        }
-        if (hovered) {
-            if (selected) {
-                defaultCellRenderer.foreground = selectionHoveredText1Color
-            } else {
-                defaultCellRenderer.foreground = hoveredTextColor
-            }
-        }
+        item.setTitle(value.getFormattedName())
+        item.setIcon(iconForNode(value))
         return defaultCellRenderer
     }
 
@@ -157,15 +194,4 @@ class NodeViewTreeCellRenderer : TreeCellRenderer {
         return viewIcon
     }
 
-    /** Returns an ImageIcon, or null if the path was invalid.  */
-    private fun createImageIcon(path: String): ImageIcon {
-        val imgURL = ClassLoader.getSystemResource(path)
-        return if (imgURL != null) {
-            val readedIcon = ImageIcon(imgURL)
-            val image: Image = readedIcon.getImage()
-            ImageIcon(image.getScaledInstance(ICON_SIZE, ICON_SIZE, Image.SCALE_SMOOTH))
-        } else {
-            throw IllegalStateException("Image $path not found")
-        }
-    }
 }

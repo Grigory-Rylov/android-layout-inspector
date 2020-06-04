@@ -59,6 +59,10 @@ class FindDialog(
         pack()
     }
 
+    override fun onDialogClosed() {
+        foundAction?.onFoundDialogClosed()
+    }
+
     private fun find() {
         val text = findField.text
         if (text.isEmpty()) {
@@ -152,7 +156,8 @@ class FindDialog(
     }
 
     interface OnFoundAction {
-        fun onFound(results: List<ViewNode>)
+        fun onFound(foundItems: List<ViewNode>)
         fun onSelectedFoundItem(node: ViewNode)
+        fun onFoundDialogClosed()
     }
 }

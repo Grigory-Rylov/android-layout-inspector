@@ -34,7 +34,7 @@ private const val INITIAL_SCREEN_WIDTH = 1024
 private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 300
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
-private const val VERSION = "20.06.03.00"
+private const val VERSION = "20.06.04.00"
 const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdbAfterJob"
 private const val SETTINGS_SIZE_IN_DP = "sizeInDp"
 
@@ -248,10 +248,16 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
             treePanel.removeHovered()
         }
 
-        override fun onFound(results: List<ViewNode>) = Unit
+        override fun onFound(foundItems: List<ViewNode>) {
+            treePanel.highlightFoundItems(foundItems)
+        }
 
         override fun onSelectedFoundItem(node: ViewNode) {
             onNodeSelected(node)
+        }
+
+        override fun onFoundDialogClosed() {
+            treePanel.removeFoundItemsHighlighting()
         }
     }
 

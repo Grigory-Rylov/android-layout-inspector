@@ -2,6 +2,8 @@ package com.github.grishberg.android.layoutinspector.ui.dialogs
 
 import java.awt.Frame
 import java.awt.event.ActionEvent
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import javax.swing.*
 
 /**
@@ -10,11 +12,19 @@ import javax.swing.*
 open class CloseByEscapeDialog(
     owner: Frame, title: String, modal: Boolean = false
 ) : JDialog(owner, title, modal) {
+    init {
+        addWindowListener(object : WindowAdapter() {
+            override fun windowClosing(we: WindowEvent) {
+                onDialogClosed()
+            }
+        })
+    }
     override fun createRootPane(): JRootPane {
         val rootPane = JRootPane()
         val stroke = KeyStroke.getKeyStroke("ESCAPE")
         val actionListener: Action = object : AbstractAction() {
             override fun actionPerformed(actionEvent: ActionEvent?) {
+                onDialogClosed()
                 isVisible = false
             }
         }
@@ -23,4 +33,6 @@ open class CloseByEscapeDialog(
         rootPane.actionMap.put("ESCAPE", actionListener)
         return rootPane
     }
+
+    open fun onDialogClosed() = Unit
 }
