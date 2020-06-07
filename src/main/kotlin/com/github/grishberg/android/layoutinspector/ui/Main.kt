@@ -39,7 +39,7 @@ private const val INITIAL_SCREEN_WIDTH = 1024
 private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 300
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
-private const val VERSION = "20.06.04.00"
+private const val VERSION = "20.06.07.00"
 const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdbAfterJob"
 private const val SETTINGS_SIZE_IN_DP = "sizeInDp"
 const val SETTINGS_ANDROID_HOME = "androidHome"
@@ -150,13 +150,13 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         setSize(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT)
     }
 
-    private fun createStatusBar(statusLable: JLabel) {
+    private fun createStatusBar(statusLabel: JLabel) {
         val statusPanel = JPanel()
         statusPanel.border = BevelBorder(BevelBorder.LOWERED)
         mainPanel.add(statusPanel, BorderLayout.SOUTH)
         statusPanel.preferredSize = Dimension(width, 16)
         statusPanel.layout = BoxLayout(statusPanel, BoxLayout.X_AXIS)
-        statusLabel.horizontalAlignment = SwingConstants.LEFT
+        this.statusLabel.horizontalAlignment = SwingConstants.LEFT
         statusPanel.add(statusLabel)
     }
 
@@ -292,7 +292,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         }
 
         override fun onDistanceCalculated(dimensions: Map<DistanceType, Int>) {
-            val sb = StringBuilder()
+            val sb = StringBuilder(" ")
             var index = 0
             for (dimen in dimensions) {
                 when (dimen.key) {

@@ -20,6 +20,14 @@ Allows you to switch between displaying dimensions in **PX** and **DP** (only fo
 Because AS layout inspector sometimes cannot download layouts for some reasons.
 Also you can switch to *DP* dimension mode.
 
+## Measure distance between two element
+1) Select first element by **Mouse click** - it will be select by red square
+2) Select second element by **Mouse click + Shift** - it will be select by yellow square.
+
+In the status bar will shown distance between first and second
+![measurement](assets/measurement.png)
+
+
 ## Hotkeys
 ### Files
 **Ctrl + o** - Open file dialog
@@ -30,6 +38,8 @@ Also you can switch to *DP* dimension mode.
 **Ctrl + c** - Copy node name
 
 **Ctrl + Shift + c** - Copy node ID
+
+**Mouse click + Shift** - Select element to measure distance from selected to current.
 
 ### Properties table
 **Ctrl + c** - Copy property value
