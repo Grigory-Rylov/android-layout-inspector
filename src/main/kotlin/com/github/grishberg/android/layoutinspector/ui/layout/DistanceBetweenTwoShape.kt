@@ -12,10 +12,16 @@ enum class DistanceType {
     BOTTOM
 }
 
-data class DistanceData(val distance: Map<DistanceType, Int>, val lines: List<Shape>)
+data class DistanceData(val distance: Map<DistanceType, Double>, val lines: List<Shape>)
 
 class DistanceBetweenTwoShape {
-    fun calculateDistance(selectedBounds: Rectangle2D, targetBounds: Rectangle2D): DistanceData {
+    var dpPerPixels: Double = 1.0
+    var sizeInDpEnabled = false
+
+    fun calculateDistance(
+        selectedBounds: Rectangle2D,
+        targetBounds: Rectangle2D
+    ): DistanceData {
         val selectedLeft = selectedBounds.x
         val selectedRight = selectedBounds.x + selectedBounds.width
         val selectedTop = selectedBounds.y
@@ -36,7 +42,7 @@ class DistanceBetweenTwoShape {
         val selBottomToTargetBottom = selectedBottom - targetBottom
         val selBottomToTargetTop = selectedBottom - targetTop
 
-        val result = mutableMapOf<DistanceType, Int>()
+        val result = mutableMapOf<DistanceType, Double>()
         val lines = mutableListOf<Shape>()
 
         if (selectedBounds.contains(targetBounds) || targetBounds.contains(selectedBounds)) {
@@ -51,32 +57,32 @@ class DistanceBetweenTwoShape {
             }
             lines.add(Line2D.Double(selectedLeft, horizontalLineY, targetLeft, horizontalLineY))
             lines.add(Line2D.Double(selectedRight, horizontalLineY, targetRight, horizontalLineY))
-            lines.add(Line2D.Double(verticalLineX,selectedTop, verticalLineX,  targetTop))
-            lines.add(Line2D.Double(verticalLineX,selectedBottom, verticalLineX, targetBottom))
+            lines.add(Line2D.Double(verticalLineX, selectedTop, verticalLineX, targetTop))
+            lines.add(Line2D.Double(verticalLineX, selectedBottom, verticalLineX, targetBottom))
 
-            result[DistanceType.LEFT] = abs(selLeftToTargetLeft.toInt())
-            result[DistanceType.RIGHT] = abs(selRightToTargetRight.toInt())
-            result[DistanceType.TOP] = abs(selTopToTargetTop.toInt())
-            result[DistanceType.BOTTOM] = abs(selBottomToTargetBottom.toInt())
+            result[DistanceType.LEFT] = abs(convertValueToDpIfNeeded(selLeftToTargetLeft))
+            result[DistanceType.RIGHT] = abs(convertValueToDpIfNeeded(selRightToTargetRight))
+            result[DistanceType.TOP] = abs(convertValueToDpIfNeeded(selTopToTargetTop))
+            result[DistanceType.BOTTOM] = abs(convertValueToDpIfNeeded(selBottomToTargetBottom))
 
             return DistanceData(result, lines)
         }
 
         if (selectedBounds.intersects(targetBounds) || targetBounds.intersects(selectedBounds)) {
             if (selectedLeft > targetLeft) {
-                result[DistanceType.LEFT] = abs(selLeftToTargetRight.toInt())
-                result[DistanceType.RIGHT] = abs(selLeftToTargetLeft.toInt())
+                result[DistanceType.LEFT] = abs(convertValueToDpIfNeeded(selLeftToTargetRight))
+                result[DistanceType.RIGHT] = abs(convertValueToDpIfNeeded(selLeftToTargetLeft))
             } else {
-                result[DistanceType.RIGHT] = abs(selRightToTargetLeft.toInt())
-                result[DistanceType.LEFT] = abs(selLeftToTargetLeft.toInt())
+                result[DistanceType.RIGHT] = abs(convertValueToDpIfNeeded(selRightToTargetLeft))
+                result[DistanceType.LEFT] = abs(convertValueToDpIfNeeded(selLeftToTargetLeft))
             }
 
             if (selectedTop > targetTop) {
-                result[DistanceType.BOTTOM] = abs(selTopToTargetTop.toInt())
-                result[DistanceType.TOP] = abs(selTopToTargetBottom.toInt())
+                result[DistanceType.BOTTOM] = abs(convertValueToDpIfNeeded(selTopToTargetTop))
+                result[DistanceType.TOP] = abs(convertValueToDpIfNeeded(selTopToTargetBottom))
             } else {
-                result[DistanceType.TOP] = abs(selTopToTargetTop.toInt())
-                result[DistanceType.BOTTOM] = abs(selBottomToTargetTop.toInt())
+                result[DistanceType.TOP] = abs(convertValueToDpIfNeeded(selTopToTargetTop))
+                result[DistanceType.BOTTOM] = abs(convertValueToDpIfNeeded(selBottomToTargetTop))
             }
 
             return DistanceData(result, lines)
@@ -86,19 +92,26 @@ class DistanceBetweenTwoShape {
 
         if (selectedBounds.minX >= targetBounds.maxX) {
             lines.add(Line2D.Double(selectedLeft, horizontalLineY, targetRight, horizontalLineY))
-            result[DistanceType.LEFT] = abs(selLeftToTargetRight.toInt())
+            result[DistanceType.LEFT] = abs(convertValueToDpIfNeeded(selLeftToTargetRight))
         } else if (selectedBounds.maxX <= targetBounds.minX) {
             lines.add(Line2D.Double(targetLeft, horizontalLineY, selectedRight, horizontalLineY))
-            result[DistanceType.RIGHT] = abs(selRightToTargetLeft.toInt())
+            result[DistanceType.RIGHT] = abs(convertValueToDpIfNeeded(selRightToTargetLeft))
         }
         if (selectedBounds.minY >= targetBounds.maxY) {
             lines.add(Line2D.Double(verticalLineX, selectedTop, verticalLineX, targetBottom))
-            result[DistanceType.TOP] = abs(selTopToTargetBottom.toInt())
+            result[DistanceType.TOP] = abs(convertValueToDpIfNeeded(selTopToTargetBottom))
         } else if (selectedBounds.maxY <= targetBounds.minY) {
             lines.add(Line2D.Double(verticalLineX, selectedBottom, verticalLineX, targetTop))
-            result[DistanceType.BOTTOM] = abs(selBottomToTargetTop.toInt())
+            result[DistanceType.BOTTOM] = abs(convertValueToDpIfNeeded(selBottomToTargetTop))
         }
 
         return DistanceData(result, lines)
+    }
+
+    private fun convertValueToDpIfNeeded(value: Double): Double {
+        if (sizeInDpEnabled) {
+            return value / dpPerPixels
+        }
+        return value
     }
 }

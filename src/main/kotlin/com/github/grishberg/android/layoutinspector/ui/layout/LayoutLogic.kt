@@ -76,6 +76,7 @@ class LayoutLogic(
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {
+        distances.dpPerPixels = layoutData.dpPerPixels
         root = layoutData.node
         screenshot = layoutData.bufferedImage
         rectangles.clear()
@@ -194,10 +195,14 @@ class LayoutLogic(
         selectedRectangle = allRectangles[viewNode]
     }
 
+    fun setSizeDpMode(enabled: Boolean) {
+        distances.sizeInDpEnabled = enabled
+    }
+
     interface OnLayoutSelectedAction {
         fun onNodeHovered(node: ViewNode)
         fun onNodeSelected(node: ViewNode)
         fun onMouseExited()
-        fun onDistanceCalculated(dimensions: Map<DistanceType, Int>)
+        fun onDistanceCalculated(dimensions: Map<DistanceType, Double>)
     }
 }

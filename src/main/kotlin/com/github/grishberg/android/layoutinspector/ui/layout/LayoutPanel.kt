@@ -74,4 +74,8 @@ class LayoutPanel : JPanel() {
         zoomAndPanListener.setScale(0.25)
         repaint()
     }
+
+    fun setSizeDpMode(sizeInDpEnabled: Boolean) {
+        logic.setSizeDpMode(sizeInDpEnabled)
+    }
 }

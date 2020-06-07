@@ -70,6 +70,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     private val fileChooser = JFileChooser()
     private val mainPanel: JPanel
     private val statusDistanceLabel: JLabel
+    private var sizeInDp = false
 
     // Constructor of MainWindow class
     init {
@@ -88,7 +89,9 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         layoutPanel = LayoutPanel()
         treePanel = TreePanel()
         propertiesPanel = PropertiesPanel()
-        propertiesPanel.setSizeDpMode(settings.getBoolValueOrDefault(SETTINGS_SIZE_IN_DP, false))
+        sizeInDp = settings.getBoolValueOrDefault(SETTINGS_SIZE_IN_DP, false)
+        propertiesPanel.setSizeDpMode(sizeInDp)
+        layoutPanel.setSizeDpMode(sizeInDp)
 
         val selectionAction = TreeNodeSelectedAction()
         treePanel.nodeSelectedAction = selectionAction
@@ -144,8 +147,6 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         logic = Logic(devicesInputDialog, windowsDialog, this, logger, fileSystem, this)
 
         Runtime.getRuntime().addShutdownHook(Thread(this::doOnClose))
-        logic.startRecording()
-
 
         setSize(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT)
     }
@@ -162,6 +163,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     fun initUi() {
         KeyBinder(mainPanel, layoutPanel, logic, this)
+        logic.startRecording()
     }
 
     private fun doOnClose() {
@@ -231,14 +233,17 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     }
 
     private fun setSizeDpMode(enabled: Boolean) {
+        statusLabel.text = ""
+        sizeInDp = enabled
         propertiesPanel.setSizeDpMode(enabled)
+        layoutPanel.setSizeDpMode(enabled)
     }
 
-    internal fun startRecording() {
+    private fun startRecording() {
         logic.startRecording()
     }
 
-    internal fun openExistingFile() {
+    private fun openExistingFile() {
         logic.openFile()
     }
 
@@ -291,20 +296,30 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
             treePanel.removeFoundItemsHighlighting()
         }
 
-        override fun onDistanceCalculated(dimensions: Map<DistanceType, Int>) {
+        override fun onDistanceCalculated(dimensions: Map<DistanceType, Double>) {
             val sb = StringBuilder(" ")
             var index = 0
             for (dimen in dimensions) {
                 when (dimen.key) {
-                    DistanceType.LEFT -> sb.append("left = ${dimen.value}")
-                    DistanceType.RIGHT -> sb.append("right = ${dimen.value}")
-                    DistanceType.TOP -> sb.append("top = ${dimen.value}")
-                    DistanceType.BOTTOM -> sb.append("bottom = ${dimen.value}")
+                    DistanceType.LEFT -> sb.append("left = ")
+                    DistanceType.RIGHT -> sb.append("right = ")
+                    DistanceType.TOP -> sb.append("top = ")
+                    DistanceType.BOTTOM -> sb.append("bottom = ")
                 }
-                if (index < dimensions.size -1 ) {
-                    sb.append(", ")
+                if (sizeInDp) {
+                    sb.append("%.2f".format(dimen.value))
+                } else {
+                    sb.append("${dimen.value.toInt()}")
+                }
+                if (index < dimensions.size - 1) {
+                    sb.append(" ")
                 }
                 index++
+            }
+            if (sizeInDp) {
+                sb.append(" (dp)")
+            } else {
+                sb.append(" (px)")
             }
             statusLabel.text = sb.toString()
         }
