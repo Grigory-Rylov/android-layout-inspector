@@ -7,6 +7,7 @@ import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
+
 class LayoutLogic(
     private val panel: JPanel
 ) {
@@ -21,8 +22,13 @@ class LayoutLogic(
 
     private var selectedRectangle: Shape? = null
     private var measureRectangle: Shape? = null
+    private val measureLines = mutableListOf<Shape>()
     private val selectedColor = Color(248, 25, 25)
     private val measureColor = Color(248, 225, 25)
+    private val measureLineColor = selectedColor
+    private val measureLineStroke: Stroke =
+        BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0f, floatArrayOf(9f), 0f)
+
     private val distances = DistanceBetweenTwoShape()
 
     fun processMouseHover(point: Point) {
@@ -34,6 +40,7 @@ class LayoutLogic(
 
     fun processMouseClicked(point: Point) {
         measureRectangle = null
+        measureLines.clear()
         panel.requestFocus()
         val foundNode = getChildAtPoint(point)
         if (foundNode != null) {
@@ -58,13 +65,14 @@ class LayoutLogic(
     }
 
     private fun calculateDistance(measureRectangle: Shape) {
-        val selected = selectedRectangle?: throw IllegalStateException("No selected element to measure distance")
+        val selected = selectedRectangle ?: throw IllegalStateException("No selected element to measure distance")
         val selectedBounds = selected.bounds2D
         val targetBounds = measureRectangle.bounds2D
 
         val distances = distances.calculateDistance(selectedBounds, targetBounds)
-
-        onLayoutSelectedAction?.onDistanceCalculated(distances)
+        measureLines.clear()
+        measureLines.addAll(distances.lines)
+        onLayoutSelectedAction?.onDistanceCalculated(distances.distance)
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {
@@ -139,8 +147,10 @@ class LayoutLogic(
     }
 
     fun draw(g: Graphics2D, at: AffineTransform) {
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-            RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.setRenderingHint(
+            RenderingHints.KEY_INTERPOLATION,
+            RenderingHints.VALUE_INTERPOLATION_BICUBIC
+        )
 
         if (screenshot != null) {
             g.drawImage(screenshot, at, panel) // see javadoc for more info on the parameters
@@ -155,6 +165,15 @@ class LayoutLogic(
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
 
+        // draw measure lines
+        g.stroke = measureLineStroke
+        for (line in measureLines) {
+            g.color = measureLineColor
+            val line = at.createTransformedShape(line)
+            g.draw(line)
+        }
+
+        // draw selected item
         selectedRectangle?.let {
             g.stroke = BasicStroke(3f)
             g.color = selectedColor
@@ -162,6 +181,7 @@ class LayoutLogic(
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
 
+        // draw measure target item
         measureRectangle?.let {
             g.stroke = BasicStroke(3f)
             g.color = measureColor
