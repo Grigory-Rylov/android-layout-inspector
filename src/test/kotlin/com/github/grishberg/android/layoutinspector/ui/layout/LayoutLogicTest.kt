@@ -19,6 +19,10 @@ class LayoutLogicTest {
         override fun onNodeSelected(node: ViewNode) {
             selectedNode = node
         }
+
+        override fun onMouseExited() = Unit
+
+        override fun onDistanceCalculated(dimensions: Map<DistanceType, Int>) = Unit
     }
 
     private val underTest = LayoutLogic(panel).apply {

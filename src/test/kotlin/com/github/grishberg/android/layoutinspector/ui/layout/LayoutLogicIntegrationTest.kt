@@ -22,6 +22,8 @@ class LayoutLogicIntegrationTest {
         }
 
         override fun onMouseExited() = Unit
+
+        override fun onDistanceCalculated(dimensions: Map<DistanceType, Int>) = Unit
     }
 
     private val underTest = LayoutLogic(panel).apply {

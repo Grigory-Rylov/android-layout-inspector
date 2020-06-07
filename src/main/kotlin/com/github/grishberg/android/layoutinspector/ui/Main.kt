@@ -16,6 +16,7 @@ import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.WindowsDialog
 import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
+import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
@@ -31,6 +32,7 @@ import java.net.SocketException
 import javax.swing.*
 import javax.swing.BoxLayout
 import javax.swing.border.BevelBorder
+import javax.swing.filechooser.FileNameExtensionFilter
 
 
 private const val INITIAL_SCREEN_WIDTH = 1024
@@ -71,6 +73,10 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     // Constructor of MainWindow class
     init {
+        val filter = FileNameExtensionFilter("Layout inspector files", "li")
+        fileChooser.addChoosableFileFilter(filter)
+        fileChooser.fileFilter = filter
+
         val androidHome = System.getenv("ANDROID_HOME")
         if (androidHome != null) {
             settings.setStringValue(SETTINGS_ANDROID_HOME, androidHome)
@@ -285,8 +291,22 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
             treePanel.removeFoundItemsHighlighting()
         }
 
-        override fun onDistanceCalculated(dimension: Dimension) {
-            statusLabel.text = "dx = ${dimension.width}, dy = ${dimension.height}"
+        override fun onDistanceCalculated(dimensions: Map<DistanceType, Int>) {
+            val sb = StringBuilder()
+            var index = 0
+            for (dimen in dimensions) {
+                when (dimen.key) {
+                    DistanceType.LEFT -> sb.append("left = ${dimen.value}")
+                    DistanceType.RIGHT -> sb.append("right = ${dimen.value}")
+                    DistanceType.TOP -> sb.append("top = ${dimen.value}")
+                    DistanceType.BOTTOM -> sb.append("bottom = ${dimen.value}")
+                }
+                if (index < dimensions.size -1 ) {
+                    sb.append(", ")
+                }
+                index++
+            }
+            statusLabel.text = sb.toString()
         }
     }
 

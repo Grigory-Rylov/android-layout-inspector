@@ -5,10 +5,7 @@ import com.android.layoutinspector.model.ViewNode
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
-import java.lang.IllegalStateException
 import javax.swing.JPanel
-import kotlin.math.abs
-import kotlin.math.min
 
 class LayoutLogic(
     private val panel: JPanel
@@ -26,6 +23,7 @@ class LayoutLogic(
     private var measureRectangle: Shape? = null
     private val selectedColor = Color(248, 25, 25)
     private val measureColor = Color(248, 225, 25)
+    private val distances = DistanceBetweenTwoShape()
 
     fun processMouseHover(point: Point) {
         val foundNode = getChildAtPoint(point)
@@ -62,25 +60,11 @@ class LayoutLogic(
     private fun calculateDistance(measureRectangle: Shape) {
         val selected = selectedRectangle?: throw IllegalStateException("No selected element to measure distance")
         val selectedBounds = selected.bounds2D
-        val selectedX1 = selectedBounds.x
-        val selectedX2 = selectedBounds.x + selectedBounds.width
-        val selectedY1 = selectedBounds.y
-        val selectedY2 = selectedBounds.y + selectedBounds.height
-
         val targetBounds = measureRectangle.bounds2D
-        val targetX1 = targetBounds.x
-        val targetX2 = targetBounds.x + targetBounds.width
-        val targetY1 = targetBounds.y
-        val targetY2 = targetBounds.y + targetBounds.height
 
-        val dx1 = min(abs(selectedX1 - targetX1), abs(selectedX1 - targetX2))
-        val dx2 = min(abs(selectedX2 - targetX1), abs(selectedX2 - targetX2))
+        val distances = distances.calculateDistance(selectedBounds, targetBounds)
 
-        val dy1 = min(abs(selectedY1 - targetY1), abs(selectedY1 - targetY2))
-        val dy2 = min(abs(selectedY2 - targetY1), abs(selectedY2 - targetY2))
-
-        val shortDistance = Dimension(min(dx1, dx2).toInt(), min(dy1, dy2).toInt())
-        onLayoutSelectedAction?.onDistanceCalculated(shortDistance)
+        onLayoutSelectedAction?.onDistanceCalculated(distances)
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {
@@ -194,6 +178,6 @@ class LayoutLogic(
         fun onNodeHovered(node: ViewNode)
         fun onNodeSelected(node: ViewNode)
         fun onMouseExited()
-        fun onDistanceCalculated(dimension: Dimension)
+        fun onDistanceCalculated(dimensions: Map<DistanceType, Int>)
     }
 }
