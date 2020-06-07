@@ -23,11 +23,14 @@ import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
 import com.github.grishberg.tracerecorder.exceptions.DebugPortBusyException
 import java.awt.BorderLayout
+import java.awt.Dimension
 import java.awt.event.ActionEvent
 import java.io.File
 import java.net.Socket
 import java.net.SocketException
 import javax.swing.*
+import javax.swing.BoxLayout
+import javax.swing.border.BevelBorder
 
 
 private const val INITIAL_SCREEN_WIDTH = 1024
@@ -64,6 +67,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     private val settings = JsonSettings(logger)
     private val fileChooser = JFileChooser()
     private val mainPanel: JPanel
+    private val statusDistanceLabel: JLabel
 
     // Constructor of MainWindow class
     init {
@@ -103,6 +107,10 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         statusLabel = JLabel()
         mainPanel.add(statusLabel, BorderLayout.NORTH)
+
+        statusDistanceLabel = JLabel()
+        createStatusBar(statusLabel)
+
         contentPane = mainPanel
 
         fileMenu = createFileMenu()
@@ -134,6 +142,16 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
 
         setSize(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT)
+    }
+
+    private fun createStatusBar(statusLable: JLabel) {
+        val statusPanel = JPanel()
+        statusPanel.border = BevelBorder(BevelBorder.LOWERED)
+        mainPanel.add(statusPanel, BorderLayout.SOUTH)
+        statusPanel.preferredSize = Dimension(width, 16)
+        statusPanel.layout = BoxLayout(statusPanel, BoxLayout.X_AXIS)
+        statusLabel.horizontalAlignment = SwingConstants.LEFT
+        statusPanel.add(statusLabel)
     }
 
     fun initUi() {
@@ -248,6 +266,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
             propertiesPanel.showProperties(node)
             splitPane2.revalidate()
             splitPane2.repaint()
+            statusLabel.text = ""
         }
 
         override fun onMouseExited() {
@@ -264,6 +283,10 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         override fun onFoundDialogClosed() {
             treePanel.removeFoundItemsHighlighting()
+        }
+
+        override fun onDistanceCalculated(dimension: Dimension) {
+            statusLabel.text = "dx = ${dimension.width}, dy = ${dimension.height}"
         }
     }
 

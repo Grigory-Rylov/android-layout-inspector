@@ -30,6 +30,11 @@ class LayoutPanel : JPanel() {
             override fun onMouseExited() {
                 logic.onLayoutSelectedAction?.onMouseExited()
             }
+
+            override fun onMouseShiftClicked(tranformed: Point2D) {
+                transformedPoint.setLocation(tranformed)
+                logic.processShiftMouseClicked(transformedPoint)
+            }
         }
         zoomAndPanListener.setScale(DEFAULT_SCALE)
     }

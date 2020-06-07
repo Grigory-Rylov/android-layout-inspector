@@ -5,7 +5,10 @@ import com.android.layoutinspector.model.ViewNode
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
+import java.lang.IllegalStateException
 import javax.swing.JPanel
+import kotlin.math.abs
+import kotlin.math.min
 
 class LayoutLogic(
     private val panel: JPanel
@@ -20,7 +23,9 @@ class LayoutLogic(
     private val borderColor = Color.GRAY
 
     private var selectedRectangle: Shape? = null
+    private var measureRectangle: Shape? = null
     private val selectedColor = Color(248, 25, 25)
+    private val measureColor = Color(248, 225, 25)
 
     fun processMouseHover(point: Point) {
         val foundNode = getChildAtPoint(point)
@@ -30,12 +35,52 @@ class LayoutLogic(
     }
 
     fun processMouseClicked(point: Point) {
+        measureRectangle = null
         panel.requestFocus()
         val foundNode = getChildAtPoint(point)
         if (foundNode != null) {
-            selectedRectangle = foundNode!!.rect
+            selectedRectangle = foundNode.rect
             onLayoutSelectedAction?.onNodeSelected(foundNode.node)
         }
+    }
+
+    fun processShiftMouseClicked(point: Point) {
+        panel.requestFocus()
+        val foundNode = getChildAtPoint(point)
+        if (foundNode != null) {
+            if (selectedRectangle == null) {
+                selectedRectangle = foundNode.rect
+                onLayoutSelectedAction?.onNodeSelected(foundNode.node)
+            } else {
+                measureRectangle = foundNode.rect
+                calculateDistance(foundNode.rect)
+            }
+            panel.repaint()
+        }
+    }
+
+    private fun calculateDistance(measureRectangle: Shape) {
+        val selected = selectedRectangle?: throw IllegalStateException("No selected element to measure distance")
+        val selectedBounds = selected.bounds2D
+        val selectedX1 = selectedBounds.x
+        val selectedX2 = selectedBounds.x + selectedBounds.width
+        val selectedY1 = selectedBounds.y
+        val selectedY2 = selectedBounds.y + selectedBounds.height
+
+        val targetBounds = measureRectangle.bounds2D
+        val targetX1 = targetBounds.x
+        val targetX2 = targetBounds.x + targetBounds.width
+        val targetY1 = targetBounds.y
+        val targetY2 = targetBounds.y + targetBounds.height
+
+        val dx1 = min(abs(selectedX1 - targetX1), abs(selectedX1 - targetX2))
+        val dx2 = min(abs(selectedX2 - targetX1), abs(selectedX2 - targetX2))
+
+        val dy1 = min(abs(selectedY1 - targetY1), abs(selectedY1 - targetY2))
+        val dy2 = min(abs(selectedY2 - targetY1), abs(selectedY2 - targetY2))
+
+        val shortDistance = Dimension(min(dx1, dx2).toInt(), min(dy1, dy2).toInt())
+        onLayoutSelectedAction?.onDistanceCalculated(shortDistance)
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {
@@ -132,6 +177,13 @@ class LayoutLogic(
             val bounds = at.createTransformedShape(it).bounds
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
+
+        measureRectangle?.let {
+            g.stroke = BasicStroke(3f)
+            g.color = measureColor
+            val bounds = at.createTransformedShape(it).bounds
+            g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
+        }
     }
 
     fun selectNode(viewNode: ViewNode) {
@@ -142,5 +194,6 @@ class LayoutLogic(
         fun onNodeHovered(node: ViewNode)
         fun onNodeSelected(node: ViewNode)
         fun onMouseExited()
+        fun onDistanceCalculated(dimension: Dimension)
     }
 }

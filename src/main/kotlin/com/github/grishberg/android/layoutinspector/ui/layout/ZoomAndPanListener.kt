@@ -46,9 +46,22 @@ class ZoomAndPanListener(
         dragStartScreen = e.point
         clickStartScreen = dragStartScreen
         dragEndScreen = null
+        if (e.isShiftDown) {
+            val point = e.point
+            try {
+                val transformedPoint = transformPoint(point)
+                mouseEventsListener?.onMouseShiftClicked(transformedPoint)
+            } catch (ex: NoninvertibleTransformException) {
+                ex.printStackTrace()
+            }
+            return
+        }
     }
 
     override fun mouseReleased(e: MouseEvent) {
+        if (e.isShiftDown) {
+            return
+        }
         val dx = Math.abs(e.x - clickStartScreen.x)
         val dy = Math.abs(e.y - clickStartScreen.y)
         clickStartScreen = e.point
@@ -71,6 +84,10 @@ class ZoomAndPanListener(
     }
 
     override fun mouseMoved(e: MouseEvent) {
+        if (e.isShiftDown) {
+            return
+        }
+
         val point = e.point
         try {
             val transformedPoint = transformPoint(point)
@@ -81,6 +98,10 @@ class ZoomAndPanListener(
     }
 
     override fun mouseDragged(e: MouseEvent) {
+        if (e.isShiftDown) {
+            return
+        }
+
         moveCamera(e)
     }
 
@@ -273,6 +294,7 @@ class ZoomAndPanListener(
     }
 
     interface MouseEventsListener {
+        fun onMouseShiftClicked(tranformed: Point2D)
         fun onMouseClicked(screenPoint: Point, tranformed: Point2D)
         fun onMouseMove(screenPoint: Point, tranformed: Point2D)
         fun onMouseExited()
