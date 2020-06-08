@@ -16,6 +16,7 @@ open class CloseByEscapeDialog(
         addWindowListener(object : WindowAdapter() {
             override fun windowClosing(we: WindowEvent) {
                 onDialogClosed()
+                isVisible = false
             }
         })
     }
