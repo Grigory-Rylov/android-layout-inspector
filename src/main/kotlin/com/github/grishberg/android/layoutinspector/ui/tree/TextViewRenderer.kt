@@ -53,9 +53,9 @@ class TextViewRenderer(
     override fun setIcon(icon: ImageIcon) = Unit
 
     override fun paintComponent(g: Graphics) {
-
         var left = 0
-        g.drawImage(icon.image, 0, 0, this)
+        val iconTop = (height - icon.iconHeight) / 2
+        g.drawImage(icon.image, iconTop, 0, this)
         left += icon.iconWidth + iconGap
 
         if (selected) {
@@ -65,7 +65,7 @@ class TextViewRenderer(
         }
 
         val textHeight = fontMetrics.ascent - fontMetrics.descent - fontMetrics.leading
-        val textTop = textHeight + (icon.iconHeight - textHeight) / 2
+        val textTop = textHeight + (height - textHeight) / 2
 
         g.color = foreground1
         g.drawString(text1, left, textTop)

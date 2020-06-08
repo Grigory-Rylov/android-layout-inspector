@@ -23,6 +23,7 @@ import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
 import com.github.grishberg.tracerecorder.exceptions.DebugPortBusyException
+import mdlaf.MaterialLookAndFeel
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.event.ActionEvent
@@ -39,7 +40,7 @@ private const val INITIAL_SCREEN_WIDTH = 1024
 private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 300
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
-private const val VERSION = "20.06.07.00"
+private const val VERSION = "20.06.08.00"
 const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdbAfterJob"
 private const val SETTINGS_SIZE_IN_DP = "sizeInDp"
 const val SETTINGS_ANDROID_HOME = "androidHome"
@@ -155,7 +156,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         val statusPanel = JPanel()
         statusPanel.border = BevelBorder(BevelBorder.LOWERED)
         mainPanel.add(statusPanel, BorderLayout.SOUTH)
-        statusPanel.preferredSize = Dimension(width, 16)
+        val font = statusLabel.font
+        statusPanel.preferredSize = Dimension(width, font.size + 4)
         statusPanel.layout = BoxLayout(statusPanel, BoxLayout.X_AXIS)
         this.statusLabel.horizontalAlignment = SwingConstants.LEFT
         statusPanel.add(statusLabel)
@@ -384,10 +386,14 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     }
 
     companion object {
-
         // Main Method
         @JvmStatic
         fun main(args: Array<String>) {
+            try {
+                UIManager.setLookAndFeel(MaterialLookAndFeel())
+            } catch (e: UnsupportedLookAndFeelException) {
+                e.printStackTrace()
+            }
 
             // Creating Object of MainWindow class.
             val sl = Main()

@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.06.07.00'
+version '20.06.08.00'
 
 sourceCompatibility = 1.8
 
@@ -26,6 +26,8 @@ dependencies {
     implementation 'com.github.Grigory-Rylov:andoid_method_trace_recorder:1.4.10'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.3.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2'
+
+    implementation 'io.github.vincenzopalazzo:material-ui-swing:1.1.1_pre-release_6.1'
 
     testImplementation "junit:junit:4.12"
     testImplementation 'org.mockito:mockito-core:2.23.0'

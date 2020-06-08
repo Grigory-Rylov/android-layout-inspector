@@ -39,19 +39,19 @@ class NodeViewTreeCellRenderer(
     private val selectionForeground1 = UIManager.getColor("Tree.selectionForeground")
 
     private val text2ForegroundColor = Color(0, 0, 0, 127)
-    private val selectionForeground2: Color = Color(0, 0, 0, 127)
+    private val selectionForeground2: Color = selectionForeground1
 
     private val hoveredText1Color = Color(45, 71, 180)
     private val hoveredText2Color = Color(57, 90, 227)
 
-    private val selectionHoveredText1Color = Color(240, 245, 248)
-    private val selectionHoveredText2Color = Color(186, 225, 255, 220)
+    private val selectionHoveredText1Color = Color(122, 245, 245)
+    private val selectionHoveredText2Color = Color(122, 245, 245, 220)
 
     private val hiddenText1Color = Color(0, 0, 0, 127)
-    private val hiddenText2Color = Color(0, 0, 0, 90)
+    private val hiddenText2Color = Color(120, 120, 120)
 
-    private val selectionHiddenText1Color = Color(220, 220, 220)
-    private val selectionHiddenText2Color = Color(220, 220, 220)
+    private val selectionHiddenText1Color = Color(150, 180, 250)
+    private val selectionHiddenText2Color = Color(150, 180, 250)
 
     private val foundTextColor = Color(204, 42, 49)
     private val selectedFoundTextColor = Color(255, 202, 185)

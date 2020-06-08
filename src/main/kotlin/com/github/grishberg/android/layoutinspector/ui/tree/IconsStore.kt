@@ -3,7 +3,7 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 import java.awt.Image
 import javax.swing.ImageIcon
 
-private const val ICON_SIZE = 16
+private const val ICON_SIZE = 18
 
 class IconsStore {
     fun createImageIcon(path: String): ImageIcon {
