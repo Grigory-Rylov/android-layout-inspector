@@ -2,17 +2,20 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
+import java.awt.Point
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
-import java.awt.event.ActionEvent
-import java.awt.event.ActionListener
-import java.awt.event.KeyEvent
+import java.awt.event.*
 import javax.swing.JComponent
 import javax.swing.JTree
 import javax.swing.KeyStroke
 import javax.swing.tree.DefaultMutableTreeNode
 
-class TreePanel : JTree(DefaultMutableTreeNode()) {
+
+class TreePanel(
+    theme: ThemeColors
+) : JTree(DefaultMutableTreeNode()) {
     var nodeSelectedAction: OnNodeSelectedAction? = null
     private var selectedFromLayoutClick = false
     private val copyTypeStroke =
@@ -30,7 +33,7 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
     )
 
     private val foundItems = mutableListOf<ViewNode>()
-    private val viewNodeRenderer = NodeViewTreeCellRenderer(foundItems)
+    private val viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme)
 
     init {
         isRootVisible = true
@@ -51,8 +54,31 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
                 }
             }
         }
+        addMouseMotionListener(object : MouseAdapter() {
+            override fun mouseMoved(e: MouseEvent) {
+                val nodeByPoint = nodeByPoint(e.point)
+                if (nodeByPoint != null) {
+                    nodeSelectedAction?.onViewNodeHovered(nodeByPoint)
+                } else {
+                    nodeSelectedAction?.onViewNodeNotHovered()
+                }
+            }
+        })
 
         setCellRenderer(viewNodeRenderer)
+    }
+
+    private fun nodeByPoint(point: Point): ViewNode? {
+        val selRow = getRowForLocation(point.x, point.y)
+        val r = getCellRenderer()
+        if (selRow != -1 && r != null) {
+            val path = getPathForRow(selRow)
+            val selectedNode = path.lastPathComponent
+            if (selectedNode is ViewNode) {
+                return selectedNode
+            }
+        }
+        return null
     }
 
     fun showLayoutResult(resultOutput: LayoutFileData) {
@@ -157,5 +183,7 @@ class TreePanel : JTree(DefaultMutableTreeNode()) {
 
     interface OnNodeSelectedAction {
         fun onViewNodeSelected(node: ViewNode)
+        fun onViewNodeHovered(node: ViewNode)
+        fun onViewNodeNotHovered()
     }
 }

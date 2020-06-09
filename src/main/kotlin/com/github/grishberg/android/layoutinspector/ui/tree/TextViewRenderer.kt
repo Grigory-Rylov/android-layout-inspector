@@ -1,24 +1,23 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
 
+import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.FontMetrics
 import java.awt.Graphics
 import javax.swing.ImageIcon
 import javax.swing.JPanel
-import javax.swing.UIManager
 import kotlin.math.max
 
 /**
  * Renderer for TextView item with text component.
  */
 class TextViewRenderer(
-    private val icon: ImageIcon
+    private val icon: ImageIcon,
+    theme: ThemeColors
 ) : JPanel(), TreeItem {
-    private val selectionBorderColor: Color = UIManager.getColor("Tree.selectionBorderColor")
-    private val selectionBackground: Color = UIManager.getColor("Tree.selectionBackground")
-    private val textBackground: Color = UIManager.getColor("Tree.textBackground")
+    private val selectionBackground: Color = theme.selectionBackground
 
     private var foreground1 = Color.BLACK
     private var foreground2 = Color.BLACK
