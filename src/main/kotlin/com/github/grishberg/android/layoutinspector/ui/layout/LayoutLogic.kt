@@ -24,8 +24,11 @@ class LayoutLogic(
 
     private var selectedRectangle: Shape? = null
     private var measureRectangle: Shape? = null
+    private var hoveredRectangle: Shape? = null
+
     private val measureLines = mutableListOf<Shape>()
-    private val selectedColor = Color(248, 25, 25)
+    private val selectedColor = Color(41, 105, 248)
+    private val hoverColor = Color(248, 25, 25)
     private val measureColor = Color(248, 225, 25)
     private val measureLineColor = selectedColor
     private val measureLineStroke: Stroke =
@@ -184,6 +187,13 @@ class LayoutLogic(
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
 
+        hoveredRectangle?.let {
+            g.stroke = BasicStroke(2f)
+            g.color = hoverColor
+            val bounds = at.createTransformedShape(it).bounds
+            g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
+        }
+
         // draw measure target item
         measureRectangle?.let {
             g.stroke = BasicStroke(3f)
@@ -195,6 +205,16 @@ class LayoutLogic(
 
     fun selectNode(viewNode: ViewNode) {
         selectedRectangle = allRectangles[viewNode]
+    }
+
+    fun hoverNode(viewNode: ViewNode) {
+        hoveredRectangle = allRectangles[viewNode]
+    }
+
+    fun removeNodeHover(): Boolean {
+        val shouldRepaint = hoveredRectangle != null
+        hoveredRectangle = null
+        return shouldRepaint
     }
 
     fun setSizeDpMode(enabled: Boolean) {

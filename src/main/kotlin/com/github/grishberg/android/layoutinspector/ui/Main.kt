@@ -20,6 +20,7 @@ import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
 import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
+import com.github.grishberg.android.layoutinspector.ui.theme.ThemeProxy
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
@@ -70,6 +71,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     private val statusDistanceLabel: JLabel
 
     private val settingsFacade: SettingsFacade
+    private val themeProxy = ThemeProxy()
 
     // Constructor of MainWindow class
     init {
@@ -86,7 +88,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
         layoutPanel = LayoutPanel(settingsFacade)
-        treePanel = TreePanel()
+        treePanel = TreePanel(themeProxy)
         propertiesPanel = PropertiesPanel()
         propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
         layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
@@ -237,7 +239,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         val disconnectAdbAfterJob = JCheckBoxMenuItem("Disconnect ADB after operation")
         disconnectAdbAfterJob.isSelected = settingsFacade.shouldStopAdbAfterJob()
-        disconnectAdbAfterJob.addActionListener{ e ->
+        disconnectAdbAfterJob.addActionListener { e ->
             val aButton = e.source as AbstractButton
             settingsFacade.setStopAdbAfterJob(aButton.model.isSelected)
         }
@@ -246,7 +248,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         val allowSelectNotDrawnView = JCheckBoxMenuItem("Allow select hidden view")
         allowSelectNotDrawnView.isSelected = settingsFacade.allowedSelectHiddenView
-        allowSelectNotDrawnView.addActionListener{ e ->
+        allowSelectNotDrawnView.addActionListener { e ->
             val aButton = e.source as AbstractButton
             settingsFacade.allowedSelectHiddenView = aButton.model.isSelected
         }
@@ -288,6 +290,14 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
             propertiesPanel.showProperties(node)
             splitPane2.revalidate()
             splitPane2.repaint()
+        }
+
+        override fun onViewNodeHovered(node: ViewNode) {
+            layoutPanel.hoverNode(node)
+        }
+
+        override fun onViewNodeNotHovered() {
+            layoutPanel.removeNodeHover()
         }
 
         override fun onNodeHovered(node: ViewNode) {

@@ -1,16 +1,16 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.android.layoutinspector.model.ViewNode
-import java.awt.Color
+import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import java.awt.Component
 import javax.swing.ImageIcon
 import javax.swing.JTree
-import javax.swing.UIManager
 import javax.swing.tree.TreeCellRenderer
 
 
 class NodeViewTreeCellRenderer(
-    private val foundItems: List<ViewNode>
+    private val foundItems: List<ViewNode>,
+    theme: ThemeColors
 ) : TreeCellRenderer {
     var hoveredNode: ViewNode? = null
     private val iconsStore = IconsStore()
@@ -26,60 +26,37 @@ class NodeViewTreeCellRenderer(
     private val viewStubIcon = iconsStore.createImageIcon("icons/viewstub.png")
     private val toolbarIcon = iconsStore.createImageIcon("icons/toolbar.png")
     private val listViewIcon = iconsStore.createImageIcon("icons/recyclerView.png")
-    private val relativeLsyoutIcon = iconsStore.createImageIcon("icons/relativeLayout.png")
+    private val relativeLayoutIcon = iconsStore.createImageIcon("icons/relativeLayout.png")
     private val imageViewIcon = iconsStore.createImageIcon("icons/imageView.png")
     private val nestedScrollViewIcon = iconsStore.createImageIcon("icons/nestedScrollView.png")
     private val viewSwitcherIcon = iconsStore.createImageIcon("icons/viewSwitcher.png")
     private val viewPagerIcon = iconsStore.createImageIcon("icons/viewPager.png")
     private val viewIcon = iconsStore.createImageIcon("icons/view.png")
 
-    private val text1ForegroundColor = UIManager.getColor("Tree.textForeground")
-    private val textBackground: Color = UIManager.getColor("Tree.textBackground")
-
-    private val selectionForeground1 = UIManager.getColor("Tree.selectionForeground")
-
-    private val text2ForegroundColor = Color(0, 0, 0, 127)
-    private val selectionForeground2: Color = selectionForeground1
-
-    private val hoveredText1Color = Color(45, 71, 180)
-    private val hoveredText2Color = Color(57, 90, 227)
-
-    private val selectionHoveredText1Color = Color(122, 245, 245)
-    private val selectionHoveredText2Color = Color(122, 245, 245, 220)
-
-    private val hiddenText1Color = UIManager.getColor("Label.disabledForeground")
-    private val hiddenText2Color = UIManager.getColor("Label.disabledForeground")
-
-    private val selectionHiddenText1Color = Color(150, 180, 250)
-    private val selectionHiddenText2Color = Color(150, 180, 250)
-
-    private val foundTextColor = Color(204, 42, 49)
-    private val selectedFoundTextColor = Color(255, 202, 185)
-
     private val text1Foreground =
         TextForegroundColor(
-            text1ForegroundColor,
-            selectionForeground1,
-            hiddenText1Color,
-            selectionHiddenText1Color,
-            hoveredText1Color,
-            selectionHoveredText1Color,
-            foundTextColor,
-            selectedFoundTextColor
+            theme.text1ForegroundColor,
+            theme.selectionForeground1,
+            theme.hiddenText1Color,
+            theme.selectionHiddenText1Color,
+            theme.hoveredText1Color,
+            theme.selectionHoveredText1Color,
+            theme.foundTextColor,
+            theme.selectedFoundTextColor
         )
     private val text2Foreground =
         TextForegroundColor(
-            text2ForegroundColor,
-            selectionForeground2,
-            hiddenText2Color,
-            selectionHiddenText2Color,
-            hoveredText2Color,
-            selectionHoveredText2Color,
-            foundTextColor,
-            selectedFoundTextColor
+            theme.text2ForegroundColor,
+            theme.selectionForeground2,
+            theme.hiddenText2Color,
+            theme.selectionHiddenText2Color,
+            theme.hoveredText2Color,
+            theme.selectionHoveredText2Color,
+            theme.foundTextColor,
+            theme.selectedFoundTextColor
         )
 
-    private val textViewRenderer = TextViewRenderer(textIcon)
+    private val textViewRenderer = TextViewRenderer(textIcon, theme)
     private val defaultCellRenderer = SimpleViewNodeRenderer()
 
     override fun getTreeCellRendererComponent(
@@ -176,7 +153,7 @@ class NodeViewTreeCellRenderer(
         }
 
         if (nodeTypeShort.contains("RelativeLayout")) {
-            return relativeLsyoutIcon
+            return relativeLayoutIcon
         }
 
         if (nodeTypeShort.endsWith("CardView")) {

@@ -52,6 +52,17 @@ class LayoutPanel(
         repaint()
     }
 
+    fun hoverNode(viewNode: ViewNode) {
+        logic.hoverNode(viewNode)
+        repaint()
+    }
+
+    fun removeNodeHover() {
+        if (logic.removeNodeHover()) {
+            repaint()
+        }
+    }
+
     override fun getPreferredSize() = logic.getPreferredSize()
 
     override fun paintComponent(g: Graphics) {
