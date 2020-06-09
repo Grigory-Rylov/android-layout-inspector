@@ -179,17 +179,17 @@ class LayoutLogic(
             g.draw(line)
         }
 
-        // draw selected item
-        selectedRectangle?.let {
-            g.stroke = BasicStroke(3f)
-            g.color = selectedColor
+        hoveredRectangle?.let {
+            g.stroke = BasicStroke(2f)
+            g.color = hoverColor
             val bounds = at.createTransformedShape(it).bounds
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
 
-        hoveredRectangle?.let {
-            g.stroke = BasicStroke(2f)
-            g.color = hoverColor
+        // draw selected item
+        selectedRectangle?.let {
+            g.stroke = BasicStroke(3f)
+            g.color = selectedColor
             val bounds = at.createTransformedShape(it).bounds
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }

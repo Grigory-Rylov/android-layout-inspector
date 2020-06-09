@@ -54,7 +54,7 @@ class TextViewRenderer(
     override fun paintComponent(g: Graphics) {
         var left = 0
         val iconTop = (height - icon.iconHeight) / 2
-        g.drawImage(icon.image, iconTop, 0, this)
+        g.drawImage(icon.image, 0, iconTop, this)
         left += icon.iconWidth + iconGap
 
         if (selected) {
