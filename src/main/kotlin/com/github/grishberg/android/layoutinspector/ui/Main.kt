@@ -11,6 +11,7 @@ import com.github.grishberg.android.layoutinspector.domain.Logic
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
 import com.github.grishberg.android.layoutinspector.settings.JsonSettings
+import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
@@ -19,7 +20,6 @@ import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
 import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
-import com.github.grishberg.android.layoutinspector.ui.menu.ChangeBooleanSettingsAction
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
@@ -42,11 +42,6 @@ private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 300
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
 private const val VERSION = "20.06.08.00"
-const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdbAfterJob"
-private const val SETTINGS_SIZE_IN_DP = "sizeInDp"
-const val SETTINGS_ANDROID_HOME = "androidHome"
-const val SETTINGS_ALLOW_SELECT_HIDDEN_VIEW = "allowSelectHiddenView"
-
 
 // create a class MainWindow extending JFrame
 class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), LayoutResultOutput, DialogsInput {
@@ -73,7 +68,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     private val fileChooser = JFileChooser()
     private val mainPanel: JPanel
     private val statusDistanceLabel: JLabel
-    private var sizeInDp = false
+
+    private val settingsFacade: SettingsFacade
 
     // Constructor of MainWindow class
     init {
@@ -81,20 +77,19 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         fileChooser.addChoosableFileFilter(filter)
         fileChooser.fileFilter = filter
 
+        settingsFacade = SettingsFacade(settings)
         val androidHome = System.getenv("ANDROID_HOME")
         if (androidHome != null) {
-            settings.setStringValue(SETTINGS_ANDROID_HOME, androidHome)
+            settingsFacade.androidHome = androidHome
         }
-        settings.setBoolValue(SETTINGS_SHOULD_STOP_ADB, settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, false))
 
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
-        layoutPanel = LayoutPanel(settings)
+        layoutPanel = LayoutPanel(settingsFacade)
         treePanel = TreePanel()
         propertiesPanel = PropertiesPanel()
-        sizeInDp = settings.getBoolValueOrDefault(SETTINGS_SIZE_IN_DP, false)
-        propertiesPanel.setSizeDpMode(sizeInDp)
-        layoutPanel.setSizeDpMode(sizeInDp)
+        propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
+        layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
 
         val selectionAction = TreeNodeSelectedAction()
         treePanel.nodeSelectedAction = selectionAction
@@ -112,8 +107,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         splitPane1 = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, layoutPanel, treeScrollPane)
         splitPane2 = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, splitPane1, propertiesPanel.getComponent())
         splitPane2.resizeWeight = 1.0
-        splitPane1.setDividerLocation(INITIAL_LAYOUTS_WINDOW_WIDTH)
-        splitPane2.setDividerLocation(INITIAL_SCREEN_WIDTH - (INITIAL_PROPERTIES_WINDOW_WIDTH))
+        splitPane1.dividerLocation = INITIAL_LAYOUTS_WINDOW_WIDTH
+        splitPane2.dividerLocation = INITIAL_SCREEN_WIDTH - (INITIAL_PROPERTIES_WINDOW_WIDTH)
         mainPanel.add(splitPane2, BorderLayout.CENTER)
 
 
@@ -140,10 +135,10 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         windowsDialog = WindowsDialog(this, logger)
 
-        adb = AdbWrapperImpl(true, InspectorLogger(), settings.getStringValue(SETTINGS_ANDROID_HOME))
+        adb = AdbWrapperImpl(true, InspectorLogger(), settingsFacade.androidHome)
         val deviceProvider = DeviceProvider(logger, adb, settings)
 
-        val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settings)
+        val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settingsFacade)
 
         loadingDialog = LoadingDialog(this)
         val fileSystem = LayoutFileSystem(logger)
@@ -172,7 +167,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     private fun doOnClose() {
         settings.save()
-        if (settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, false)) {
+        if (settingsFacade.shouldStopAdbAfterJob()) {
             adb.stop()
         }
     }
@@ -214,7 +209,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         viewMenu.add(pixelsMode)
         viewMenu.add(dpMode)
 
-        if (settings.getBoolValueOrDefault(SETTINGS_SIZE_IN_DP, false)) {
+        if (settingsFacade.shouldShowSizeInDp()) {
             dpMode.isSelected = true
         } else {
             pixelsMode.isSelected = true
@@ -222,11 +217,11 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         pixelsMode.addActionListener { e: ActionEvent ->
             setSizeDpMode(false)
-            settings.setBoolValue(SETTINGS_SIZE_IN_DP, false)
+            settingsFacade.showSizeInDp(false)
         }
         dpMode.addActionListener { e: ActionEvent ->
             setSizeDpMode(true)
-            settings.setBoolValue(SETTINGS_SIZE_IN_DP, true)
+            settingsFacade.showSizeInDp(true)
         }
 
         viewMenu.addSeparator()
@@ -240,26 +235,28 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     private fun createSettingsMenu(): JMenu? {
         val settingsMenu = JMenu("Settings")
 
-        val disconnectAdbAfterTask = JCheckBoxMenuItem("Disconnect ADB after operation")
-        disconnectAdbAfterTask.isSelected = settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, false)
-        disconnectAdbAfterTask.addActionListener(ChangeBooleanSettingsAction(settings, SETTINGS_SHOULD_STOP_ADB))
-        settingsMenu.add(disconnectAdbAfterTask)
+        val disconnectAdbAfterJob = JCheckBoxMenuItem("Disconnect ADB after operation")
+        disconnectAdbAfterJob.isSelected = settingsFacade.shouldStopAdbAfterJob()
+        disconnectAdbAfterJob.addActionListener{ e ->
+            val aButton = e.source as AbstractButton
+            settingsFacade.setStopAdbAfterJob(aButton.model.isSelected)
+        }
+        settingsMenu.add(disconnectAdbAfterJob)
 
 
         val allowSelectNotDrawnView = JCheckBoxMenuItem("Allow select hidden view")
-        allowSelectNotDrawnView.isSelected = settings.getBoolValueOrDefault(SETTINGS_ALLOW_SELECT_HIDDEN_VIEW, false)
-        allowSelectNotDrawnView.addActionListener(
-            ChangeBooleanSettingsAction(
-                settings,
-                SETTINGS_ALLOW_SELECT_HIDDEN_VIEW
-            )
-        )
+        allowSelectNotDrawnView.isSelected = settingsFacade.allowedSelectHiddenView
+        allowSelectNotDrawnView.addActionListener{ e ->
+            val aButton = e.source as AbstractButton
+            settingsFacade.allowedSelectHiddenView = aButton.model.isSelected
+        }
+        settingsMenu.add(allowSelectNotDrawnView)
         return settingsMenu
     }
 
     private fun setSizeDpMode(enabled: Boolean) {
         statusLabel.text = ""
-        sizeInDp = enabled
+        settingsFacade.showSizeInDp(enabled)
         propertiesPanel.setSizeDpMode(enabled)
         layoutPanel.setSizeDpMode(enabled)
     }
@@ -331,7 +328,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
                     DistanceType.TOP -> sb.append("top = ")
                     DistanceType.BOTTOM -> sb.append("bottom = ")
                 }
-                if (sizeInDp) {
+                if (settingsFacade.shouldShowSizeInDp()) {
                     sb.append("%.2f".format(dimen.value))
                 } else {
                     sb.append("${dimen.value.toInt()}")
@@ -341,7 +338,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
                 }
                 index++
             }
-            if (sizeInDp) {
+            if (settingsFacade.shouldShowSizeInDp()) {
                 sb.append(" (dp)")
             } else {
                 sb.append(" (px)")
@@ -357,7 +354,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     override fun hideLoading() {
         loadingDialog.isVisible = false
-        if (settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, false)) {
+        if (settingsFacade.shouldStopAdbAfterJob()) {
             adb.stop()
         }
     }

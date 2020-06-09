@@ -8,8 +8,8 @@ import com.android.layoutinspector.model.ClientWindow
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptions
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptionsInput
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
-import com.github.grishberg.android.layoutinspector.settings.Settings
-import com.github.grishberg.android.layoutinspector.ui.SETTINGS_ANDROID_HOME
+import com.github.grishberg.android.layoutinspector.settings.SETTINGS_ANDROID_HOME
+import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -27,18 +27,13 @@ import javax.swing.text.NumberFormatter
 
 private const val TAG = "NewLayoutDialog"
 private const val TITLE = "Select Layout recording parameters"
-private const val SETTINGS_TIMEOUT = "timeoutInSeconds"
-private const val SETTINGS_ADB_INITIAL_REMOTE_ADDRESS = "remoteDeviceAddress"
-private const val SETTINGS_WAIT_FOR_CLIENT_WINDOWS_TIMEOUT = "clientWindowsTimeout"
 
 class NewLayoutDialog(
     private val owner: Frame,
     private val deviceProvider: DeviceProvider,
     private val logger: AppLogger,
-    private val settings: Settings
+    private val settings: SettingsFacade
 ) : CloseByEscapeDialog(owner, TITLE, true), LayoutRecordOptionsInput {
-    private val clientWindowsTimeout = settings.getIntValueOrDefault(SETTINGS_WAIT_FOR_CLIENT_WINDOWS_TIMEOUT, 10)
-
     private val timeoutField: JFormattedTextField
     private val showAllPrecesses: JCheckBox
     private val clientListModel = DefaultListModel<ClientWrapper>()
@@ -54,7 +49,6 @@ class NewLayoutDialog(
         private set
 
     init {
-        settings.setStringValue(SETTINGS_ADB_INITIAL_REMOTE_ADDRESS, "")
         val format = NumberFormat.getInstance()
         val formatter = NumberFormatter(format)
         formatter.valueClass = Integer::class.java
@@ -63,7 +57,7 @@ class NewLayoutDialog(
         formatter.allowsInvalid = false
         formatter.commitsOnValidEdit = true
         timeoutField = JFormattedTextField(formatter)
-        timeoutField.value = settings.getIntValueOrDefault(SETTINGS_TIMEOUT, 60)
+        timeoutField.value = settings.captureLayoutTimeout
         timeoutField.addActionListener {
             startRecording()
         }
@@ -71,7 +65,7 @@ class NewLayoutDialog(
         devicesComboBox = JComboBox()
         devicesComboBox.model = devicesModel
         devicesComboBox.toolTipText = "Device selector"
-        devicesComboBox.setPrototypeDisplayValue(EmptyDeviceWrapper("XXXXXXXXXXXXXXX"))
+        devicesComboBox.prototypeDisplayValue = EmptyDeviceWrapper("XXXXXXXXXXXXXXX")
 
         devicesComboBox.addItemListener {
             if (it.stateChange != ItemEvent.SELECTED) {
@@ -135,7 +129,7 @@ class NewLayoutDialog(
     }
 
     private fun checkAndroidHome() {
-        if (settings.getStringValueOrDefault(SETTINGS_ANDROID_HOME, "").isEmpty()) {
+        if (settings.androidHome.isEmpty()) {
             JOptionPane.showMessageDialog(
                 owner,
                 "For recording need to set ANDROID_HOME env variable." +
@@ -228,7 +222,7 @@ class NewLayoutDialog(
                 }
 
                 val windows =
-                    ClientWindow.getAll(logger, c, clientWindowsTimeout.toLong(), TimeUnit.SECONDS) ?: emptyList()
+                    ClientWindow.getAll(logger, c, settings.clientWindowsTimeout, TimeUnit.SECONDS) ?: emptyList()
 
                 if (windows.isNotEmpty()) {
                     val element = ClientWrapper(c)

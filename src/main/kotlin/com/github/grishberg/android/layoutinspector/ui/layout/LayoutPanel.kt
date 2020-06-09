@@ -2,7 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
-import com.github.grishberg.android.layoutinspector.settings.Settings
+import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Point
@@ -12,7 +12,7 @@ import javax.swing.JPanel
 private const val DEFAULT_SCALE = 0.25
 
 class LayoutPanel(
-    settings: Settings
+    settings: SettingsFacade
 ) : JPanel() {
     private val logic = LayoutLogic(this, settings)
     private val zoomAndPanListener = ZoomAndPanListener(this)

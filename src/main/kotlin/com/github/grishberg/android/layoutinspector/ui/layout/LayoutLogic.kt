@@ -2,8 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
-import com.github.grishberg.android.layoutinspector.settings.Settings
-import com.github.grishberg.android.layoutinspector.ui.SETTINGS_ALLOW_SELECT_HIDDEN_VIEW
+import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
@@ -12,7 +11,7 @@ import javax.swing.JPanel
 
 class LayoutLogic(
     private val panel: JPanel,
-    private val settings: Settings
+    private val settings: SettingsFacade
 ) {
     var onLayoutSelectedAction: OnLayoutSelectedAction? = null
 
@@ -132,7 +131,7 @@ class LayoutLogic(
         for (i in childCount - 1 downTo 0) {
             val child = parent.children[i]
             val rect = child.rect
-            if (rect.contains(point) && (child.node.isDrawn && settings.getBoolValueOrDefault(SETTINGS_ALLOW_SELECT_HIDDEN_VIEW))) {
+            if (rect.contains(point) && (child.node.isDrawn || settings.allowedSelectHiddenView)) {
                 return findFirstElementByPosition(point, child)
             }
         }
