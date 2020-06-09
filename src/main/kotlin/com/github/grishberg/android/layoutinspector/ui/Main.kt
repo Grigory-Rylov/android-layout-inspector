@@ -19,6 +19,7 @@ import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
 import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
+import com.github.grishberg.android.layoutinspector.ui.menu.ChangeBooleanSettingsAction
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
@@ -44,6 +45,7 @@ private const val VERSION = "20.06.08.00"
 const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdbAfterJob"
 private const val SETTINGS_SIZE_IN_DP = "sizeInDp"
 const val SETTINGS_ANDROID_HOME = "androidHome"
+const val SETTINGS_ALLOW_SELECT_HIDDEN_VIEW = "allowSelectHiddenView"
 
 
 // create a class MainWindow extending JFrame
@@ -87,7 +89,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
-        layoutPanel = LayoutPanel()
+        layoutPanel = LayoutPanel(settings)
         treePanel = TreePanel()
         propertiesPanel = PropertiesPanel()
         sizeInDp = settings.getBoolValueOrDefault(SETTINGS_SIZE_IN_DP, false)
@@ -179,6 +181,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         val menuBar = JMenuBar()
         menuBar.add(fileMenu)
         menuBar.add(createViewMenu())
+        menuBar.add(createSettingsMenu())
         jMenuBar = menuBar
     }
 
@@ -232,6 +235,26 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         viewMenu.add(openFind)
         openFind.addActionListener { arg0: ActionEvent? -> showFindDialog() }
         return viewMenu
+    }
+
+    private fun createSettingsMenu(): JMenu? {
+        val settingsMenu = JMenu("Settings")
+
+        val disconnectAdbAfterTask = JCheckBoxMenuItem("Disconnect ADB after operation")
+        disconnectAdbAfterTask.isSelected = settings.getBoolValueOrDefault(SETTINGS_SHOULD_STOP_ADB, false)
+        disconnectAdbAfterTask.addActionListener(ChangeBooleanSettingsAction(settings, SETTINGS_SHOULD_STOP_ADB))
+        settingsMenu.add(disconnectAdbAfterTask)
+
+
+        val allowSelectNotDrawnView = JCheckBoxMenuItem("Allow select hidden view")
+        allowSelectNotDrawnView.isSelected = settings.getBoolValueOrDefault(SETTINGS_ALLOW_SELECT_HIDDEN_VIEW, false)
+        allowSelectNotDrawnView.addActionListener(
+            ChangeBooleanSettingsAction(
+                settings,
+                SETTINGS_ALLOW_SELECT_HIDDEN_VIEW
+            )
+        )
+        return settingsMenu
     }
 
     private fun setSizeDpMode(enabled: Boolean) {

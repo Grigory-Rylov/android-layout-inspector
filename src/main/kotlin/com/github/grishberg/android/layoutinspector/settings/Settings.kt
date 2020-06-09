@@ -1,7 +1,7 @@
 package com.github.grishberg.android.layoutinspector.settings
 
 interface Settings {
-    fun getBoolValueOrDefault(name: String, default: Boolean): Boolean
+    fun getBoolValueOrDefault(name: String, default: Boolean = false): Boolean
     fun getIntValueOrDefault(name: String, default: Int): Int
     fun getStringValueOrDefault(name: String, default: String): String
     fun getStringValue(name: String): String?
