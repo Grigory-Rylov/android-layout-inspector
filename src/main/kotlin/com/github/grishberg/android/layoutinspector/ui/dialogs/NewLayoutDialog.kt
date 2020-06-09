@@ -44,7 +44,7 @@ class NewLayoutDialog(
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
     private val devicesModel = DevicesCompoBoxModel()
-    private val devicesComboBox: JComboBox<IDevice>
+    private val devicesComboBox: JComboBox<DeviceWrapper>
     private val refreshButton: JButton
     private val startButton: JButton
     private val clientsList: JList<ClientWrapper>
@@ -71,14 +71,16 @@ class NewLayoutDialog(
         devicesComboBox = JComboBox()
         devicesComboBox.model = devicesModel
         devicesComboBox.toolTipText = "Device selector"
+        devicesComboBox.setPrototypeDisplayValue(EmptyDeviceWrapper("XXXXXXXXXXXXXXX"))
+
         devicesComboBox.addItemListener {
             if (it.stateChange != ItemEvent.SELECTED) {
                 return@addItemListener
             }
 
-            val device = it.item as IDevice
-            ClientsListenerSetter.setClientsListener(device, clientsChangedListener)
-            populateWithClients(device)
+            val device = it.item as DeviceWrapper
+            ClientsListenerSetter.setClientsListener(device.device, clientsChangedListener)
+            populateWithClients(device.device)
         }
 
         showAllPrecesses = JCheckBox("any processes")
@@ -163,9 +165,9 @@ class NewLayoutDialog(
 
     private fun doStartRecording(currentDeviceIndex: Int) {
         val client = clientListModel[currentDeviceIndex]
-        val device = devicesComboBox.selectedItem as IDevice
+        val device = devicesComboBox.selectedItem as DeviceWrapper
         val timeoutInSeconds = timeoutField.text.toInt()
-        result = LayoutRecordOptions(device, client.client, timeoutInSeconds)
+        result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds)
         deviceProvider.deviceChangedActions.remove(deviceChangedAction)
         isVisible = false
     }
@@ -191,7 +193,7 @@ class NewLayoutDialog(
             logger.d("$TAG: received ${devices.size} devices")
             devicesComboBox.removeAllItems()
             for (device in devices) {
-                devicesComboBox.addItem(device)
+                devicesComboBox.addItem(RealDeviceWrapper(device))
             }
 
             if (devicesComboBox.itemCount > 0) {
@@ -244,7 +246,7 @@ class NewLayoutDialog(
             if (!isVisible) {
                 return
             }
-            if (device != devicesComboBox.selectedItem as IDevice) {
+            if (device != (devicesComboBox.selectedItem as DeviceWrapper).device) {
                 return
             }
             SwingUtilities.invokeLater {
@@ -256,7 +258,7 @@ class NewLayoutDialog(
     private inner class DeviceChangedActions : DeviceProvider.DeviceChangedAction {
         override fun deviceConnected(device: IDevice) {
             if (!devicesModel.contains(device)) {
-                devicesComboBox.addItem(device)
+                devicesComboBox.addItem(RealDeviceWrapper(device))
                 if (devicesModel.size == 1) {
                     devicesComboBox.selectedItem = device
                 }
@@ -269,5 +271,14 @@ class NewLayoutDialog(
                 devicesComboBox.selectedItem = null
             }
         }
+    }
+}
+
+class EmptyDeviceWrapper(private val name: String) : DeviceWrapper {
+    override val device: IDevice
+        get() = throw IllegalStateException("Stub")
+
+    override fun toString(): String {
+        return name
     }
 }

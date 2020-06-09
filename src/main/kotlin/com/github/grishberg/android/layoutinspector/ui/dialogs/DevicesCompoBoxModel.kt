@@ -4,9 +4,19 @@ import com.android.ddmlib.IDevice
 import javax.swing.MutableComboBoxModel
 import javax.swing.event.ListDataListener
 
-class DevicesCompoBoxModel : MutableComboBoxModel<IDevice> {
-    private val devices = mutableListOf<IDevice>()
-    private var selectedItem: IDevice? = null
+interface DeviceWrapper {
+    val device: IDevice
+}
+
+class RealDeviceWrapper(override val device: IDevice) : DeviceWrapper {
+    override fun toString(): String {
+        return device.toString()
+    }
+}
+
+class DevicesCompoBoxModel : MutableComboBoxModel<DeviceWrapper> {
+    private val devices = mutableListOf<DeviceWrapper>()
+    private var selectedItem: DeviceWrapper? = null
     private val listeners = mutableListOf<ListDataListener>()
 
     override fun setSelectedItem(anItem: Any?) {
@@ -14,7 +24,7 @@ class DevicesCompoBoxModel : MutableComboBoxModel<IDevice> {
             selectedItem = null
             return
         }
-        if (anItem is IDevice) {
+        if (anItem is DeviceWrapper) {
             selectedItem = anItem
             return
         }
@@ -25,7 +35,7 @@ class DevicesCompoBoxModel : MutableComboBoxModel<IDevice> {
 
     override fun getSize(): Int = devices.size
 
-    override fun addElement(item: IDevice) {
+    override fun addElement(item: DeviceWrapper) {
         devices.add(item)
     }
 
@@ -37,14 +47,14 @@ class DevicesCompoBoxModel : MutableComboBoxModel<IDevice> {
         listeners.remove(l)
     }
 
-    override fun getElementAt(index: Int): IDevice = devices[index]
+    override fun getElementAt(index: Int): DeviceWrapper = devices[index]
 
 
     override fun removeElementAt(index: Int) {
         devices.removeAt(index)
     }
 
-    override fun insertElementAt(item: IDevice, index: Int) {
+    override fun insertElementAt(item: DeviceWrapper, index: Int) {
         devices.add(index, item)
     }
 
@@ -52,5 +62,12 @@ class DevicesCompoBoxModel : MutableComboBoxModel<IDevice> {
         devices.remove(obj)
     }
 
-    fun contains(item: IDevice): Boolean = devices.contains(item)
+    fun contains(item: IDevice): Boolean {
+        for (d in devices) {
+            if (d == item) {
+                return true
+            }
+        }
+        return false
+    }
 }

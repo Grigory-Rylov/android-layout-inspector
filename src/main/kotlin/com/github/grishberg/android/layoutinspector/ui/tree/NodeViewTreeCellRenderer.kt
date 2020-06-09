@@ -47,8 +47,8 @@ class NodeViewTreeCellRenderer(
     private val selectionHoveredText1Color = Color(122, 245, 245)
     private val selectionHoveredText2Color = Color(122, 245, 245, 220)
 
-    private val hiddenText1Color = Color(0, 0, 0, 127)
-    private val hiddenText2Color = Color(120, 120, 120)
+    private val hiddenText1Color = UIManager.getColor("Label.disabledForeground")
+    private val hiddenText2Color = UIManager.getColor("Label.disabledForeground")
 
     private val selectionHiddenText1Color = Color(150, 180, 250)
     private val selectionHiddenText2Color = Color(150, 180, 250)
