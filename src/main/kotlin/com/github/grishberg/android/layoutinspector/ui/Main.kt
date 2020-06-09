@@ -23,7 +23,6 @@ import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
 import com.github.grishberg.tracerecorder.exceptions.DebugPortBusyException
-import mdlaf.MaterialLookAndFeel
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.event.ActionEvent
@@ -72,9 +71,12 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     private val mainPanel: JPanel
     private val statusDistanceLabel: JLabel
     private var sizeInDp = false
+    private val themes: Themes
 
     // Constructor of MainWindow class
     init {
+        themes = Themes(this, settings, logger)
+
         val filter = FileNameExtensionFilter("Layout inspector files", "li")
         fileChooser.addChoosableFileFilter(filter)
         fileChooser.fileFilter = filter
@@ -179,6 +181,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         val menuBar = JMenuBar()
         menuBar.add(fileMenu)
         menuBar.add(createViewMenu())
+        menuBar.add(themes.createThemeMenu())
         jMenuBar = menuBar
     }
 
@@ -389,12 +392,6 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         // Main Method
         @JvmStatic
         fun main(args: Array<String>) {
-            try {
-                UIManager.setLookAndFeel(MaterialLookAndFeel())
-            } catch (e: UnsupportedLookAndFeelException) {
-                e.printStackTrace()
-            }
-
             // Creating Object of MainWindow class.
             val sl = Main()
             // Function to set visibilty of JFrame.
