@@ -66,20 +66,20 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
     private val logger: AppLogger = SimpleConsoleLogger("")
     private val settings = JsonSettings(logger)
-    private val fileChooser = JFileChooser()
     private val mainPanel: JPanel
     private val statusDistanceLabel: JLabel
 
     private val settingsFacade: SettingsFacade
     private val themeProxy = ThemeProxy()
+    private val themes: Themes
+    private val filter = FileNameExtensionFilter("Layout inspector files", "li")
 
     // Constructor of MainWindow class
     init {
-        val filter = FileNameExtensionFilter("Layout inspector files", "li")
-        fileChooser.addChoosableFileFilter(filter)
-        fileChooser.fileFilter = filter
-
         settingsFacade = SettingsFacade(settings)
+
+        themes = Themes(this, settingsFacade, themeProxy, logger)
+
         val androidHome = System.getenv("ANDROID_HOME")
         if (androidHome != null) {
             settingsFacade.androidHome = androidHome
@@ -179,6 +179,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         menuBar.add(fileMenu)
         menuBar.add(createViewMenu())
         menuBar.add(createSettingsMenu())
+        menuBar.add(themes.createThemeMenu())
         jMenuBar = menuBar
     }
 
@@ -234,7 +235,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         return viewMenu
     }
 
-    private fun createSettingsMenu(): JMenu? {
+    private fun createSettingsMenu(): JMenu {
         val settingsMenu = JMenu("Settings")
 
         val disconnectAdbAfterJob = JCheckBoxMenuItem("Disconnect ADB after operation")
@@ -406,6 +407,10 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
     }
 
     override fun showOpenFileDialogAndReturnResult(): File? {
+        val fileChooser = JFileChooser()
+        fileChooser.addChoosableFileFilter(filter)
+        fileChooser.fileFilter = filter
+
         val returnVal: Int = fileChooser.showOpenDialog(this)
 
         if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -419,12 +424,6 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
         // Main Method
         @JvmStatic
         fun main(args: Array<String>) {
-            try {
-                UIManager.setLookAndFeel(MaterialLookAndFeel())
-            } catch (e: UnsupportedLookAndFeelException) {
-                e.printStackTrace()
-            }
-
             // Creating Object of MainWindow class.
             val sl = Main()
             // Function to set visibilty of JFrame.

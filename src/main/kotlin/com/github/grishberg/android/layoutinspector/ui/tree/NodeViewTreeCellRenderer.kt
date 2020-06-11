@@ -5,170 +5,145 @@ import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import java.awt.Component
 import javax.swing.ImageIcon
 import javax.swing.JTree
+import javax.swing.tree.DefaultTreeCellRenderer
 import javax.swing.tree.TreeCellRenderer
 
 
 class NodeViewTreeCellRenderer(
     private val foundItems: List<ViewNode>,
-    theme: ThemeColors
+    private val theme: ThemeColors
 ) : TreeCellRenderer {
     var hoveredNode: ViewNode? = null
-    private val iconsStore = IconsStore()
-
-    private val textIcon = iconsStore.createImageIcon("icons/text.png")
-    private val fabIcon = iconsStore.createImageIcon("icons/fab.png")
-    private val appBarIcon = iconsStore.createImageIcon("icons/appbar.png")
-    private val coordinatorLayoutIcon = iconsStore.createImageIcon("icons/coordinator_layout.png")
-    private val constraintLayoutIcon = iconsStore.createImageIcon("icons/constraint_layout.png")
-    private val frameLayoutIcon = iconsStore.createImageIcon("icons/frame_layout.png")
-    private val linearLayoutIcon = iconsStore.createImageIcon("icons/linear_layout.png")
-    private val cardViewIcon = iconsStore.createImageIcon("icons/cardView.png")
-    private val viewStubIcon = iconsStore.createImageIcon("icons/viewstub.png")
-    private val toolbarIcon = iconsStore.createImageIcon("icons/toolbar.png")
-    private val listViewIcon = iconsStore.createImageIcon("icons/recyclerView.png")
-    private val relativeLayoutIcon = iconsStore.createImageIcon("icons/relativeLayout.png")
-    private val imageViewIcon = iconsStore.createImageIcon("icons/imageView.png")
-    private val nestedScrollViewIcon = iconsStore.createImageIcon("icons/nestedScrollView.png")
-    private val viewSwitcherIcon = iconsStore.createImageIcon("icons/viewSwitcher.png")
-    private val viewPagerIcon = iconsStore.createImageIcon("icons/viewPager.png")
-    private val viewIcon = iconsStore.createImageIcon("icons/view.png")
 
     private val text1Foreground =
         TextForegroundColor(
-            theme.text1ForegroundColor,
+            theme.foreground1,
             theme.selectionForeground1,
-            theme.hiddenText1Color,
-            theme.selectionHiddenText1Color,
-            theme.hoveredText1Color,
-            theme.selectionHoveredText1Color,
+            theme.hiddenForeground1,
+            theme.selectionHiddenForeground1,
+            theme.hoveredForeground1,
+            theme.selectionForeground1,
             theme.foundTextColor,
             theme.selectedFoundTextColor
         )
     private val text2Foreground =
         TextForegroundColor(
-            theme.text2ForegroundColor,
+            theme.foreground2,
             theme.selectionForeground2,
-            theme.hiddenText2Color,
-            theme.selectionHiddenText2Color,
-            theme.hoveredText2Color,
-            theme.selectionHoveredText2Color,
+            theme.hiddenForeground2,
+            theme.selectionHiddenForeground2,
+            theme.hoveredForeground2,
+            theme.selectionForeground2,
             theme.foundTextColor,
             theme.selectedFoundTextColor
         )
 
-    private val textViewRenderer = TextViewRenderer(textIcon, theme)
-    private val defaultCellRenderer = SimpleViewNodeRenderer()
+    private val itemRenderer = ItemViewRenderer(theme)
 
     override fun getTreeCellRendererComponent(
-        tree: JTree?,
-        value: Any?,
+        tree: JTree,
+        value: Any,
         selected: Boolean,
         expanded: Boolean,
         leaf: Boolean,
         row: Int,
         hasFocus: Boolean
     ): Component {
-        defaultCellRenderer.getTreeCellRendererComponent(
-            tree,
-            value,
-            selected,
-            expanded,
-            leaf,
-            row,
-            hasFocus
-        )
         if (value !is ViewNode) {
-            return defaultCellRenderer
+            return DefaultTreeCellRenderer()
         }
         val hovered = value == hoveredNode
         val visible = value.isDrawn
         val text = value.getText()
         val highlighted = foundItems.contains(value)
 
-        val isTextView = text != null
-        val item: TreeItem = if (isTextView) {
-            textViewRenderer
-        } else {
-            defaultCellRenderer
+        itemRenderer.selected = selected
+        itemRenderer.hovered = hovered
+        itemRenderer.expanded = expanded
+        itemRenderer.leaf = leaf
+
+        if (selected) {
+            itemRenderer.setBackgroundSelectionColor(theme.selectionBackground)
+        } else if (hovered) {
+            itemRenderer.setBackgroundSelectionColor(theme.hoverBackground)
         }
 
-        var foreground1 = text1Foreground.textForeground(selected, hovered, highlighted, visible)
-        var foreground2 = text2Foreground.textForeground(selected, hovered, highlighted, visible)
-        item.setForeground(foreground1, foreground2)
+        val foreground1 = text1Foreground.textForeground(selected, hovered, highlighted, visible)
+        val foreground2 = text2Foreground.textForeground(selected, hovered, highlighted, visible)
+        itemRenderer.setForeground(foreground1, foreground2)
 
         if (text != null) {
-            item.setTitle(value.typeAsString(), value.getElliptizedText(text))
-            textViewRenderer.selected = selected
-            textViewRenderer.hovered = hovered
-            return textViewRenderer
+            itemRenderer.setIcon(theme.textIcon)
+            itemRenderer.setTitle(value.typeAsString(), value.getElliptizedText(text))
+        } else {
+            itemRenderer.setIcon(iconForNode(value))
+            itemRenderer.setTitle(value.getFormattedName())
         }
-        item.setTitle(value.getFormattedName())
-        item.setIcon(iconForNode(value))
-        return defaultCellRenderer
+        return itemRenderer
     }
 
     private fun iconForNode(node: ViewNode): ImageIcon {
         val nodeTypeShort = node.typeAsString()
 
         if (node.name == "android.view.ViewStub") {
-            return viewStubIcon
+            return theme.viewStubIcon
         }
 
         if (node.name == "android.widget.FrameLayout" || node.name == "androidx.appcompat.widget.ContentFrameLayout" ||
             node.name == "androidx.appcompat.widget.FitWindowsFrameLayout"
         ) {
-            return frameLayoutIcon
+            return theme.frameLayoutIcon
         }
 
         if (nodeTypeShort == "AppBarLayout" || node.name == "com.android.internal.widget.ActionBarContainer") {
-            return appBarIcon
+            return theme.appBarIcon
         }
 
         if (nodeTypeShort == "ConstraintLayout") {
-            return constraintLayoutIcon
+            return theme.constraintLayoutIcon
         }
 
         if (nodeTypeShort == "CollapsingToolbarLayout" || nodeTypeShort == "Toolbar") {
-            return toolbarIcon
+            return theme.toolbarIcon
         }
 
         if (nodeTypeShort == "CoordinatorLayout") {
-            return coordinatorLayoutIcon
+            return theme.coordinatorLayoutIcon
         }
 
         if (nodeTypeShort == "AppCompatImageButton" || nodeTypeShort == "ImageButton" || nodeTypeShort == "ImageView") {
-            return imageViewIcon
+            return theme.imageViewIcon
         }
 
         if (nodeTypeShort == "ViewSwitcher") {
-            return viewSwitcherIcon
+            return theme.viewSwitcherIcon
         }
 
         if (nodeTypeShort == "NestedScrollView") {
-            return nestedScrollViewIcon
+            return theme.nestedScrollViewIcon
         }
 
         if (nodeTypeShort.contains("RecyclerView")) {
-            return listViewIcon
+            return theme.listViewIcon
         }
 
         if (nodeTypeShort.contains("RelativeLayout")) {
-            return relativeLayoutIcon
+            return theme.relativeLayoutIcon
         }
 
         if (nodeTypeShort.endsWith("CardView")) {
-            return cardViewIcon
+            return theme.cardViewIcon
         }
         if (nodeTypeShort.endsWith("ViewPager")) {
-            return viewPagerIcon
+            return theme.viewPagerIcon
         }
         if (nodeTypeShort == "FloatingActionButton") {
-            return fabIcon
+            return theme.fabIcon
         }
         if (nodeTypeShort.endsWith("LinearLayout")) {
-            return linearLayoutIcon
+            return theme.linearLayoutIcon
         }
-        return viewIcon
+        return theme.viewIcon
     }
 
 }

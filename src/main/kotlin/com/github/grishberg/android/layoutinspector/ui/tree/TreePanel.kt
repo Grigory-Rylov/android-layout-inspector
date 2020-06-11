@@ -11,10 +11,11 @@ import javax.swing.JComponent
 import javax.swing.JTree
 import javax.swing.KeyStroke
 import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.TreeCellRenderer
 
 
 class TreePanel(
-    theme: ThemeColors
+    private val theme: ThemeColors
 ) : JTree(DefaultMutableTreeNode()) {
     var nodeSelectedAction: OnNodeSelectedAction? = null
     private var selectedFromLayoutClick = false
@@ -33,7 +34,7 @@ class TreePanel(
     )
 
     private val foundItems = mutableListOf<ViewNode>()
-    private val viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme)
+    private var viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme)
 
     init {
         isRootVisible = true
@@ -64,8 +65,18 @@ class TreePanel(
                 }
             }
         })
-
         setCellRenderer(viewNodeRenderer)
+        theme.addColorChangedAction {
+            viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme)
+            setCellRenderer(viewNodeRenderer)
+        }
+    }
+
+    override fun getCellRenderer(): TreeCellRenderer? {
+        if (viewNodeRenderer == null) {
+            return super.getCellRenderer()
+        }
+        return viewNodeRenderer
     }
 
     private fun nodeByPoint(point: Point): ViewNode? {

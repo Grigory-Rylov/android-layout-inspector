@@ -13,13 +13,14 @@ class TextForegroundColor(
     private val selectedHighlighted: Color
 ) {
     fun textForeground(isSelected: Boolean, isHovered: Boolean, isHighlighted: Boolean, isVisible: Boolean): Color {
+        /*
         if (isHovered) {
             if (isSelected) {
                 return selectedHovered
             }
             return hovered
         }
-
+        */
         if (isHighlighted) {
             if (isSelected) {
                 return selectedHighlighted

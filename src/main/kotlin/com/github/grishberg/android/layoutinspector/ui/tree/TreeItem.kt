@@ -4,8 +4,13 @@ import java.awt.Color
 import javax.swing.ImageIcon
 
 interface TreeItem {
+    var leaf: Boolean
+    var expanded: Boolean
+    var hovered: Boolean
+    var selected: Boolean
+
     fun setForeground(textColor1: Color, textColor2: Color)
-    fun setIcon(icon: ImageIcon)
-    fun setTitle(text: String) = Unit
-    fun setTitle(type: String, description: String) = Unit
+    fun setIcon(newIcon: ImageIcon)
+    fun setTitle(type: String, description: String = "")
+    fun setBackgroundSelectionColor(color: Color)
 }
