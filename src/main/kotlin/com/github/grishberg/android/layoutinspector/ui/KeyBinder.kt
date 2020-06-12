@@ -28,6 +28,7 @@ class KeyBinder(
         addKeyMapWithCtrl(KeyEvent.VK_O, OpenFileDialogAction())
         addKeyMapWithCtrl(KeyEvent.VK_N, NewTraceAction())
         addKeyMap(KeyEvent.VK_Z, ResetZoomAction())
+        addKeyMap(KeyEvent.VK_F, FitZoomAction())
         addKeyMapWithCtrl(KeyEvent.VK_F, GoToFindAction())
     }
 
@@ -78,12 +79,20 @@ class KeyBinder(
         }
     }
 
+    private inner class FitZoomAction : AbstractAction() {
+        override fun actionPerformed(e: ActionEvent) {
+            if (shouldSkip(e)) return
+            layoutPanel.fitZoom()
+        }
+    }
+
     private inner class ResetZoomAction : AbstractAction() {
         override fun actionPerformed(e: ActionEvent) {
             if (shouldSkip(e)) return
             layoutPanel.resetZoom()
         }
     }
+
 
     private inner class GoToFindAction : AbstractAction() {
         override fun actionPerformed(e: ActionEvent) {

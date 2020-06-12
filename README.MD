@@ -7,6 +7,8 @@ Allows you to switch between displaying dimensions in **PX** and **DP** (only fo
 
 ![Searching mode](assets/find.png)
 
+![Themes](assets/themes.png)
+
 ## Download
 ![GitHub All Releases](https://img.shields.io/github/downloads/Grigory-Rylov/android-layout-inspector/total?color=%234caf50&style=for-the-badge)  
 - [Download latest release](https://github.com/Grigory-Rylov/android-layout-inspector/releases)
@@ -48,7 +50,8 @@ In the status bar will shown distance between first and second
 **Ctrl + f** - Open find dialog (type text and press **Enter**)
 
 ### Layouts
-**z** - reset zoom to 25%
+**z** - reset zoom to 100%
+**f** - fit zoom to layout panel width
 
 ## Troubleshooting
 Sometimes Android Studio holds debug ports and Layout Inspector cannot find applications on device.
