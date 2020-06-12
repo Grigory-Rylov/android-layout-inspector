@@ -7,6 +7,8 @@ Allows you to switch between displaying dimensions in **PX** and **DP** (only fo
 
 ![Searching mode](assets/find.png)
 
+## Dark theme
+
 ![Themes](assets/themes.png)
 
 ## Download
