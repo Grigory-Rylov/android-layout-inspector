@@ -57,11 +57,6 @@ class NodeViewTreeCellRenderer(
         val text = value.getText()
         val highlighted = foundItems.contains(value)
 
-        itemRenderer.selected = selected
-        itemRenderer.hovered = hovered
-        itemRenderer.expanded = expanded
-        itemRenderer.leaf = leaf
-
         if (selected) {
             itemRenderer.setBackgroundSelectionColor(theme.selectionBackground)
         } else if (hovered) {
@@ -72,13 +67,22 @@ class NodeViewTreeCellRenderer(
         val foreground2 = text2Foreground.textForeground(selected, hovered, highlighted, visible)
         itemRenderer.setForeground(foreground1, foreground2)
 
+
         if (text != null) {
             itemRenderer.setIcon(theme.textIcon)
-            itemRenderer.setTitle(value.typeAsString(), value.getElliptizedText(text))
+            itemRenderer.prepareTreeItem(
+                value.typeAsString(),
+                value.getElliptizedText(text),
+                selected,
+                expanded,
+                leaf,
+                hovered
+            )
         } else {
             itemRenderer.setIcon(iconForNode(value))
-            itemRenderer.setTitle(value.getFormattedName())
+            itemRenderer.prepareTreeItem(value.getFormattedName(), "", selected, expanded, leaf, hovered)
         }
+
         return itemRenderer
     }
 
