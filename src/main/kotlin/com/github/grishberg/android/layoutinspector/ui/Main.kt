@@ -42,7 +42,7 @@ private const val INITIAL_SCREEN_WIDTH = 1024
 private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 300
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
-private const val VERSION = "20.06.12.00"
+private const val VERSION = "20.06.15.00"
 
 // create a class MainWindow extending JFrame
 class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), LayoutResultOutput, DialogsInput {
@@ -127,8 +127,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), Layout
 
         pack()
 
-        val debugPort = 8699
-        DdmPreferences.setSelectedDebugPort(debugPort)
+        DdmPreferences.setSelectedDebugPort(settingsFacade.adbPort)
 
         if (isPortAlreadyUsed(DdmPreferences.getSelectedDebugPort())) {
             throw DebugPortBusyException(DdmPreferences.getSelectedDebugPort())

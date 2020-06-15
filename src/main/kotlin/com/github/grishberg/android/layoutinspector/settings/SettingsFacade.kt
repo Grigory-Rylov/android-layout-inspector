@@ -10,7 +10,8 @@ private const val SETTINGS_ALLOW_SELECT_HIDDEN_VIEW = "allowSelectHiddenView"
 private const val SETTINGS_TIMEOUT = "timeoutInSeconds"
 private const val SETTINGS_ADB_INITIAL_REMOTE_ADDRESS = "remoteDeviceAddress"
 private const val SETTINGS_WAIT_FOR_CLIENT_WINDOWS_TIMEOUT = "clientWindowsTimeout"
-
+private const val SETTINGS_ADB_DEBUG_PORT = "debugPort"
+private const val ADB_DEBUG_PORT_DEFAULT_VALUE = 8698
 private const val SETTINGS_THEME = "theme"
 
 class SettingsFacade(
@@ -35,6 +36,8 @@ class SettingsFacade(
     var allowedSelectHiddenView: Boolean
         get() = settings.getBoolValueOrDefault(SETTINGS_ALLOW_SELECT_HIDDEN_VIEW)
         set(value) = settings.setBoolValue(SETTINGS_ALLOW_SELECT_HIDDEN_VIEW, value)
+
+    val adbPort: Int = settings.getIntValueOrDefault(SETTINGS_ADB_DEBUG_PORT, ADB_DEBUG_PORT_DEFAULT_VALUE)
 
     var theme: Theme
         get() {
