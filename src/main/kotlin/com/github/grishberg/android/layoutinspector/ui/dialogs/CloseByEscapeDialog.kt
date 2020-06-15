@@ -20,6 +20,7 @@ open class CloseByEscapeDialog(
             }
         })
     }
+
     override fun createRootPane(): JRootPane {
         val rootPane = JRootPane()
         val stroke = KeyStroke.getKeyStroke("ESCAPE")

@@ -7,6 +7,7 @@ import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.geom.Point2D
+import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
 
 private const val DEFAULT_SCALE = 0.25
@@ -44,6 +45,7 @@ class LayoutPanel(
 
     fun showLayoutResult(layoutData: LayoutFileData) {
         logic.showLayoutResult(layoutData)
+        fitZoom()
         repaint()
     }
 
@@ -83,9 +85,18 @@ class LayoutPanel(
         logic.onLayoutSelectedAction = action
     }
 
+    fun fitZoom() {
+        val imageSize = logic.imageSize
+        if (imageSize.width == 0) {
+            return
+        }
+        val rect = Rectangle2D.Double(0.0, 0.0, imageSize.width.toDouble(), imageSize.height.toDouble())
+        zoomAndPanListener.fitZoom(rect, 0, false)
+        repaint()
+    }
+
     fun resetZoom() {
         zoomAndPanListener.resetZoom()
-        zoomAndPanListener.setScale(0.25)
         repaint()
     }
 

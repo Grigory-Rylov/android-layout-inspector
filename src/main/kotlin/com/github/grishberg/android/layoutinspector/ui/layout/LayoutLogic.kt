@@ -16,6 +16,14 @@ class LayoutLogic(
     var onLayoutSelectedAction: OnLayoutSelectedAction? = null
 
     private var screenshot: BufferedImage? = null
+    val imageSize: Dimension
+        get() {
+            val image = screenshot
+            if (image != null) {
+                return Dimension(image.width, image.height)
+            }
+            return Dimension(0, 0)
+        }
     private var root: ViewNode? = null
     private val layoutModelRoots = mutableListOf<LayoutModel>()
     private val rectangles = mutableListOf<LayoutModel>()
