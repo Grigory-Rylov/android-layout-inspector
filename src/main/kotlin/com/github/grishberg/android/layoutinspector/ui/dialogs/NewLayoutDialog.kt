@@ -40,8 +40,8 @@ class NewLayoutDialog(
 
     private val devicesModel = DevicesCompoBoxModel()
     private val devicesComboBox: JComboBox<DeviceWrapper>
-    private val refreshButton: JButton
     private val startButton: JButton
+    private val resetConnectionButton: JButton
     private val clientsList: JList<ClientWrapper>
     private val clientsChangedListener = CliensListener()
     private val deviceChangedAction = DeviceChangedActions()
@@ -79,10 +79,10 @@ class NewLayoutDialog(
 
         showAllPrecesses = JCheckBox("any processes")
         showAllPrecesses.addActionListener {
-            val device = devicesComboBox.selectedItem as IDevice?
+            val deviceWrapper = devicesComboBox.selectedItem as DeviceWrapper?
 
-            if (device != null) {
-                populateWithClients(device)
+            if (deviceWrapper != null) {
+                populateWithClients(deviceWrapper.device)
             }
         }
 
@@ -100,10 +100,14 @@ class NewLayoutDialog(
         })
         listScroll.preferredSize = Dimension(300, 400)
 
-        refreshButton = JButton("Refresh app list")
         startButton = JButton("Start")
         startButton.addActionListener {
             startRecording()
+        }
+
+        resetConnectionButton = JButton("Reset ADB")
+        resetConnectionButton.addActionListener {
+            resetAdbConnection()
         }
 
         val panelBuilder = LabeledGridBuilder()
@@ -112,8 +116,9 @@ class NewLayoutDialog(
         panelBuilder.addSingleComponent(showAllPrecesses)
         panelBuilder.addSingleComponent(listScroll)
         panelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
-        panelBuilder.addSingleComponent(startButton)
+        panelBuilder.addMainAndSlaveComponent(startButton, resetConnectionButton)
         contentPane = panelBuilder.content
+
         pack()
         addComponentListener(object : ComponentListener {
             override fun componentResized(e: ComponentEvent?) {
@@ -126,6 +131,12 @@ class NewLayoutDialog(
         })
 
         checkAndroidHome()
+    }
+
+    private fun resetAdbConnection() {
+        clientListModel.clear()
+        devicesComboBox.removeAll()
+        deviceProvider.reconnect()
     }
 
     private fun checkAndroidHome() {

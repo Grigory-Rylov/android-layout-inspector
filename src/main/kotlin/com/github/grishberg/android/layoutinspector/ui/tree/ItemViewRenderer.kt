@@ -26,6 +26,7 @@ class ItemViewRenderer(
     /** Icon used to show non-leaf nodes that are expanded.  */
     private var openIcon: Icon? = null
     private var treeNodeIcon: Icon? = null
+    private var leafWidth = 0
 
     private var icon: ImageIcon = ImageIcon()
     private var selectionBackground: Color = theme.selectionBackground
@@ -98,8 +99,8 @@ class ItemViewRenderer(
     private fun calculateDimension(t1: String, t2: String): Dimension {
         var w = iconGap + icon.iconWidth + iconGap + fontMetrics.stringWidth(t1) +
                 fontMetrics.stringWidth(t2) + textRightPadding
-        treeNodeIcon?.let {
-            w += it.iconWidth + iconGap
+        if (leafWidth > 0) {
+            w += leafWidth + iconGap
         }
         return Dimension(w, max(icon.iconHeight, fontMetrics.height))
     }
@@ -111,10 +112,13 @@ class ItemViewRenderer(
         }
 
         var left = iconGap
-        treeNodeIcon?.let {
-            val treeNodeIconTop = (height - it.iconHeight) / 2
-            it.paintIcon(this, g, left, treeNodeIconTop)
-            left += iconGap + it.iconWidth
+        val currentNodeIcon = treeNodeIcon
+        if (currentNodeIcon != null) {
+            val treeNodeIconTop = (height - currentNodeIcon.iconHeight) / 2
+            currentNodeIcon.paintIcon(this, g, left, treeNodeIconTop)
+            left += iconGap + currentNodeIcon.iconWidth
+        } else if (leafWidth > 0) {
+            left += iconGap + leafWidth
         }
 
         val iconTop = (height - icon.iconHeight) / 2
@@ -146,6 +150,9 @@ class ItemViewRenderer(
         // value.
         if (!initiated || closedIcon is UIResource) {
             closedIcon = DefaultLookup.getIcon(this, ui, "Tree.closedIcon")
+            closedIcon?.let {
+                leafWidth = it.iconWidth
+            }
         }
         if (!initiated || openIcon is UIManager) {
             openIcon = DefaultLookup.getIcon(this, ui, "Tree.openIcon")

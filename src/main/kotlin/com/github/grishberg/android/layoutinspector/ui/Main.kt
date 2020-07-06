@@ -25,7 +25,6 @@ import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
 import com.github.grishberg.tracerecorder.exceptions.DebugPortBusyException
-import mdlaf.MaterialLookAndFeel
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.event.ActionEvent
@@ -42,10 +41,10 @@ private const val INITIAL_SCREEN_WIDTH = 1024
 private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 300
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
-private const val VERSION = "20.06.15.00"
 
 // create a class MainWindow extending JFrame
-class Main : JFrame("Yet Another Android Layout Inspector. ver$VERSION"), LayoutResultOutput, DialogsInput {
+class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPackage().implementationVersion}"),
+    LayoutResultOutput, DialogsInput {
 
     // Declaration of objects of the
     // JScrollPane class.

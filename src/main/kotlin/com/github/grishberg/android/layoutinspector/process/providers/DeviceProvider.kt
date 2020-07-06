@@ -44,22 +44,30 @@ class DeviceProvider(
         })
     }
 
+    fun reconnect() {
+        adb.stop()
+        connectToAdb()
+    }
+
     suspend fun requestDevices(): List<IDevice> {
         val result = GlobalScope.async(Dispatchers.IO) {
             if (!adb.isConnected()) {
-
-                val initialConnectionDeviceAddress = settings.getStringValue(SETTINGS_ADB_INITIAL_DEVICE_ADDRESS)
-                if (initialConnectionDeviceAddress != null && initialConnectionDeviceAddress.isNotEmpty()) {
-                    adb.connect(initialConnectionDeviceAddress)
-                } else {
-                    adb.connect()
-                }
+                connectToAdb()
                 waitForDevices(adb)
             }
             return@async adb.getDevices()
         }
 
         return result.await()
+    }
+
+    private fun connectToAdb() {
+        val initialConnectionDeviceAddress = settings.getStringValue(SETTINGS_ADB_INITIAL_DEVICE_ADDRESS)
+        if (initialConnectionDeviceAddress != null && initialConnectionDeviceAddress.isNotEmpty()) {
+            adb.connect(initialConnectionDeviceAddress)
+        } else {
+            adb.connect()
+        }
     }
 
     private fun waitForDevices(adb: AdbWrapper) {

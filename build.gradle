@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.06.15.00'
+version '20.07.06.00'
 
 sourceCompatibility = 1.8
 
@@ -51,7 +51,8 @@ allprojects {
 
 task fatJar(type: Jar) {
     manifest {
-        attributes 'Main-Class': 'com.github.grishberg.android.layoutinspector.ui.Main'
+        attributes 'Main-Class': 'com.github.grishberg.android.layoutinspector.ui.Main',
+                'Implementation-Version': version
     }
     baseName = 'android-layout-inspector'
     from {

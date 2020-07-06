@@ -22,6 +22,7 @@ class LabeledGridBuilder {
         labelConstraints.gridy = 0
         labelConstraints.gridx = 0
 
+        fieldConstraints.gridwidth = 3
         fieldConstraints.fill = GridBagConstraints.HORIZONTAL
         fieldConstraints.gridy = 0
     }
@@ -41,9 +42,29 @@ class LabeledGridBuilder {
     }
 
     fun addSingleComponent(component: JComponent) {
-        fieldConstraints.gridwidth = 2
+        fieldConstraints.gridwidth = 4
         content.add(component, fieldConstraints)
         fieldConstraints.gridy++
         labelConstraints.gridy++
     }
+
+    fun addMainAndSlaveComponent(mainComponent: JComponent, slaveComponent: JComponent) {
+        fieldConstraints.fill = GridBagConstraints.HORIZONTAL
+        fieldConstraints.gridwidth = 1
+        fieldConstraints.gridx = 0
+        fieldConstraints.weightx = 3/4.0
+        content.add(mainComponent, fieldConstraints)
+
+        fieldConstraints.gridwidth = 1
+        fieldConstraints.fill = GridBagConstraints.PAGE_END
+        fieldConstraints.gridx = 1
+        fieldConstraints.weightx = 1/4.0
+        content.add(slaveComponent, fieldConstraints)
+
+        fieldConstraints.fill = GridBagConstraints.HORIZONTAL
+        fieldConstraints.gridx = 0
+        fieldConstraints.gridy++
+        labelConstraints.gridy++
+    }
+
 }
