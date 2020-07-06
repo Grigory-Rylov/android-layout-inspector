@@ -12,6 +12,13 @@ class RealDeviceWrapper(override val device: IDevice) : DeviceWrapper {
     override fun toString(): String {
         return device.toString()
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (other is RealDeviceWrapper) {
+            return device.serialNumber == other.device.serialNumber
+        }
+        return false
+    }
 }
 
 class DevicesCompoBoxModel : MutableComboBoxModel<DeviceWrapper> {
@@ -64,7 +71,7 @@ class DevicesCompoBoxModel : MutableComboBoxModel<DeviceWrapper> {
 
     fun contains(item: IDevice): Boolean {
         for (d in devices) {
-            if (d == item) {
+            if (d.device.serialNumber == item.serialNumber) {
                 return true
             }
         }

@@ -8,7 +8,6 @@ import com.android.layoutinspector.model.ClientWindow
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptions
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptionsInput
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
-import com.github.grishberg.android.layoutinspector.settings.SETTINGS_ANDROID_HOME
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +16,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import java.awt.Dimension
-import java.awt.Frame
 import java.awt.event.*
 import java.text.NumberFormat
 import java.util.concurrent.TimeUnit
@@ -29,7 +27,7 @@ private const val TAG = "NewLayoutDialog"
 private const val TITLE = "Select Layout recording parameters"
 
 class NewLayoutDialog(
-    private val owner: Frame,
+    private val owner: JFrame,
     private val deviceProvider: DeviceProvider,
     private val logger: AppLogger,
     private val settings: SettingsFacade
@@ -73,7 +71,6 @@ class NewLayoutDialog(
             }
 
             val device = it.item as DeviceWrapper
-            ClientsListenerSetter.setClientsListener(device.device, clientsChangedListener)
             populateWithClients(device.device)
         }
 
@@ -141,13 +138,14 @@ class NewLayoutDialog(
 
     private fun checkAndroidHome() {
         if (settings.androidHome.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                owner,
-                "For recording need to set ANDROID_HOME env variable." +
-                        "\nIf value is already set, start app from terminal 'java -jar android-methods-profiler.jar'" +
-                        "\nOr set '" + SETTINGS_ANDROID_HOME + "' in android-layout-inspector-settings.json"
-            )
+            setupAndroidHome()
         }
+    }
+
+    private fun setupAndroidHome() {
+        val dialog = SetAndroidHomeDialog(owner, settings)
+        dialog.setLocationRelativeTo(owner)
+        dialog.isVisible = true
     }
 
     private fun startRecording() {
@@ -251,7 +249,7 @@ class NewLayoutDialog(
             if (!isVisible) {
                 return
             }
-            if (device != (devicesComboBox.selectedItem as DeviceWrapper).device) {
+            if (device.serialNumber != (devicesComboBox.selectedItem as DeviceWrapper).device.serialNumber) {
                 return
             }
             SwingUtilities.invokeLater {
@@ -262,16 +260,21 @@ class NewLayoutDialog(
 
     private inner class DeviceChangedActions : DeviceProvider.DeviceChangedAction {
         override fun deviceConnected(device: IDevice) {
+            ClientsListenerSetter.setClientsListener(device, clientsChangedListener)
             if (!devicesModel.contains(device)) {
                 devicesComboBox.addItem(RealDeviceWrapper(device))
                 if (devicesModel.size == 1) {
                     devicesComboBox.selectedItem = device
+                    devicesComboBox.selectedIndex = 0
                 }
+            } else {
+                val selectedDeviceWrapper = devicesComboBox.selectedItem as DeviceWrapper
+                populateWithClients(selectedDeviceWrapper.device)
             }
         }
 
         override fun deviceDisconnected(device: IDevice) {
-            devicesComboBox.removeItem(device)
+            devicesComboBox.removeItem(RealDeviceWrapper(device))
             if (devicesModel.size == 0) {
                 devicesComboBox.selectedItem = null
             }
