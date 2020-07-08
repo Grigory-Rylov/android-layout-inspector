@@ -8,6 +8,7 @@ import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
+import java.awt.Dimension
 import java.awt.Frame
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -18,7 +19,7 @@ private const val TITLE = "Select window"
 private const val TAG = "WindowsDialog"
 
 class WindowsDialog(
-    owner: Frame,
+    private val owner: Frame,
     private val logger: AppLogger
 ) : JDialog(owner, TITLE, true), ClientWindowsInput {
     private val clientWindowList: JList<ClientWindow>
@@ -43,6 +44,7 @@ class WindowsDialog(
             isVisible = false
         }
 
+        listScroll.preferredSize = Dimension(640, 400)
         val panelBuilder = LabeledGridBuilder()
         panelBuilder.addSingleComponent(JLabel("Windows:"))
         panelBuilder.addSingleComponent(listScroll)
@@ -74,6 +76,7 @@ class WindowsDialog(
             clientWindowListModel.addElement(w)
             logger.d("$TAG found window $w")
         }
+        setLocationRelativeTo(owner)
         isVisible = true
 
 
