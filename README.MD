@@ -18,7 +18,9 @@ Allows you to switch between displaying dimensions in **PX** and **DP** (only fo
 ## Launching
 1) Ensure you've set `ANDROID_HOME` environment variable
 
-2) Call `java -jar android-layout-inspector.jar` or `sh start.sh`
+2) Call `java -jar android-layout-inspector-{VERSION}.jar`
+
+Or just double click on jar and enter path to Android SDK manually (it will be stored into settings file)
 
 ## Why Yet another android layout inspector?
 Because AS layout inspector sometimes cannot download layouts for some reasons.
@@ -56,9 +58,10 @@ In the status bar will shown distance between first and second
 **f** - fit zoom to layout panel width
 
 ## Troubleshooting
-Sometimes Android Studio holds debug ports and Layout Inspector cannot find applications on device.
-Try to close Android Studio, close **Record new layout** dialog and open dialog again.
-You can set value to `true` for key `shouldStopAdbAfterJob` in `android-layout-inspector-settings.json` to allow forcibly disconnect ADB connection after end of operations, sometimes it can help without closing AS.
+- If you cannot see your process in processes window - try to press **Reset ADB** button.
+
+- Sometimes Android Studio holds debug ports and Layout Inspector cannot find applications on device.
+Try to close Android Studio, press **Reset ADB** button.
 
 ## Settings
 Settings are stored in `android-layout-inspector-settings.json` :
