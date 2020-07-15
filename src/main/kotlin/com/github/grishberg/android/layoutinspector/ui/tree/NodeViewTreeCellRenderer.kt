@@ -1,6 +1,7 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import java.awt.Component
 import javax.swing.ImageIcon
@@ -11,7 +12,8 @@ import javax.swing.tree.TreeCellRenderer
 
 class NodeViewTreeCellRenderer(
     private val foundItems: List<ViewNode>,
-    private val theme: ThemeColors
+    private val theme: ThemeColors,
+    private val bookmarks: Bookmarks
 ) : TreeCellRenderer {
     var hoveredNode: ViewNode? = null
 
@@ -63,7 +65,10 @@ class NodeViewTreeCellRenderer(
             itemRenderer.setBackgroundSelectionColor(theme.hoverBackground)
         }
 
-        val foreground1 = text1Foreground.textForeground(selected, hovered, highlighted, visible)
+        val foreground1 = bookmarks.getForegroundForItem(
+            value,
+            text1Foreground.textForeground(selected, hovered, highlighted, visible)
+        )
         val foreground2 = text2Foreground.textForeground(selected, hovered, highlighted, visible)
         itemRenderer.setForeground(foreground1, foreground2)
 

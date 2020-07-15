@@ -16,6 +16,7 @@ import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.WindowsDialog
+import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
 import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
 import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
@@ -72,7 +73,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
     private val themeProxy = ThemeProxy()
     private val themes: Themes
     private val filter = FileNameExtensionFilter("Layout inspector files", "li")
-
+    private val bookmarks = Bookmarks()
     // Constructor of MainWindow class
     init {
         settingsFacade = SettingsFacade(settings)
@@ -87,7 +88,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
         layoutPanel = LayoutPanel(settingsFacade)
-        treePanel = TreePanel(themeProxy)
+        treePanel = TreePanel(this, themeProxy, bookmarks)
         propertiesPanel = PropertiesPanel()
         propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
         layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
@@ -405,7 +406,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
     }
 
     override fun showOpenFileDialogAndReturnResult(): File? {
-        val fileChooser = JFileChooser()
+        val fileChooser = JFileChooser(File(settingsFacade.lastLayoutDialogPath))
         fileChooser.addChoosableFileFilter(filter)
         fileChooser.fileFilter = filter
 
@@ -413,6 +414,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
 
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             val file: File = fileChooser.selectedFile
+            settingsFacade.lastLayoutDialogPath = file.parent
             return file
         }
         return null

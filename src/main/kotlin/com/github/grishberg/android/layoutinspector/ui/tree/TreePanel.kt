@@ -2,20 +2,21 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import java.awt.Point
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.awt.event.*
-import javax.swing.JComponent
-import javax.swing.JTree
-import javax.swing.KeyStroke
+import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreeCellRenderer
 
 
 class TreePanel(
-    private val theme: ThemeColors
+    private val frame: JFrame,
+    private val theme: ThemeColors,
+    private val bookmarks: Bookmarks
 ) : JTree(DefaultMutableTreeNode()) {
     var nodeSelectedAction: OnNodeSelectedAction? = null
     private var selectedFromLayoutClick = false
@@ -34,7 +35,7 @@ class TreePanel(
     )
 
     private val foundItems = mutableListOf<ViewNode>()
-    private var viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme)
+    private var viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme, bookmarks)
 
     init {
         isRootVisible = true
@@ -65,11 +66,36 @@ class TreePanel(
                 }
             }
         })
+        addMouseListener(object : MouseListener {
+            override fun mouseReleased(e: MouseEvent) = Unit
+
+            override fun mouseEntered(e: MouseEvent) = Unit
+
+            override fun mouseClicked(e: MouseEvent) = Unit
+
+            override fun mouseExited(e: MouseEvent) = Unit
+
+            override fun mousePressed(e: MouseEvent) {
+                if (!SwingUtilities.isRightMouseButton(e)) {
+                    return
+                }
+                val nodeByPoint = nodeByPoint(e.point) ?: return
+                showContextMenu(nodeByPoint, e.point)
+            }
+        })
         setCellRenderer(viewNodeRenderer)
         theme.addColorChangedAction {
-            viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme)
+            viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme, bookmarks)
             setCellRenderer(viewNodeRenderer)
         }
+        bookmarks.listeners.add {
+            repaint()
+        }
+    }
+
+    private fun showContextMenu(nodeByPoint: ViewNode, point: Point) {
+        val popupMenu = TreeViewNodeMenu(frame, nodeByPoint, bookmarks)
+        popupMenu.show(this, point.x, point.y)
     }
 
     override fun getCellRenderer(): TreeCellRenderer? {

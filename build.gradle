@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.07.06.00'
+version '20.07.15.00'
 
 sourceCompatibility = 1.8
 
@@ -23,7 +23,7 @@ dependencies {
     implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.6'
 
     implementation group: 'com.android.tools.ddms', name: 'ddmlib', version: '26.6.3'
-    implementation 'com.github.Grigory-Rylov:andoid_method_trace_recorder:1.4.10'
+    implementation 'com.github.Grigory-Rylov:andoid_method_trace_recorder:1.5.8'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.3.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2'
 
