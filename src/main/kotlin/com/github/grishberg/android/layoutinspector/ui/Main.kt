@@ -88,7 +88,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
         layoutPanel = LayoutPanel(settingsFacade)
-        treePanel = TreePanel(this, themeProxy, bookmarks)
+        treePanel = TreePanel(this, themeProxy, bookmarks, main = this)
         propertiesPanel = PropertiesPanel()
         propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
         layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
@@ -418,6 +418,10 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
             return file
         }
         return null
+    }
+
+    fun calculateDistance(selectedValue: ViewNode, targetNode: ViewNode) {
+        layoutPanel.calculateDistanceBetweenTwoViewNodes(selectedValue, targetNode)
     }
 
     companion object {

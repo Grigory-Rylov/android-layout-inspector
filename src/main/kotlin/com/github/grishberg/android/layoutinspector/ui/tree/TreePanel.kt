@@ -2,6 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.ui.Main
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import java.awt.Point
@@ -11,12 +12,14 @@ import java.awt.event.*
 import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreeCellRenderer
+import javax.swing.tree.TreeSelectionModel
 
 
 class TreePanel(
     private val frame: JFrame,
     private val theme: ThemeColors,
-    private val bookmarks: Bookmarks
+    private val bookmarks: Bookmarks,
+    private val main: Main
 ) : JTree(DefaultMutableTreeNode()) {
     var nodeSelectedAction: OnNodeSelectedAction? = null
     private var selectedFromLayoutClick = false
@@ -84,6 +87,9 @@ class TreePanel(
             }
         })
         setCellRenderer(viewNodeRenderer)
+
+        getSelectionModel().selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
+
         theme.addColorChangedAction {
             viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme, bookmarks)
             setCellRenderer(viewNodeRenderer)
@@ -93,8 +99,22 @@ class TreePanel(
         }
     }
 
+    private fun calculateDistance(targetNode: ViewNode) {
+        if (selectionPath == null) {
+            return
+        }
+
+        val selectedValue = selectionPath.lastPathComponent as ViewNode
+
+        main.calculateDistance(selectedValue, targetNode)
+    }
+
     private fun showContextMenu(nodeByPoint: ViewNode, point: Point) {
-        val popupMenu = TreeViewNodeMenu(frame, nodeByPoint, bookmarks)
+        val calculateDistanceDelegate: CalculateDistanceDelegate? = if (selectionPath == null) null
+        else {
+            { calculateDistance(nodeByPoint) }
+        }
+        val popupMenu = TreeViewNodeMenu(frame, nodeByPoint, bookmarks, calculateDistanceDelegate)
         popupMenu.show(this, point.x, point.y)
     }
 

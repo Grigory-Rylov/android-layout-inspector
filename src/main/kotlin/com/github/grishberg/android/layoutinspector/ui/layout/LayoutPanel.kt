@@ -65,6 +65,10 @@ class LayoutPanel(
         }
     }
 
+    fun calculateDistanceBetweenTwoViewNodes(startViewNode: ViewNode, endViewNode: ViewNode) {
+        logic.calculateDistanceBetweenTwoViewNodes(startViewNode, endViewNode)
+    }
+
     override fun getPreferredSize() = logic.getPreferredSize()
 
     override fun paintComponent(g: Graphics) {

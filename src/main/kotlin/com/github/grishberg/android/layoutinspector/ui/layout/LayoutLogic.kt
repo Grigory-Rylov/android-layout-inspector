@@ -43,6 +43,7 @@ class LayoutLogic(
         BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0f, floatArrayOf(9f), 0f)
 
     private val distances = DistanceBetweenTwoShape()
+    private var recalculateDistanceAction: CalculateDistanceAction? = null
 
     fun processMouseHover(point: Point) {
         val foundNode = getChildAtPoint(point)
@@ -57,6 +58,7 @@ class LayoutLogic(
         panel.requestFocus()
         val foundNode = getChildAtPoint(point)
         if (foundNode != null) {
+            recalculateDistanceAction = null
             selectedRectangle = foundNode.rect
             onLayoutSelectedAction?.onNodeSelected(foundNode.node)
         }
@@ -69,23 +71,37 @@ class LayoutLogic(
             if (selectedRectangle == null) {
                 selectedRectangle = foundNode.rect
                 onLayoutSelectedAction?.onNodeSelected(foundNode.node)
+                panel.repaint()
             } else {
-                measureRectangle = foundNode.rect
                 calculateDistance(foundNode.rect)
             }
-            panel.repaint()
         }
     }
 
     private fun calculateDistance(measureRectangle: Shape) {
         val selected = selectedRectangle ?: throw IllegalStateException("No selected element to measure distance")
+        calculateDistance(selected, measureRectangle)
+    }
+
+    fun calculateDistanceBetweenTwoViewNodes(startViewNode: ViewNode, endViewNode: ViewNode) {
+        val node1 = allRectangles[startViewNode]
+        val node2 = allRectangles[endViewNode]
+        if (node1 != null && node2 != null) {
+            calculateDistance(node1, node2)
+        }
+    }
+
+    private fun calculateDistance(selected: Shape, measureRectangle: Shape) {
+        recalculateDistanceAction = CalculateDistanceAction(selected, measureRectangle)
         val selectedBounds = selected.bounds2D
         val targetBounds = measureRectangle.bounds2D
+        this.measureRectangle = measureRectangle
 
         val distances = distances.calculateDistance(selectedBounds, targetBounds)
         measureLines.clear()
         measureLines.addAll(distances.lines)
         onLayoutSelectedAction?.onDistanceCalculated(distances.distance)
+        panel.repaint()
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {
@@ -213,6 +229,7 @@ class LayoutLogic(
 
     fun selectNode(viewNode: ViewNode) {
         selectedRectangle = allRectangles[viewNode]
+        recalculateDistanceAction = null
     }
 
     fun hoverNode(viewNode: ViewNode) {
@@ -227,6 +244,7 @@ class LayoutLogic(
 
     fun setSizeDpMode(enabled: Boolean) {
         distances.sizeInDpEnabled = enabled
+        recalculateDistanceAction?.recalculate()
     }
 
     interface OnLayoutSelectedAction {
@@ -234,5 +252,11 @@ class LayoutLogic(
         fun onNodeSelected(node: ViewNode)
         fun onMouseExited()
         fun onDistanceCalculated(dimensions: Map<DistanceType, Double>)
+    }
+
+    inner class CalculateDistanceAction(val selected: Shape, val target: Shape) {
+        fun recalculate() {
+            calculateDistance(selected, target)
+        }
     }
 }
