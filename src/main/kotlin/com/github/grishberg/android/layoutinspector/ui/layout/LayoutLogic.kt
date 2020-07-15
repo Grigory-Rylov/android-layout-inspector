@@ -5,6 +5,8 @@ import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import java.awt.*
 import java.awt.geom.AffineTransform
+import java.awt.geom.Point2D
+import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
@@ -33,6 +35,7 @@ class LayoutLogic(
     private var selectedRectangle: Shape? = null
     private var measureRectangle: Shape? = null
     private var hoveredRectangle: Shape? = null
+    private var selectionRectangle: Shape? = null
 
     private val measureLines = mutableListOf<Shape>()
     private val selectedColor = Color(41, 105, 248)
@@ -91,13 +94,17 @@ class LayoutLogic(
         }
     }
 
-    private fun calculateDistance(selected: Shape, measureRectangle: Shape) {
+    private fun calculateDistance(selected: Shape, measureRectangle: Shape, reverseLineSource: Boolean = false) {
         recalculateDistanceAction = CalculateDistanceAction(selected, measureRectangle)
         val selectedBounds = selected.bounds2D
         val targetBounds = measureRectangle.bounds2D
         this.measureRectangle = measureRectangle
 
-        val distances = distances.calculateDistance(selectedBounds, targetBounds)
+        val distances = if (reverseLineSource) {
+            distances.calculateDistance(targetBounds, selectedBounds)
+        } else {
+            distances.calculateDistance(selectedBounds, targetBounds)
+        }
         measureLines.clear()
         measureLines.addAll(distances.lines)
         onLayoutSelectedAction?.onDistanceCalculated(distances.distance)
@@ -245,6 +252,17 @@ class LayoutLogic(
     fun setSizeDpMode(enabled: Boolean) {
         distances.sizeInDpEnabled = enabled
         recalculateDistanceAction?.recalculate()
+    }
+
+    fun onMouseRightMove(tranformed: Point2D) {
+        selectedRectangle?.let {
+            val fakeShape = Rectangle2D.Double(tranformed.x, tranformed.y, 0.0, 0.0)
+            calculateDistance(it, fakeShape, reverseLineSource = true)
+        }
+    }
+
+    fun onMouseUp() {
+        selectionRectangle = null
     }
 
     interface OnLayoutSelectedAction {

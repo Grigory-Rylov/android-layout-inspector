@@ -7,6 +7,7 @@ import java.awt.geom.AffineTransform
 import java.awt.geom.NoninvertibleTransformException
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
+import javax.swing.SwingUtilities
 
 private const val MOUSE_GAP = 2
 private const val KEYBOARD_ZOOM_MULTIPLICATION_FACTOR = 1.5
@@ -50,7 +51,11 @@ class ZoomAndPanListener(
             val point = e.point
             try {
                 val transformedPoint = transformPoint(point)
-                mouseEventsListener?.onMouseShiftClicked(transformedPoint)
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    mouseEventsListener?.onMouseRightClicked(transformedPoint)
+                } else {
+                    mouseEventsListener?.onMouseShiftClicked(transformedPoint)
+                }
             } catch (ex: NoninvertibleTransformException) {
                 ex.printStackTrace()
             }
@@ -69,7 +74,12 @@ class ZoomAndPanListener(
             val point = e.point
             try {
                 val transformedPoint = transformPoint(point)
-                mouseEventsListener?.onMouseClicked(point, transformedPoint)
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    mouseEventsListener?.onMouseRightClicked(transformedPoint)
+                } else {
+                    mouseEventsListener?.onMouseClicked(point, transformedPoint)
+                }
+                mouseEventsListener?.onMouseUp()
             } catch (ex: NoninvertibleTransformException) {
                 ex.printStackTrace()
             }
@@ -91,7 +101,11 @@ class ZoomAndPanListener(
         val point = e.point
         try {
             val transformedPoint = transformPoint(point)
-            mouseEventsListener?.onMouseMove(point, transformedPoint)
+            if (SwingUtilities.isRightMouseButton(e)) {
+                mouseEventsListener?.onMouseRightMoved(transformedPoint)
+            } else {
+                mouseEventsListener?.onMouseMove(point, transformedPoint)
+            }
         } catch (ex: NoninvertibleTransformException) {
             ex.printStackTrace()
         }
@@ -102,6 +116,10 @@ class ZoomAndPanListener(
             return
         }
 
+        if (SwingUtilities.isRightMouseButton(e)) {
+            mouseMoved(e)
+            return
+        }
         moveCamera(e)
     }
 
@@ -298,5 +316,8 @@ class ZoomAndPanListener(
         fun onMouseClicked(screenPoint: Point, tranformed: Point2D)
         fun onMouseMove(screenPoint: Point, tranformed: Point2D)
         fun onMouseExited()
+        fun onMouseRightClicked(tranformed: Point2D)
+        fun onMouseRightMoved(tranformed: Point2D)
+        fun onMouseUp()
     }
 }

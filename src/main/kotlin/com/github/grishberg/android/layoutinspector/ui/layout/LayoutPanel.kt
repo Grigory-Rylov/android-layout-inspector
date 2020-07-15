@@ -39,6 +39,20 @@ class LayoutPanel(
                 transformedPoint.setLocation(tranformed)
                 logic.processShiftMouseClicked(transformedPoint)
             }
+
+            override fun onMouseRightClicked(tranformed: Point2D) {
+                transformedPoint.setLocation(tranformed)
+                logic.onMouseRightMove(tranformed)
+            }
+
+            override fun onMouseRightMoved(tranformed: Point2D) {
+                transformedPoint.setLocation(tranformed)
+                logic.onMouseRightMove(tranformed)
+            }
+
+            override fun onMouseUp() {
+                logic.onMouseUp()
+            }
         }
         zoomAndPanListener.setScale(DEFAULT_SCALE)
     }
