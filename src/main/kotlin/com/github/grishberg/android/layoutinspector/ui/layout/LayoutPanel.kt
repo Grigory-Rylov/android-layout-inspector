@@ -3,9 +3,13 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
+import com.github.grishberg.android.layoutinspector.ui.common.SimpleComponentListener
+import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Point
+import java.awt.event.ComponentEvent
+import java.awt.geom.NoninvertibleTransformException
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
@@ -18,6 +22,8 @@ class LayoutPanel(
     private val logic = LayoutLogic(this, settings)
     private val zoomAndPanListener = ZoomAndPanListener(this)
     private val transformedPoint = Point()
+    private var screenSize: Dimension = size
+    private val screenTransformedRectangle = Rectangle2D.Double()
 
     init {
         zoomAndPanListener.mouseEventsListener = object : ZoomAndPanListener.MouseEventsListener {
@@ -55,6 +61,12 @@ class LayoutPanel(
             }
         }
         zoomAndPanListener.setScale(DEFAULT_SCALE)
+
+        addComponentListener(object : SimpleComponentListener() {
+            override fun componentResized(e: ComponentEvent) {
+                screenSize = this@LayoutPanel.size
+            }
+        })
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {
@@ -92,7 +104,20 @@ class LayoutPanel(
             val scratchGraphics = g.create() as Graphics2D
             try {
                 ui.update(scratchGraphics, this)
-                logic.draw(scratchGraphics, zoomAndPanListener.getCoordTransform())
+
+                try {
+                    val leftTop = zoomAndPanListener.transformPoint(Point(0, 0))
+                    val rightBottom = zoomAndPanListener.transformPoint(Point(screenSize.width, screenSize.height))
+                    screenTransformedRectangle.setRect(
+                        leftTop.x.toDouble(),
+                        leftTop.y.toDouble(),
+                        rightBottom.x.toDouble(),
+                        rightBottom.y.toDouble()
+                    )
+                } catch (e: NoninvertibleTransformException) {
+                    e.printStackTrace()
+                }
+                logic.draw(scratchGraphics, zoomAndPanListener.getCoordTransform(), screenTransformedRectangle)
             } finally {
                 scratchGraphics!!.dispose()
             }

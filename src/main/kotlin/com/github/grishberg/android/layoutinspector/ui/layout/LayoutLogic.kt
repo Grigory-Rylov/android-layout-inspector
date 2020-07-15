@@ -43,7 +43,7 @@ class LayoutLogic(
     private val measureColor = Color(248, 225, 25)
     private val measureLineColor = selectedColor
     private val measureLineStroke: Stroke =
-        BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0f, floatArrayOf(9f), 0f)
+        BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0f, floatArrayOf(9f), 0f)
 
     private val distances = DistanceBetweenTwoShape()
     private var recalculateDistanceAction: CalculateDistanceAction? = null
@@ -183,7 +183,11 @@ class LayoutLogic(
         return Dimension(screenshot!!.width, screenshot!!.height)
     }
 
-    fun draw(g: Graphics2D, at: AffineTransform) {
+    fun draw(
+        g: Graphics2D,
+        at: AffineTransform,
+        screenTransformedRectangle: Rectangle2D.Double
+    ) {
         g.setRenderingHint(
             RenderingHints.KEY_INTERPOLATION,
             RenderingHints.VALUE_INTERPOLATION_BICUBIC
@@ -194,9 +198,20 @@ class LayoutLogic(
         }
 
         g.stroke = BasicStroke(1f)
+
         for (element in rectangles) {
+            val rect = element.rect
+            val rectBound = rect.bounds2D
+            if (rectBound.maxX < screenTransformedRectangle.minX ||
+                rectBound.minX > screenTransformedRectangle.maxX ||
+                rectBound.maxY < screenTransformedRectangle.minY ||
+                rectBound.minY > screenTransformedRectangle.maxY
+            ) {
+                continue
+            }
+
             g.color = borderColor
-            val transformedShape: Shape = at.createTransformedShape(element.rect)
+            val transformedShape: Shape = at.createTransformedShape(rect)
             val bounds = transformedShape.bounds
 
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)

@@ -44,23 +44,23 @@ class ZoomAndPanListener(
 
     override fun mouseClicked(e: MouseEvent) = Unit
     override fun mousePressed(e: MouseEvent) {
+        val point = e.point
+        try {
+            val transformedPoint = transformPoint(point)
+            if (SwingUtilities.isRightMouseButton(e)) {
+                mouseEventsListener?.onMouseRightClicked(transformedPoint)
+                return
+            } else if (e.isShiftDown) {
+                mouseEventsListener?.onMouseShiftClicked(transformedPoint)
+                return
+            }
+        } catch (ex: NoninvertibleTransformException) {
+            ex.printStackTrace()
+        }
+
         dragStartScreen = e.point
         clickStartScreen = dragStartScreen
         dragEndScreen = null
-        if (e.isShiftDown) {
-            val point = e.point
-            try {
-                val transformedPoint = transformPoint(point)
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    mouseEventsListener?.onMouseRightClicked(transformedPoint)
-                } else {
-                    mouseEventsListener?.onMouseShiftClicked(transformedPoint)
-                }
-            } catch (ex: NoninvertibleTransformException) {
-                ex.printStackTrace()
-            }
-            return
-        }
     }
 
     override fun mouseReleased(e: MouseEvent) {
