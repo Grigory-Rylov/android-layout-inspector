@@ -2,6 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 
 import java.awt.Component
 import java.awt.Point
+import java.awt.Toolkit
 import java.awt.event.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.NoninvertibleTransformException
@@ -47,6 +48,10 @@ class ZoomAndPanListener(
         val point = e.point
         try {
             val transformedPoint = transformPoint(point)
+            if (isCtrlPressed(e)) {
+                mouseEventsListener?.onMouseCtrlClicked(transformedPoint)
+                return
+            }
             if (SwingUtilities.isRightMouseButton(e)) {
                 mouseEventsListener?.onMouseRightClicked(transformedPoint)
                 return
@@ -94,33 +99,42 @@ class ZoomAndPanListener(
     }
 
     override fun mouseMoved(e: MouseEvent) {
-        if (e.isShiftDown) {
-            return
-        }
-
         val point = e.point
         try {
             val transformedPoint = transformPoint(point)
-            if (SwingUtilities.isRightMouseButton(e)) {
-                mouseEventsListener?.onMouseRightMoved(transformedPoint)
-            } else {
-                mouseEventsListener?.onMouseMove(point, transformedPoint)
-            }
+            mouseEventsListener?.onMouseMove(point, transformedPoint)
         } catch (ex: NoninvertibleTransformException) {
             ex.printStackTrace()
         }
     }
 
     override fun mouseDragged(e: MouseEvent) {
-        if (e.isShiftDown) {
-            return
-        }
-
-        if (SwingUtilities.isRightMouseButton(e)) {
-            mouseMoved(e)
+        if (SwingUtilities.isRightMouseButton(e) || isCtrlPressed(e) || e.isShiftDown) {
+            val point = e.point
+            try {
+                val transformedPoint = transformPoint(point)
+                if (e.isShiftDown) {
+                    mouseEventsListener?.onMouseShiftMoved(transformedPoint)
+                    return
+                }
+                if (isCtrlPressed(e)) {
+                    mouseEventsListener?.onMouseCtrlMoved(transformedPoint)
+                    return
+                }
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    mouseEventsListener?.onMouseRightMoved(transformedPoint)
+                    return
+                }
+            } catch (ex: NoninvertibleTransformException) {
+                ex.printStackTrace()
+            }
             return
         }
         moveCamera(e)
+    }
+
+    private fun isCtrlPressed(e: MouseEvent): Boolean {
+        return e.modifiers and Toolkit.getDefaultToolkit().menuShortcutKeyMask > 0
     }
 
     private fun moveCamera(e: MouseEvent) {
@@ -312,12 +326,15 @@ class ZoomAndPanListener(
     }
 
     interface MouseEventsListener {
-        fun onMouseShiftClicked(tranformed: Point2D)
-        fun onMouseClicked(screenPoint: Point, tranformed: Point2D)
-        fun onMouseMove(screenPoint: Point, tranformed: Point2D)
+        fun onMouseShiftClicked(transformed: Point2D)
+        fun onMouseShiftMoved(transformed: Point2D)
+        fun onMouseClicked(screenPoint: Point, transformed: Point2D)
+        fun onMouseMove(screenPoint: Point, transformed: Point2D)
         fun onMouseExited()
         fun onMouseRightClicked(tranformed: Point2D)
         fun onMouseRightMoved(tranformed: Point2D)
+        fun onMouseCtrlClicked(tranformed: Point2D)
+        fun onMouseCtrlMoved(tranformed: Point2D) = Unit
         fun onMouseUp()
     }
 }

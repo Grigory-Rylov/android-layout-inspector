@@ -9,6 +9,9 @@ import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
+import kotlin.math.abs
+import kotlin.math.min
+import kotlin.math.round
 
 
 class LayoutLogic(
@@ -38,11 +41,15 @@ class LayoutLogic(
     private var measureRectangle: Shape? = null
     private var hoveredRectangle: Shape? = null
     private var selectionRectangle: Shape? = null
+    private var rulerRectangle: Rectangle2D.Double? = null
+    private val rulerFirstPoint = Point2D.Double()
 
     private val measureLines = mutableListOf<Shape>()
     private val selectedColor = Color(41, 105, 248)
     private val hoverColor = Color(248, 25, 25)
     private val measureColor = Color(248, 225, 25)
+    private val rulerColor = Color(4, 246, 187, 128)
+    private val rulerFillColor = Color(77, 246, 206, 128)
     private val measureLineColor = selectedColor
     private val measureLineStroke: Stroke =
         BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0f, floatArrayOf(9f), 0f)
@@ -58,6 +65,7 @@ class LayoutLogic(
     }
 
     fun processMouseClicked(point: Point) {
+        rulerRectangle = null
         measureRectangle = null
         measureLines.clear()
         panel.requestFocus()
@@ -69,7 +77,7 @@ class LayoutLogic(
         }
     }
 
-    fun processShiftMouseClicked(point: Point) {
+    fun selectElementAndMeasureIfNeede(point: Point) {
         panel.requestFocus()
         val foundNode = getChildAtPoint(point)
         if (foundNode != null) {
@@ -282,6 +290,15 @@ class LayoutLogic(
             val bounds = at.createTransformedShape(it).bounds
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
+
+        rulerRectangle?.let {
+            g.stroke = BasicStroke(3f)
+            g.color = rulerColor
+            val bounds = at.createTransformedShape(it).bounds
+            g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
+            g.color = rulerFillColor
+            g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+        }
         val drawOtherDuration = System.currentTimeMillis() - drawOtherStart
 
         //println("Draw = ${System.currentTimeMillis() - startDraw}, renderingDuration = $renderingDuration, drawImageDuration = $drawImageDuration, drawRectanglesDuration = $drawRectanglesDuration, drawOtherDuration = $drawOtherDuration")
@@ -309,13 +326,36 @@ class LayoutLogic(
 
     fun onMouseRightMove(tranformed: Point2D) {
         selectedRectangle?.let {
-            val fakeShape = Rectangle2D.Double(tranformed.x, tranformed.y, 0.0, 0.0)
+            val fakeShape = Rectangle2D.Double(round(tranformed.x), round(tranformed.y), 0.0, 0.0)
             calculateDistance(it, fakeShape, reverseLineSource = true)
         }
     }
 
     fun onMouseUp() {
         selectionRectangle = null
+    }
+
+    fun enableRuler(transformed: Point2D) {
+        rulerFirstPoint.setLocation(Point2D.Double(round(transformed.x), round(transformed.y)))
+        rulerRectangle = Rectangle2D.Double(round(transformed.x), round(transformed.y), 0.0, 0.0)
+    }
+
+    fun expandRulerAndShowSize(tranformed: Point2D) {
+        rulerRectangle?.let {
+            val w = abs(tranformed.x - rulerFirstPoint.x)
+            val h = abs(tranformed.y - rulerFirstPoint.y)
+            val left = min(tranformed.x, rulerFirstPoint.x)
+            val top = min(tranformed.y, rulerFirstPoint.y)
+            it.setRect(round(left), round(top), round(w), round(h))
+            measureRuler(it)
+            panel.repaint()
+        }
+    }
+
+    private fun measureRuler(ruler: Rectangle2D.Double) {
+        //recalculateDistanceAction = CalculateDistanceAction(selected, measureRectangle)
+        val distances = distances.calculateDistance(ruler)
+        onLayoutSelectedAction?.onDistanceCalculated(distances.distance)
     }
 
     interface OnLayoutSelectedAction {

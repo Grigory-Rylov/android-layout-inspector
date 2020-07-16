@@ -108,6 +108,13 @@ class DistanceBetweenTwoShape {
         return DistanceData(result, lines)
     }
 
+    fun calculateDistance(rulerBounds: Rectangle2D) : DistanceData {
+        val result = mutableMapOf<DistanceType, Double>()
+        result[DistanceType.LEFT] = abs(convertValueToDpIfNeeded(rulerBounds.width))
+        result[DistanceType.TOP] = abs(convertValueToDpIfNeeded(rulerBounds.height))
+        return DistanceData(result, emptyList())
+    }
+
     private fun convertValueToDpIfNeeded(value: Double): Double {
         if (sizeInDpEnabled) {
             return value / dpPerPixels

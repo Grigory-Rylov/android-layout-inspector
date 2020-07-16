@@ -27,13 +27,13 @@ class LayoutPanel(
 
     init {
         zoomAndPanListener.mouseEventsListener = object : ZoomAndPanListener.MouseEventsListener {
-            override fun onMouseClicked(screenPoint: Point, tranformed: Point2D) {
-                transformedPoint.setLocation(tranformed)
+            override fun onMouseClicked(screenPoint: Point, transformed: Point2D) {
+                transformedPoint.setLocation(transformed)
                 logic.processMouseClicked(transformedPoint)
             }
 
-            override fun onMouseMove(screenPoint: Point, tranformed: Point2D) {
-                transformedPoint.setLocation(tranformed)
+            override fun onMouseMove(screenPoint: Point, transformed: Point2D) {
+                transformedPoint.setLocation(transformed)
                 logic.processMouseHover(transformedPoint)
             }
 
@@ -41,9 +41,19 @@ class LayoutPanel(
                 logic.onLayoutSelectedAction?.onMouseExited()
             }
 
-            override fun onMouseShiftClicked(tranformed: Point2D) {
+            override fun onMouseCtrlClicked(tranformed: Point2D) {
                 transformedPoint.setLocation(tranformed)
-                logic.processShiftMouseClicked(transformedPoint)
+                logic.selectElementAndMeasureIfNeede(transformedPoint)
+            }
+
+            override fun onMouseShiftMoved(transformed: Point2D) {
+                transformedPoint.setLocation(transformed)
+                logic.expandRulerAndShowSize(transformed)
+            }
+
+            override fun onMouseShiftClicked(transformed: Point2D) {
+                transformedPoint.setLocation(transformed)
+                logic.enableRuler(transformed)
             }
 
             override fun onMouseRightClicked(tranformed: Point2D) {

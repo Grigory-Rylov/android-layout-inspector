@@ -45,8 +45,11 @@ In the status bar will shown distance between first and second
 
 **Ctrl + Shift + c** - Copy node ID
 
-**Mouse click + Shift** - Select element to measure distance from selected to current.
+**Mouse click + Ctrl** - Select element to measure distance from selected to current.
 
+**Mouse drag + Shift** - Measure ruler.
+
+**Mouse right click** - Show distance from selected view to current point.
 ### Properties table
 **Ctrl + c** - Copy property value
 
