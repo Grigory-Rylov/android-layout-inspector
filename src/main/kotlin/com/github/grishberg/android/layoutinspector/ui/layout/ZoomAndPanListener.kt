@@ -134,7 +134,7 @@ class ZoomAndPanListener(
     }
 
     private fun isCtrlPressed(e: MouseEvent): Boolean {
-        return e.modifiers and Toolkit.getDefaultToolkit().menuShortcutKeyMask > 0
+        return e.modifiersEx and 256 > 0
     }
 
     private fun moveCamera(e: MouseEvent) {
