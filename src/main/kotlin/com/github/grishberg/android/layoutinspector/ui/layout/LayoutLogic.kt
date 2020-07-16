@@ -15,6 +15,8 @@ class LayoutLogic(
     private val panel: JPanel,
     private val settings: SettingsFacade
 ) {
+    private val GFX_CONFIG = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
+
     var onLayoutSelectedAction: OnLayoutSelectedAction? = null
 
     private var screenshot: BufferedImage? = null
@@ -114,11 +116,37 @@ class LayoutLogic(
     fun showLayoutResult(layoutData: LayoutFileData) {
         distances.dpPerPixels = layoutData.dpPerPixels
         root = layoutData.node
-        screenshot = layoutData.bufferedImage
+
+        layoutData.bufferedImage?.let {
+            screenshot = toCompatibleImage(it)
+        }
+
         rectangles.clear()
         layoutModelRoots.clear()
 
         addFromViewNode(layoutModelRoots, layoutData.node, 0, 0)
+    }
+
+    private fun toCompatibleImage(image: BufferedImage): BufferedImage {
+        /*
+        * if image is already compatible and optimized for current system settings, simply return it
+        */
+        if (image.colorModel == GFX_CONFIG.colorModel) {
+            return image
+        }
+
+        // image is not optimized, so create a new image that is
+        val newImage = GFX_CONFIG.createCompatibleImage(image.width, image.height, image.transparency)
+
+        // get the graphics context of the new image to draw the old image on
+        val g2d = newImage.graphics as Graphics2D
+
+        // actually draw the image and dispose of context no longer needed
+        g2d.drawImage(image, 0, 0, null)
+        g2d.dispose()
+
+        // return the new optimized image
+        return newImage
     }
 
     private fun addFromViewNode(
@@ -188,17 +216,22 @@ class LayoutLogic(
         at: AffineTransform,
         screenTransformedRectangle: Rectangle2D.Double
     ) {
+        val startDraw = System.currentTimeMillis()
         g.setRenderingHint(
             RenderingHints.KEY_INTERPOLATION,
             RenderingHints.VALUE_INTERPOLATION_BICUBIC
         )
+        val renderingDuration = System.currentTimeMillis() - startDraw
 
-        if (screenshot != null) {
-            g.drawImage(screenshot, at, panel) // see javadoc for more info on the parameters
+        val drawImageStart = System.currentTimeMillis()
+
+        screenshot?.let {
+            g.drawImage(it, at, null)
         }
+        val drawImageDuration = System.currentTimeMillis() - drawImageStart
 
+        val drawRectanglesStart = System.currentTimeMillis()
         g.stroke = BasicStroke(1f)
-
         for (element in rectangles) {
             val rect = element.rect
             val rectBound = rect.bounds2D
@@ -216,7 +249,9 @@ class LayoutLogic(
 
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
+        val drawRectanglesDuration = System.currentTimeMillis() - drawRectanglesStart
 
+        val drawOtherStart = System.currentTimeMillis()
         // draw measure lines
         g.stroke = measureLineStroke
         for (line in measureLines) {
@@ -247,6 +282,9 @@ class LayoutLogic(
             val bounds = at.createTransformedShape(it).bounds
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
+        val drawOtherDuration = System.currentTimeMillis() - drawOtherStart
+
+        //println("Draw = ${System.currentTimeMillis() - startDraw}, renderingDuration = $renderingDuration, drawImageDuration = $drawImageDuration, drawRectanglesDuration = $drawRectanglesDuration, drawOtherDuration = $drawOtherDuration")
     }
 
     fun selectNode(viewNode: ViewNode) {

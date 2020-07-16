@@ -97,31 +97,23 @@ class LayoutPanel(
 
     override fun getPreferredSize() = logic.getPreferredSize()
 
-    override fun paintComponent(g: Graphics) {
-        super.paintComponent(g)
+    override fun paintComponent(graphics: Graphics) {
+        super.paintComponent(graphics)
 
-        if (ui != null) {
-            val scratchGraphics = g.create() as Graphics2D
-            try {
-                ui.update(scratchGraphics, this)
-
-                try {
-                    val leftTop = zoomAndPanListener.transformPoint(Point(0, 0))
-                    val rightBottom = zoomAndPanListener.transformPoint(Point(screenSize.width, screenSize.height))
-                    screenTransformedRectangle.setRect(
-                        leftTop.x.toDouble(),
-                        leftTop.y.toDouble(),
-                        rightBottom.x.toDouble(),
-                        rightBottom.y.toDouble()
-                    )
-                } catch (e: NoninvertibleTransformException) {
-                    e.printStackTrace()
-                }
-                logic.draw(scratchGraphics, zoomAndPanListener.getCoordTransform(), screenTransformedRectangle)
-            } finally {
-                scratchGraphics!!.dispose()
-            }
+        val g = graphics as Graphics2D
+        try {
+            val leftTop = zoomAndPanListener.transformPoint(Point(0, 0))
+            val rightBottom = zoomAndPanListener.transformPoint(Point(screenSize.width, screenSize.height))
+            screenTransformedRectangle.setRect(
+                leftTop.x.toDouble(),
+                leftTop.y.toDouble(),
+                rightBottom.x.toDouble(),
+                rightBottom.y.toDouble()
+            )
+        } catch (e: NoninvertibleTransformException) {
+            e.printStackTrace()
         }
+        logic.draw(g, zoomAndPanListener.getCoordTransform(), screenTransformedRectangle)
     }
 
     fun setOnLayoutSelectedAction(action: LayoutLogic.OnLayoutSelectedAction) {
