@@ -42,6 +42,7 @@ class LayoutLogic(
     private var hoveredRectangle: Shape? = null
     private var selectionRectangle: Shape? = null
     private var rulerRectangle: Rectangle2D.Double? = null
+    private var rulerPointer: Rectangle2D.Double? = null
     private val rulerFirstPoint = Point2D.Double()
 
     private val measureLines = mutableListOf<Shape>()
@@ -50,6 +51,7 @@ class LayoutLogic(
     private val measureColor = Color(248, 225, 25)
     private val rulerColor = Color(4, 246, 187, 128)
     private val rulerFillColor = Color(77, 246, 206, 128)
+    private val rulerPointerColor = Color(0, 0, 0, 128)
     private val measureLineColor = selectedColor
     private val measureLineStroke: Stroke =
         BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0f, floatArrayOf(9f), 0f)
@@ -291,6 +293,13 @@ class LayoutLogic(
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
 
+        rulerPointer?.let {
+            g.stroke = BasicStroke(3f)
+            g.color = rulerPointerColor
+            val bounds = at.createTransformedShape(it).bounds
+            g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
+            g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+        }
         rulerRectangle?.let {
             g.stroke = BasicStroke(3f)
             g.color = rulerColor
@@ -336,19 +345,33 @@ class LayoutLogic(
     }
 
     fun enableRuler(transformed: Point2D) {
+        rulerPointer = null
         rulerFirstPoint.setLocation(Point2D.Double(round(transformed.x), round(transformed.y)))
         rulerRectangle = Rectangle2D.Double(round(transformed.x), round(transformed.y), 0.0, 0.0)
     }
 
-    fun expandRulerAndShowSize(tranformed: Point2D) {
+    fun expandRulerAndShowSize(transformed: Point2D) {
         rulerRectangle?.let {
-            val w = abs(tranformed.x - rulerFirstPoint.x)
-            val h = abs(tranformed.y - rulerFirstPoint.y)
-            val left = min(tranformed.x, rulerFirstPoint.x)
-            val top = min(tranformed.y, rulerFirstPoint.y)
+            val w = abs(transformed.x - rulerFirstPoint.x)
+            val h = abs(transformed.y - rulerFirstPoint.y)
+            val left = min(transformed.x, rulerFirstPoint.x)
+            val top = min(transformed.y, rulerFirstPoint.y)
             it.setRect(round(left), round(top), round(w), round(h))
             measureRuler(it)
             panel.repaint()
+        }
+    }
+
+    fun showPointer(transformed: Point2D) {
+        if (rulerRectangle == null) {
+            rulerPointer?.let { rect ->
+                rect.x = round(transformed.x)
+                rect.y = round(transformed.y)
+                panel.repaint()
+            }
+            if (rulerPointer == null) {
+                rulerPointer = Rectangle2D.Double(round(transformed.x), round(transformed.y), 1.0, 1.0)
+            }
         }
     }
 

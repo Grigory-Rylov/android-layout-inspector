@@ -2,7 +2,6 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 
 import java.awt.Component
 import java.awt.Point
-import java.awt.Toolkit
 import java.awt.event.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.NoninvertibleTransformException
@@ -33,11 +32,11 @@ class ZoomAndPanListener(
         targetComponent.addMouseWheelListener(this)
     }
 
-    fun setCoordTransform(coordTransform: AffineTransform) {
-        this.coordTransform = coordTransform
+    fun setCoordinatesTransform(coordinatedTransform: AffineTransform) {
+        this.coordTransform = coordinatedTransform
         try {
             val leftTop = transformPoint(leftTopPoint)
-            coordTransform.translate(leftTop.x.toDouble(), leftTop.y.toDouble())
+            coordinatedTransform.translate(leftTop.x.toDouble(), leftTop.y.toDouble())
         } catch (e: NoninvertibleTransformException) {
             e.printStackTrace()
         }
@@ -102,6 +101,10 @@ class ZoomAndPanListener(
         val point = e.point
         try {
             val transformedPoint = transformPoint(point)
+            if(e.isShiftDown){
+                mouseEventsListener?.onMouseShiftMoved(point, transformedPoint)
+                return
+            }
             mouseEventsListener?.onMouseMove(point, transformedPoint)
         } catch (ex: NoninvertibleTransformException) {
             ex.printStackTrace()
@@ -114,7 +117,7 @@ class ZoomAndPanListener(
             try {
                 val transformedPoint = transformPoint(point)
                 if (e.isShiftDown) {
-                    mouseEventsListener?.onMouseShiftMoved(transformedPoint)
+                    mouseEventsListener?.onMouseShiftDragged(point, transformedPoint)
                     return
                 }
                 if (isCtrlPressed(e)) {
@@ -318,7 +321,7 @@ class ZoomAndPanListener(
 
     fun resetZoom() {
         coordTransform = AffineTransform()
-        setCoordTransform(coordTransform)
+        setCoordinatesTransform(coordTransform)
     }
 
     fun setScale(scale: Double) {
@@ -327,14 +330,15 @@ class ZoomAndPanListener(
 
     interface MouseEventsListener {
         fun onMouseShiftClicked(transformed: Point2D)
-        fun onMouseShiftMoved(transformed: Point2D)
+        fun onMouseShiftMoved(screenPoint: Point, transformed: Point2D)
+        fun onMouseShiftDragged(screenPoint: Point, transformed: Point2D)
         fun onMouseClicked(screenPoint: Point, transformed: Point2D)
         fun onMouseMove(screenPoint: Point, transformed: Point2D)
         fun onMouseExited()
-        fun onMouseRightClicked(tranformed: Point2D)
-        fun onMouseRightMoved(tranformed: Point2D)
-        fun onMouseCtrlClicked(tranformed: Point2D)
-        fun onMouseCtrlMoved(tranformed: Point2D) = Unit
+        fun onMouseRightClicked(transformed: Point2D)
+        fun onMouseRightMoved(transformed: Point2D)
+        fun onMouseCtrlClicked(transformed: Point2D)
+        fun onMouseCtrlMoved(transformed: Point2D) = Unit
         fun onMouseUp()
     }
 }

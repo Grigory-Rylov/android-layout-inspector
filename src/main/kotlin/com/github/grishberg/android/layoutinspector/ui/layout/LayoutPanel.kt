@@ -41,12 +41,16 @@ class LayoutPanel(
                 logic.onLayoutSelectedAction?.onMouseExited()
             }
 
-            override fun onMouseCtrlClicked(tranformed: Point2D) {
-                transformedPoint.setLocation(tranformed)
+            override fun onMouseCtrlClicked(transformed: Point2D) {
+                transformedPoint.setLocation(transformed)
                 logic.selectElementAndMeasureIfNeede(transformedPoint)
             }
 
-            override fun onMouseShiftMoved(transformed: Point2D) {
+            override fun onMouseShiftMoved(screenPoint: Point, transformed: Point2D) {
+                logic.showPointer(transformed)
+            }
+
+            override fun onMouseShiftDragged(screenPoint: Point, transformed: Point2D) {
                 transformedPoint.setLocation(transformed)
                 logic.expandRulerAndShowSize(transformed)
             }
@@ -56,14 +60,14 @@ class LayoutPanel(
                 logic.enableRuler(transformed)
             }
 
-            override fun onMouseRightClicked(tranformed: Point2D) {
-                transformedPoint.setLocation(tranformed)
-                logic.onMouseRightMove(tranformed)
+            override fun onMouseRightClicked(transformed: Point2D) {
+                transformedPoint.setLocation(transformed)
+                logic.onMouseRightMove(transformed)
             }
 
-            override fun onMouseRightMoved(tranformed: Point2D) {
-                transformedPoint.setLocation(tranformed)
-                logic.onMouseRightMove(tranformed)
+            override fun onMouseRightMoved(transformed: Point2D) {
+                transformedPoint.setLocation(transformed)
+                logic.onMouseRightMove(transformed)
             }
 
             override fun onMouseUp() {
