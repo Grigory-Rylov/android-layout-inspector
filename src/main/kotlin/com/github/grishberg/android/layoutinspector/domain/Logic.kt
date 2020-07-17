@@ -11,6 +11,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.*
 
 private const val TAG = "Logic"
 
@@ -20,7 +22,8 @@ class Logic(
     private val output: LayoutResultOutput,
     private val logger: AppLogger,
     private val layoutFileSystem: LayoutFileSystem,
-    private val dialogsInput: DialogsInput
+    private val dialogsInput: DialogsInput,
+    private val metaRepository: MetaRepository
 ) {
     private val screenSizeProvider = ScreenSizeProvider()
 
@@ -64,12 +67,20 @@ class Logic(
     }
 
     private fun onSuccessCaptured(data: ByteArray, dpPerPixels: Double) {
-        layoutFileSystem.saveLayoutToFile(data)
+        val sdf = SimpleDateFormat("yyyyMMdd_HH-mm-ss.SSS")
+        val formattedTime = sdf.format(Date())
+        val liFileName = "layout-$formattedTime.li"
+
+
+        layoutFileSystem.saveLayoutToFile(liFileName, data)
+        metaRepository.fileName = liFileName
+        metaRepository.dpPerPixels = dpPerPixels
+        metaRepository.serialize()
+
         logger.d("$TAG: Received result, parsing...")
         val capture = LayoutFileDataParser.parseFromBytes(data)
         logger.d("$TAG: Parsing is ended.")
 
-        capture.dpPerPixels = dpPerPixels
         output.showResult(capture)
     }
 
@@ -77,6 +88,8 @@ class Logic(
         val file = dialogsInput.showOpenFileDialogAndReturnResult() ?: return
         try {
             val capture = LayoutFileDataParser.parseFromFile(file)
+            metaRepository.restoreForFile(file.name, capture.node)
+
             output.showResult(capture)
         } catch (e: IOException) {
             output.showError(e.message.toString())

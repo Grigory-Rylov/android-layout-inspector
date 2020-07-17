@@ -24,6 +24,5 @@ import java.awt.image.BufferedImage
 data class LayoutFileData(
     val bufferedImage: BufferedImage?,
     val node: ViewNode?,
-    val options: LayoutInspectorCaptureOptions,
-    var dpPerPixels: Double = 1.0
+    val options: LayoutInspectorCaptureOptions
 )

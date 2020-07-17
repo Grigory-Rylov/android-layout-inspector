@@ -25,7 +25,9 @@ class KeyBinder(
     init {
         //addKeyMapWithCtrl(KeyEvent.VK_C, CopySelectedFullClassNameAction())
         //addKeyMap(KeyEvent.VK_ESCAPE, RemoveSelectionAction())
-        addKeyMapWithCtrl(KeyEvent.VK_O, OpenFileDialogAction())
+        addKeyMapWithCtrl(KeyEvent.VK_O, OpenFileDialogAction(false))
+        addKeyMapWithCtrlShift(KeyEvent.VK_O, OpenFileDialogAction(true))
+
         addKeyMapWithCtrl(KeyEvent.VK_N, NewTraceAction())
         addKeyMap(KeyEvent.VK_Z, ResetZoomAction())
         addKeyMap(KeyEvent.VK_F, FitZoomAction())
@@ -65,10 +67,10 @@ class KeyBinder(
         return false
     }
 
-    private inner class OpenFileDialogAction : AbstractAction() {
+    private inner class OpenFileDialogAction(private val inNewWindow: Boolean) : AbstractAction() {
         override fun actionPerformed(e: ActionEvent) {
             if (shouldSkip(e)) return
-            logic.openFile()
+            main.openExistingFile(inNewWindow)
         }
     }
 

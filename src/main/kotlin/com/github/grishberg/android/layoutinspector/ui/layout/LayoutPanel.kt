@@ -2,6 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.SimpleComponentListener
 import java.awt.Dimension
@@ -17,9 +18,10 @@ import javax.swing.JPanel
 private const val DEFAULT_SCALE = 0.25
 
 class LayoutPanel(
+    meta: MetaRepository,
     settings: SettingsFacade
 ) : JPanel() {
-    private val logic = LayoutLogic(this, settings)
+    private val logic = LayoutLogic(this, meta, settings)
     private val zoomAndPanListener = ZoomAndPanListener(this)
     private val transformedPoint = Point()
     private var screenSize: Dimension = size

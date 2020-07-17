@@ -60,4 +60,13 @@ class Bookmarks {
         }
         return null
     }
+
+    fun set(newItems: List<BookmarkInfo>) {
+        _items.clear()
+        _items.addAll(newItems)
+
+        listeners.forEach {
+            it.invoke()
+        }
+    }
 }

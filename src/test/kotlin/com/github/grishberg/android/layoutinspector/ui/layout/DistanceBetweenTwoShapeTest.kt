@@ -5,7 +5,7 @@ import org.junit.Test
 import java.awt.Rectangle
 
 class DistanceBetweenTwoShapeTest {
-    private val underTest = DistanceBetweenTwoShape()
+    private val underTest = DistanceBetweenTwoShape(meta)
 
     @Test
     fun `selected inside target`() {

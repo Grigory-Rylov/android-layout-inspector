@@ -81,5 +81,7 @@ class NewBookmarkDialog(
         bookmarkInfo.color?.let {
             colorChooser.color = it
         }
+        setLocationRelativeTo(owner)
+        isVisible = true
     }
 }

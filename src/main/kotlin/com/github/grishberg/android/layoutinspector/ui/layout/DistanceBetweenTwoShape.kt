@@ -1,5 +1,6 @@
 package com.github.grishberg.android.layoutinspector.ui.layout
 
+import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import java.awt.Shape
 import java.awt.geom.Line2D
 import java.awt.geom.Rectangle2D
@@ -14,8 +15,9 @@ enum class DistanceType {
 
 data class DistanceData(val distance: Map<DistanceType, Double>, val lines: List<Shape>)
 
-class DistanceBetweenTwoShape {
-    var dpPerPixels: Double = 1.0
+class DistanceBetweenTwoShape(
+    private val meta: MetaRepository
+) {
     var sizeInDpEnabled = false
 
     fun calculateDistance(
@@ -108,7 +110,7 @@ class DistanceBetweenTwoShape {
         return DistanceData(result, lines)
     }
 
-    fun calculateDistance(rulerBounds: Rectangle2D) : DistanceData {
+    fun calculateDistance(rulerBounds: Rectangle2D): DistanceData {
         val result = mutableMapOf<DistanceType, Double>()
         result[DistanceType.LEFT] = abs(convertValueToDpIfNeeded(rulerBounds.width))
         result[DistanceType.TOP] = abs(convertValueToDpIfNeeded(rulerBounds.height))
@@ -117,7 +119,7 @@ class DistanceBetweenTwoShape {
 
     private fun convertValueToDpIfNeeded(value: Double): Double {
         if (sizeInDpEnabled) {
-            return value / dpPerPixels
+            return value / meta.dpPerPixels
         }
         return value
     }

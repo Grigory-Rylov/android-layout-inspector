@@ -7,8 +7,6 @@ import kotlinx.coroutines.launch
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.text.SimpleDateFormat
-import java.util.*
 
 private const val TAG = "FileSystem"
 
@@ -17,23 +15,20 @@ class LayoutFileSystem(
 ) {
     private val layoutDir = "layouts"
 
-    fun saveLayoutToFile(data: ByteArray) {
+    fun saveLayoutToFile(fileName: String, data: ByteArray) {
         GlobalScope.launch(Dispatchers.IO) {
-            saveToFile(data)
+            saveToFile(fileName, data)
         }
     }
 
-    private fun saveToFile(data: ByteArray) {
+    private fun saveToFile(fileName: String, data: ByteArray) {
         val dir = File(layoutDir)
         if (!dir.exists()) {
             dir.mkdir()
         }
-        val sdf = SimpleDateFormat("yyyyMMdd_HH-mm-ss.SSS")
-        val formattedTime = sdf.format(Date())
-        val fn = "layout-$formattedTime.li"
 
         var bs: BufferedOutputStream? = null
-        val file = File(dir, fn)
+        val file = File(dir, fileName)
 
         try {
             val fs = FileOutputStream(file)

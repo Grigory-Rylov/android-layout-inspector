@@ -2,6 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import java.awt.*
 import java.awt.geom.AffineTransform
@@ -16,6 +17,7 @@ import kotlin.math.round
 
 class LayoutLogic(
     private val panel: JPanel,
+    meta: MetaRepository,
     private val settings: SettingsFacade
 ) {
     private val GFX_CONFIG = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
@@ -56,7 +58,7 @@ class LayoutLogic(
     private val measureLineStroke: Stroke =
         BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0f, floatArrayOf(9f), 0f)
 
-    private val distances = DistanceBetweenTwoShape()
+    private val distances = DistanceBetweenTwoShape(meta)
     private var recalculateDistanceAction: CalculateDistanceAction? = null
 
     fun processMouseHover(point: Point) {
@@ -124,7 +126,6 @@ class LayoutLogic(
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {
-        distances.dpPerPixels = layoutData.dpPerPixels
         root = layoutData.node
 
         layoutData.bufferedImage?.let {

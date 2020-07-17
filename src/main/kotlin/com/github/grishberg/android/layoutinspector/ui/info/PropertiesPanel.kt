@@ -2,6 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.info
 
 import com.android.layoutinspector.model.ViewNode
 import com.android.layoutinspector.model.ViewProperty
+import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.ui.gropedtables.GroupedTable
 import com.github.grishberg.android.layoutinspector.ui.gropedtables.GroupedTableDataModel
 import com.github.grishberg.android.layoutinspector.ui.gropedtables.TableRowInfo
@@ -14,11 +15,12 @@ import javax.swing.JScrollPane
 /**
  * Shows nodes info.
  */
-class PropertiesPanel {
+class PropertiesPanel(
+    private val meta: MetaRepository
+) {
     private val treeTable = GroupedTable()
     private val scrollPanel = JScrollPane(treeTable)
     private var sizeInDp = false
-    var dpPerPixels: Double = 1.0
 
     fun getComponent(): JComponent = scrollPanel
 
@@ -76,8 +78,8 @@ class PropertiesPanel {
             if (col == 0) {
                 return currentProperty.name
             }
-            if (sizeInDp && currentProperty.isSizeProperty && dpPerPixels > 1) {
-                return roundOffDecimal(currentProperty.intValue.toDouble() / dpPerPixels) + " dp"
+            if (sizeInDp && currentProperty.isSizeProperty && meta.dpPerPixels > 1) {
+                return roundOffDecimal(currentProperty.intValue.toDouble() / meta.dpPerPixels) + " dp"
             }
             return currentProperty.value
         }

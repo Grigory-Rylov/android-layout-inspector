@@ -20,7 +20,6 @@ class TreeViewNodeMenu(
     private val calculateDistance = JMenuItem("Calculate distance")
 
     init {
-        add(addToBookmark)
         addToBookmark.addActionListener {
             val bookmarksDialog = NewBookmarkDialog(owner, selectedViewNode)
             bookmarksDialog.showDialog()
@@ -31,17 +30,17 @@ class TreeViewNodeMenu(
         }
 
         val existingBookmarkInfo = bookmarks.getBookmarkInfoForNode(selectedViewNode)
-        existingBookmarkInfo?.let { bookmarkInfo ->
-
+        if (existingBookmarkInfo == null) {
+            add(addToBookmark)
+        } else {
             add(editBookmark)
             editBookmark.addActionListener {
                 val bookmarksDialog = NewBookmarkDialog(owner, selectedViewNode)
-                bookmarksDialog.showEditDialog(bookmarkInfo)
+                bookmarksDialog.showEditDialog(existingBookmarkInfo)
 
                 bookmarksDialog.result?.let {
-                    bookmarks.edit(bookmarkInfo, it)
+                    bookmarks.edit(existingBookmarkInfo, it)
                 }
-
                 bookmarks
             }
 

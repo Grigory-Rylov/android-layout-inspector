@@ -8,9 +8,11 @@ import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.DialogsInput
 import com.github.grishberg.android.layoutinspector.domain.LayoutResultOutput
 import com.github.grishberg.android.layoutinspector.domain.Logic
+import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
 import com.github.grishberg.android.layoutinspector.settings.JsonSettings
+import com.github.grishberg.android.layoutinspector.settings.Settings
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
@@ -43,8 +45,17 @@ private const val INITIAL_SCREEN_HEIGHT = 600
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 300
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
 
+enum class OpenWindowMode {
+    DEFAULT,
+    OPEN_FILE
+}
+
 // create a class MainWindow extending JFrame
-class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPackage().implementationVersion}"),
+class Main(
+    private val mode: OpenWindowMode,
+    private val settings: Settings,
+    private val logger: AppLogger
+) : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPackage().implementationVersion}"),
     LayoutResultOutput, DialogsInput {
 
     // Declaration of objects of the
@@ -64,8 +75,6 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
     private val windowsDialog: WindowsDialog
     private val findDialog: FindDialog
 
-    private val logger: AppLogger = SimpleConsoleLogger("")
-    private val settings = JsonSettings(logger)
     private val mainPanel: JPanel
     private val statusDistanceLabel: JLabel
 
@@ -74,6 +83,8 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
     private val themes: Themes
     private val filter = FileNameExtensionFilter("Layout inspector files", "li")
     private val bookmarks = Bookmarks()
+    private val metaRepository = MetaRepository(logger, bookmarks)
+
     // Constructor of MainWindow class
     init {
         settingsFacade = SettingsFacade(settings)
@@ -87,9 +98,9 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
 
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
-        layoutPanel = LayoutPanel(settingsFacade)
+        layoutPanel = LayoutPanel(metaRepository, settingsFacade)
         treePanel = TreePanel(this, themeProxy, bookmarks, main = this)
-        propertiesPanel = PropertiesPanel()
+        propertiesPanel = PropertiesPanel(metaRepository)
         propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
         layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
 
@@ -129,11 +140,6 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
 
         DdmPreferences.setSelectedDebugPort(settingsFacade.adbPort)
 
-        if (isPortAlreadyUsed(DdmPreferences.getSelectedDebugPort())) {
-            throw DebugPortBusyException(DdmPreferences.getSelectedDebugPort())
-        }
-        initBaseDebugPort()
-
         windowsDialog = WindowsDialog(this, logger)
 
         adb = AdbWrapperImpl(true, InspectorLogger(), settingsFacade.androidHome)
@@ -143,11 +149,22 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
 
         loadingDialog = LoadingDialog(this)
         val fileSystem = LayoutFileSystem(logger)
-        logic = Logic(devicesInputDialog, windowsDialog, this, logger, fileSystem, this)
+        logic = Logic(
+            devicesInputDialog,
+            windowsDialog,
+            this,
+            logger,
+            fileSystem,
+            this,
+            metaRepository
+        )
 
         Runtime.getRuntime().addShutdownHook(Thread(this::doOnClose))
 
         setSize(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT)
+        defaultCloseOperation = DISPOSE_ON_CLOSE
+        isLocationByPlatform = true
+        isVisible = true
     }
 
     private fun createStatusBar(statusLabel: JLabel) {
@@ -163,7 +180,11 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
 
     fun initUi() {
         KeyBinder(mainPanel, layoutPanel, logic, this)
-        logic.startRecording()
+        if (mode == OpenWindowMode.DEFAULT) {
+            startRecording()
+        } else {
+            logic.openFile()
+        }
     }
 
     private fun doOnClose() {
@@ -188,6 +209,10 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
         val openFile = JMenuItem("Open")
         file.add(openFile)
         openFile.addActionListener { arg0: ActionEvent? -> openExistingFile() }
+
+        val openFileInNewWindow = JMenuItem("Open in new window")
+        file.add(openFileInNewWindow)
+        openFileInNewWindow.addActionListener { arg0: ActionEvent? -> openExistingFile(newWindow = true) }
 
         val newFile = JMenuItem("Record new Layout info")
         file.add(newFile)
@@ -264,17 +289,26 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
     }
 
     private fun startRecording() {
+        if (isPortAlreadyUsed(DdmPreferences.getSelectedDebugPort())) {
+            throw DebugPortBusyException(DdmPreferences.getSelectedDebugPort())
+        }
+        initBaseDebugPort()
+
         logic.startRecording()
     }
 
-    private fun openExistingFile() {
+    fun openExistingFile(newWindow: Boolean = false) {
+        if (newWindow) {
+            val main = Main(OpenWindowMode.OPEN_FILE, settings, logger)
+            main.initUi()
+            return
+        }
         logic.openFile()
     }
 
     override fun showResult(resultOutput: LayoutFileData) {
         layoutPanel.showLayoutResult(resultOutput)
         treePanel.showLayoutResult(resultOutput)
-        propertiesPanel.dpPerPixels = resultOutput.dpPerPixels
         findDialog.updateRootNode(resultOutput.node)
         splitPane1.invalidate()
     }
@@ -407,6 +441,7 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
 
     override fun showOpenFileDialogAndReturnResult(): File? {
         val fileChooser = JFileChooser(File(settingsFacade.lastLayoutDialogPath))
+        fileChooser.preferredSize = Dimension(800, 600)
         fileChooser.addChoosableFileFilter(filter)
         fileChooser.fileFilter = filter
 
@@ -428,10 +463,12 @@ class Main : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPac
         // Main Method
         @JvmStatic
         fun main(args: Array<String>) {
+            val logger: AppLogger = SimpleConsoleLogger("")
+            val settings = JsonSettings(logger)
+
             // Creating Object of MainWindow class.
-            val sl = Main()
+            val sl = Main(OpenWindowMode.DEFAULT, settings, logger)
             // Function to set visibilty of JFrame.
-            sl.isVisible = true
             sl.initUi()
         }
     }

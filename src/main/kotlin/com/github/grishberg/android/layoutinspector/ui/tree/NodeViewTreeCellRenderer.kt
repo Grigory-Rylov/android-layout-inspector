@@ -3,6 +3,7 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
+import java.awt.Color
 import java.awt.Component
 import javax.swing.ImageIcon
 import javax.swing.JTree
@@ -65,10 +66,13 @@ class NodeViewTreeCellRenderer(
             itemRenderer.setBackgroundSelectionColor(theme.hoverBackground)
         }
 
-        val foreground1 = bookmarks.getForegroundForItem(
-            value,
-            text1Foreground.textForeground(selected, hovered, highlighted, visible)
-        )
+        val defaultTextForeground = text1Foreground.textForeground(selected, hovered, highlighted, visible)
+        val foreground1 = if (selected) {
+            defaultTextForeground
+        } else {
+            bookmarks.getForegroundForItem(value, defaultTextForeground)
+        }
+
         val foreground2 = text2Foreground.textForeground(selected, hovered, highlighted, visible)
         itemRenderer.setForeground(foreground1, foreground2)
 
@@ -90,6 +94,13 @@ class NodeViewTreeCellRenderer(
 
         return itemRenderer
     }
+
+    private fun titleColor(colorWithoutAlpha: Color): Color {
+        val y =
+            (299 * colorWithoutAlpha.red + 587 * colorWithoutAlpha.green + 114 * colorWithoutAlpha.blue) / 1000.toDouble()
+        return if (y >= 128) Color.black else Color.white
+    }
+
 
     private fun iconForNode(node: ViewNode): ImageIcon {
         val nodeTypeShort = node.typeAsString()
