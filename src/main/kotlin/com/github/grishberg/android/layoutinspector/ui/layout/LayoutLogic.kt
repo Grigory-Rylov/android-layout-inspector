@@ -238,13 +238,6 @@ class LayoutLogic(
         at: AffineTransform,
         screenTransformedRectangle: Rectangle2D.Double
     ) {
-        val startDraw = System.currentTimeMillis()
-        g.setRenderingHint(
-            RenderingHints.KEY_INTERPOLATION,
-            RenderingHints.VALUE_INTERPOLATION_BICUBIC
-        )
-        val renderingDuration = System.currentTimeMillis() - startDraw
-
         val drawImageStart = System.currentTimeMillis()
 
         screenshot?.let {
