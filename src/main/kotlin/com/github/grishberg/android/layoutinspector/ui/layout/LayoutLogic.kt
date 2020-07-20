@@ -238,14 +238,10 @@ class LayoutLogic(
         at: AffineTransform,
         screenTransformedRectangle: Rectangle2D.Double
     ) {
-        val drawImageStart = System.currentTimeMillis()
-
         screenshot?.let {
             g.drawImage(it, at, null)
         }
-        val drawImageDuration = System.currentTimeMillis() - drawImageStart
 
-        val drawRectanglesStart = System.currentTimeMillis()
         g.stroke = BasicStroke(1f)
         for (element in rectangles) {
             val rect = element.rect
@@ -264,9 +260,6 @@ class LayoutLogic(
 
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
-        val drawRectanglesDuration = System.currentTimeMillis() - drawRectanglesStart
-
-        val drawOtherStart = System.currentTimeMillis()
         // draw measure lines
         g.stroke = measureLineStroke
         for (line in measureLines) {
@@ -313,9 +306,6 @@ class LayoutLogic(
             g.color = rulerFillColor
             g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
         }
-        val drawOtherDuration = System.currentTimeMillis() - drawOtherStart
-
-        //println("Draw = ${System.currentTimeMillis() - startDraw}, renderingDuration = $renderingDuration, drawImageDuration = $drawImageDuration, drawRectanglesDuration = $drawRectanglesDuration, drawOtherDuration = $drawOtherDuration")
     }
 
     fun selectNode(viewNode: ViewNode) {
@@ -357,10 +347,16 @@ class LayoutLogic(
 
     fun expandRulerAndShowSize(transformed: Point2D) {
         rulerRectangle?.let {
-            val w = abs(transformed.x - rulerFirstPoint.x)
-            val h = abs(transformed.y - rulerFirstPoint.y)
+            var w = abs(transformed.x - rulerFirstPoint.x)
+            var h = abs(transformed.y - rulerFirstPoint.y)
             val left = min(transformed.x, rulerFirstPoint.x)
             val top = min(transformed.y, rulerFirstPoint.y)
+            if (transformed.x < rulerFirstPoint.x) {
+                w += 1.0
+            }
+            if (transformed.y < rulerFirstPoint.y) {
+                h += 1.0
+            }
             it.setRect(round(left), round(top), round(w), round(h))
             measureRuler(it)
             panel.repaint()
@@ -381,7 +377,6 @@ class LayoutLogic(
     }
 
     private fun measureRuler(ruler: Rectangle2D.Double) {
-        //recalculateDistanceAction = CalculateDistanceAction(selected, measureRectangle)
         val distances = distances.calculateDistance(ruler)
         onLayoutSelectedAction?.onDistanceCalculated(distances.distance)
     }
