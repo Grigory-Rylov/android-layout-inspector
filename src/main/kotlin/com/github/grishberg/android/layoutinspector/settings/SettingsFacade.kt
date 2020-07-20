@@ -12,6 +12,7 @@ private const val SETTINGS_ADB_INITIAL_REMOTE_ADDRESS = "remoteDeviceAddress"
 private const val SETTINGS_WAIT_FOR_CLIENT_WINDOWS_TIMEOUT = "clientWindowsTimeout"
 private const val SETTINGS_ADB_DEBUG_PORT = "debugPort"
 private const val SETTINGS_LAST_DIALOG_PATH = "lastDialogPath"
+private const val FILE_NAME_PREFIX = "fileNamePrefix"
 private const val ADB_DEBUG_PORT_DEFAULT_VALUE = 8698
 private const val SETTINGS_THEME = "theme"
 
@@ -52,6 +53,10 @@ class SettingsFacade(
     var lastLayoutDialogPath: String
         set(value) = settings.setStringValue(SETTINGS_LAST_DIALOG_PATH, value)
         get() = settings.getStringValueOrDefault(SETTINGS_LAST_DIALOG_PATH, "")
+
+    var fileNamePrefix: String
+        set(value) = settings.setStringValue(FILE_NAME_PREFIX, value)
+        get() = settings.getStringValueOrDefault(FILE_NAME_PREFIX, "")
 
     init {
         // create default values

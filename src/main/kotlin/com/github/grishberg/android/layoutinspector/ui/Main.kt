@@ -99,7 +99,7 @@ class Main(
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
         layoutPanel = LayoutPanel(metaRepository, settingsFacade)
-        treePanel = TreePanel(this, themeProxy, bookmarks, main = this)
+        treePanel = TreePanel(this, themeProxy, metaRepository, bookmarks, main = this)
         propertiesPanel = PropertiesPanel(metaRepository)
         propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
         layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())

@@ -17,7 +17,7 @@ import kotlin.math.round
 
 class LayoutLogic(
     private val panel: JPanel,
-    meta: MetaRepository,
+    private val meta: MetaRepository,
     private val settings: SettingsFacade
 ) {
     private val GFX_CONFIG = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
@@ -60,6 +60,10 @@ class LayoutLogic(
 
     private val distances = DistanceBetweenTwoShape(meta)
     private var recalculateDistanceAction: CalculateDistanceAction? = null
+
+    init {
+        meta.hiddenChangedAction.add { panel.invalidate() }
+    }
 
     fun processMouseHover(point: Point) {
         val foundNode = getChildAtPoint(point)
@@ -175,7 +179,7 @@ class LayoutLogic(
         val rect = Rectangle(left, top, node.displayInfo.width, node.displayInfo.height)
         val newLayoutModel = LayoutModel(rect, node, children)
         parentsChildren.add(newLayoutModel)
-        if (node.isDrawn) {
+        if (isNodeVisible(node)) {
             rectangles.add(newLayoutModel)
         }
         allRectangles[node] = rect
@@ -187,6 +191,13 @@ class LayoutLogic(
         for (i in 0 until count) {
             addFromViewNode(children, node.getChildAt(i), left, top)
         }
+    }
+
+    private fun isNodeVisible(node: ViewNode): Boolean {
+        if (meta.shouldHideInLayout(node)) {
+            return false
+        }
+        return node.displayInfo.isVisible
     }
 
     private fun getChildAtPoint(point: Point): LayoutModel? {
@@ -204,7 +215,7 @@ class LayoutLogic(
         for (i in childCount - 1 downTo 0) {
             val child = parent.children[i]
             val rect = child.rect
-            if (rect.contains(point) && (child.node.isDrawn || settings.allowedSelectHiddenView)) {
+            if (rect.contains(point) && (isNodeVisible(child.node) || settings.allowedSelectHiddenView)) {
                 return findFirstElementByPosition(point, child)
             }
         }

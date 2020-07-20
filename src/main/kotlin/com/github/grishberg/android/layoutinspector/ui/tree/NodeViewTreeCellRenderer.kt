@@ -56,7 +56,7 @@ class NodeViewTreeCellRenderer(
             return DefaultTreeCellRenderer()
         }
         val hovered = value == hoveredNode
-        val visible = value.isDrawn
+        val visible = value.displayInfo.isVisible
         val text = value.getText()
         val highlighted = foundItems.contains(value)
 

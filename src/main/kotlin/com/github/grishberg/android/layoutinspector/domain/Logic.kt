@@ -61,16 +61,19 @@ class Logic(
             if (liResult.data == null) {
                 output.showError(liResult.error)
             } else {
-                onSuccessCaptured(liResult.data, dpPerPixels)
+                onSuccessCaptured(recordOptions.fileNamePrefix, liResult.data, dpPerPixels)
             }
         }
     }
 
-    private fun onSuccessCaptured(data: ByteArray, dpPerPixels: Double) {
+    private fun onSuccessCaptured(fileNamePrefix: String, data: ByteArray, dpPerPixels: Double) {
         val sdf = SimpleDateFormat("yyyyMMdd_HH-mm-ss.SSS")
         val formattedTime = sdf.format(Date())
-        val liFileName = "layout-$formattedTime.li"
-
+        val liFileName = if (fileNamePrefix.isNotEmpty()) {
+            "$fileNamePrefix-$formattedTime.li"
+        } else {
+            "layout-$formattedTime.li"
+        }
 
         layoutFileSystem.saveLayoutToFile(liFileName, data)
         metaRepository.fileName = liFileName

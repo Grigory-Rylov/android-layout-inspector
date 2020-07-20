@@ -33,6 +33,7 @@ class NewLayoutDialog(
     private val settings: SettingsFacade
 ) : CloseByEscapeDialog(owner, TITLE, true), LayoutRecordOptionsInput {
     private val timeoutField: JFormattedTextField
+    private val filePrefixField = JTextField(20)
     private val showAllPrecesses: JCheckBox
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
@@ -97,6 +98,9 @@ class NewLayoutDialog(
         })
         listScroll.preferredSize = Dimension(300, 400)
 
+        filePrefixField.toolTipText = "If not empty - will adds prefix to file name."
+        filePrefixField.text = settings.fileNamePrefix
+
         startButton = JButton("Start")
         startButton.addActionListener {
             startRecording()
@@ -113,6 +117,7 @@ class NewLayoutDialog(
         panelBuilder.addSingleComponent(showAllPrecesses)
         panelBuilder.addSingleComponent(listScroll)
         panelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
+        panelBuilder.addLabeledComponent("File name prefix: ", filePrefixField)
         panelBuilder.addMainAndSlaveComponent(startButton, resetConnectionButton)
         contentPane = panelBuilder.content
 
@@ -128,6 +133,12 @@ class NewLayoutDialog(
         })
 
         checkAndroidHome()
+    }
+
+    override fun onDialogClosed() {
+        if (settings.shouldStopAdbAfterJob()) {
+            deviceProvider.stop()
+        }
     }
 
     private fun resetAdbConnection() {
@@ -149,6 +160,7 @@ class NewLayoutDialog(
     }
 
     private fun startRecording() {
+        settings.fileNamePrefix = filePrefixField.text.trim()
         var currentDeviceIndex: Int = clientsList.selectedIndex
         if (currentDeviceIndex < 0) {
             logger.w("$TAG: startRecording() selectedIndex = $currentDeviceIndex")
@@ -170,7 +182,7 @@ class NewLayoutDialog(
         val client = clientListModel[currentDeviceIndex]
         val device = devicesComboBox.selectedItem as DeviceWrapper
         val timeoutInSeconds = timeoutField.text.toInt()
-        result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds)
+        result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim())
         deviceProvider.deviceChangedActions.remove(deviceChangedAction)
         isVisible = false
     }

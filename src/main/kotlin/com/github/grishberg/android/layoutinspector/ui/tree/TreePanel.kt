@@ -2,6 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.ui.Main
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
@@ -18,6 +19,7 @@ import javax.swing.tree.TreeSelectionModel
 class TreePanel(
     private val frame: JFrame,
     private val theme: ThemeColors,
+    private val meta: MetaRepository,
     private val bookmarks: Bookmarks,
     private val main: Main
 ) : JTree(DefaultMutableTreeNode()) {
@@ -114,7 +116,7 @@ class TreePanel(
         else {
             { calculateDistance(nodeByPoint) }
         }
-        val popupMenu = TreeViewNodeMenu(frame, nodeByPoint, bookmarks, calculateDistanceDelegate)
+        val popupMenu = TreeViewNodeMenu(frame, nodeByPoint, meta, bookmarks, calculateDistanceDelegate)
         popupMenu.show(this, point.x, point.y)
     }
 

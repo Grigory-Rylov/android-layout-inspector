@@ -18,18 +18,39 @@ import java.lang.reflect.Type
 private const val TAG = "MetaRepository"
 private const val META_DIR = "meta"
 
+typealias HiddenChangedAction = () -> Unit
+
 class MetaRepository(
     private val logger: AppLogger,
     private val bookmarks: Bookmarks
 ) {
     private val gson = GsonBuilder().enableComplexMapKeySerialization().setPrettyPrinting().create()
-
     var fileName: String = ""
     var dpPerPixels: Double = 1.0
+    val hiddenChangedAction = mutableListOf<HiddenChangedAction>()
+
     private val bookmarksChangedAction = { serialize() }
+
+    private val _hiddenViews = mutableListOf<ViewNode>()
+    val hiddenViews: List<ViewNode> = _hiddenViews
 
     init {
         bookmarks.listeners.add(bookmarksChangedAction)
+        hiddenChangedAction.add { serialize() }
+    }
+
+    fun shouldHideInLayout(viewNode: ViewNode): Boolean {
+        return _hiddenViews.contains(viewNode)
+    }
+
+    fun addToHiddenViews(viewNode: ViewNode) {
+        _hiddenViews.add(viewNode)
+        hiddenChangedAction.forEach { it.invoke() }
+    }
+
+    fun removeFromHiddenViews(viewNode: ViewNode) {
+        _hiddenViews.remove(viewNode)
+        hiddenChangedAction.forEach { it.invoke() }
     }
 
     fun serialize() {
@@ -39,13 +60,14 @@ class MetaRepository(
         for (bookmark in bookmarks.items) {
             bookmarksList.add(
                 BookmarkModel(
-                    bookmark.node.name,
+                    "${bookmark.node.name}.${bookmark.node.hash}",
                     bookmark.description,
                     colorToHex(bookmark.color)
                 )
             )
         }
-        val meta = MetaModel(fileName, dpPerPixels, bookmarksList)
+        val hiddenNodesAsStringList = _hiddenViews.map { "${it.name}.${it.hash}" }
+        val meta = MetaModel(fileName, dpPerPixels, bookmarksList, hiddenNodesAsStringList)
         GlobalScope.launch(Dispatchers.IO) {
             saveToFile(metaFileName, meta)
         }
@@ -102,6 +124,11 @@ class MetaRepository(
                 val foundNode = allNodesMap[bookmark.viewNodeName] ?: continue
                 bookmarkList.add(BookmarkInfo(foundNode, bookmark.description, hexToColor(bookmark.color)))
             }
+            _hiddenViews.clear()
+            for (hiddenNode in loadedMeta.hiddenNodes) {
+                val foundNode = allNodesMap[hiddenNode] ?: continue
+                _hiddenViews.add(foundNode)
+            }
             dpPerPixels = loadedMeta.dpPerPixels
 
             // dont trigger when set bookmarks itself
@@ -121,7 +148,7 @@ class MetaRepository(
             return
         }
 
-        map[parent.name] = parent
+        map["${parent.name}.${parent.hash}"] = parent
         for (child in parent.children) {
             readAllNodes(map, child)
         }
@@ -130,7 +157,8 @@ class MetaRepository(
     internal data class MetaModel(
         val liFileName: String,
         val dpPerPixels: Double,
-        val bookmarks: List<BookmarkModel>
+        val bookmarks: List<BookmarkModel>,
+        val hiddenNodes: List<String>
     )
 
     internal data class BookmarkModel(

@@ -44,8 +44,12 @@ class DeviceProvider(
         })
     }
 
-    fun reconnect() {
+    fun stop() {
         adb.stop()
+    }
+
+    fun reconnect() {
+        stop()
         connectToAdb()
     }
 
