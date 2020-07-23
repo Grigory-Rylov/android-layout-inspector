@@ -15,6 +15,8 @@ import java.awt.event.KeyEvent
 import java.math.RoundingMode
 import java.text.DecimalFormat
 import javax.swing.*
+import javax.swing.event.TreeExpansionEvent
+import javax.swing.event.TreeExpansionListener
 
 
 /**
@@ -27,6 +29,7 @@ class PropertiesPanel(
     private val table = JTreeTable(GroupedTableModel(emptyList()))
     private val scrollPanel = JScrollPane(table)
     private var sizeInDp = false
+    private val expandedGroups = mutableSetOf<String>()
 
     init {
         table.showVerticalLines = true
@@ -40,17 +43,44 @@ class PropertiesPanel(
             false
         )
         table.registerKeyboardAction(CopyAction(), "Copy", copyStroke, JComponent.WHEN_FOCUSED)
+        table.addTreeExpansionListener(object : TreeExpansionListener {
+            override fun treeExpanded(event: TreeExpansionEvent) {
+                val expandexGroup = event.path.lastPathComponent as TableRowInfoImpl
+                expandedGroups.add(expandexGroup.toString())
+            }
+
+            override fun treeCollapsed(event: TreeExpansionEvent) {
+                val expandexGroup = event.path.lastPathComponent as TableRowInfoImpl
+                expandedGroups.remove(expandexGroup.toString())
+            }
+        })
     }
 
     fun getComponent(): JComponent = scrollPanel
 
     fun showProperties(node: ViewNode) {
         currentNode = node
-        table.setModel(GroupedTableModel(createPropertiesData(node)))
+        val createPropertiesData = createPropertiesData(node)
+        table.setModel(GroupedTableModel(createPropertiesData))
 
         val rightRenderer = CustomTableCellRenderer()
         rightRenderer.horizontalAlignment = JLabel.RIGHT
         table.columnModel.getColumn(1).cellRenderer = rightRenderer
+        for (expanded in expandedGroups) {
+            val rowIndexByName = rowIndexByName(createPropertiesData, expanded)
+            if (rowIndexByName >= 0) {
+                table.tree.expandRow(rowIndexByName)
+            }
+        }
+    }
+
+    private fun rowIndexByName(createPropertiesData: List<TableRowInfo>, expanded: String): Int {
+        for (i in createPropertiesData.indices) {
+            if (createPropertiesData[i].toString() == expanded) {
+                return i
+            }
+        }
+        return -1
     }
 
     private fun createPropertiesData(node: ViewNode): List<TableRowInfo> {
