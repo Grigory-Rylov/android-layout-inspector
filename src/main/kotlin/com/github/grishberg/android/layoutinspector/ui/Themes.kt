@@ -11,7 +11,6 @@ import mdlaf.themes.JMarsDarkTheme
 import mdlaf.themes.MaterialLiteTheme
 import mdlaf.themes.MaterialOceanicTheme
 import java.awt.Frame
-import java.awt.event.ActionEvent
 import javax.swing.*
 
 enum class Theme {
@@ -28,6 +27,7 @@ class Themes(
 ) {
     init {
         try {
+            /*
             JDialog.setDefaultLookAndFeelDecorated(true)
             val themeName = settings.theme
             when (themeName) {
@@ -35,12 +35,14 @@ class Themes(
                 Theme.LITE -> setLiteTheme(true)
                 Theme.DARK -> setDarkTheme(true)
             }
+
+             */
         } catch (e: UnsupportedLookAndFeelException) {
             logger.e("Error while switching theme", e)
         }
     }
 
-    fun createThemeMenu(): JMenu {
+    fun createThemeMenu(menuBar: JMenuBar) {
         val menuTheme = JMenu("Themes")
         /*
         // TODO: enable oceanic theme
@@ -51,7 +53,7 @@ class Themes(
             }
         }
         menuTheme.add(oceanic)
-        */
+
         val lite = JMenuItem()
         lite.action = object : AbstractAction("Lite") {
             override fun actionPerformed(e: ActionEvent) {
@@ -68,7 +70,8 @@ class Themes(
         }
         menuTheme.add(jmarsDark)
 
-        return menuTheme
+        menuBar.add(menuTheme)
+        */
     }
 
     private fun setDarkTheme(set: Boolean = false) {

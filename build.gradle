@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.07.20.00'
+version '20.07.23.00'
 
 sourceCompatibility = 1.8
 
@@ -27,6 +27,7 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.3.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2'
 
+    implementation 'com.github.Grishberg:tree-table:0.1.0'
     implementation 'io.github.vincenzopalazzo:material-ui-swing:1.1.1_pre-release_6.1'
 
     testImplementation "junit:junit:4.12"

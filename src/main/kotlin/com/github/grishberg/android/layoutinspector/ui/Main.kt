@@ -24,6 +24,7 @@ import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeProxy
+import com.github.grishberg.android.layoutinspector.ui.tree.EmptyTreeIcon
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
@@ -199,7 +200,7 @@ class Main(
         menuBar.add(fileMenu)
         menuBar.add(createViewMenu())
         menuBar.add(createSettingsMenu())
-        menuBar.add(themes.createThemeMenu())
+        themes.createThemeMenu(menuBar)
         jMenuBar = menuBar
     }
 
@@ -466,10 +467,16 @@ class Main(
             val logger: AppLogger = SimpleConsoleLogger("")
             val settings = JsonSettings(logger)
 
+            createUi()
             // Creating Object of MainWindow class.
             val sl = Main(OpenWindowMode.DEFAULT, settings, logger)
-            // Function to set visibilty of JFrame.
+            // Function to set visibility of JFrame.
             sl.initUi()
+        }
+
+        private fun createUi() {
+            val emptyIcon = EmptyTreeIcon()
+            UIManager.put("Tree.leafIcon", emptyIcon)
         }
     }
 }

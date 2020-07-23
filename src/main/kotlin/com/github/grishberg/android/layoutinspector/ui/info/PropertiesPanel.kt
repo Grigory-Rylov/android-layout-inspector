@@ -3,13 +3,18 @@ package com.github.grishberg.android.layoutinspector.ui.info
 import com.android.layoutinspector.model.ViewNode
 import com.android.layoutinspector.model.ViewProperty
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
-import com.github.grishberg.android.layoutinspector.ui.gropedtables.GroupedTable
-import com.github.grishberg.android.layoutinspector.ui.gropedtables.GroupedTableDataModel
-import com.github.grishberg.android.layoutinspector.ui.gropedtables.TableRowInfo
+import com.github.grishberg.expandabletree.JTreeTable
+import com.github.grishberg.expandabletree.model.GroupedTableModel
+import com.github.grishberg.expandabletree.model.RowInfo
+import com.github.grishberg.expandabletree.model.TableRowInfo
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
+import java.awt.event.ActionEvent
+import java.awt.event.ActionListener
+import java.awt.event.KeyEvent
 import java.math.RoundingMode
 import java.text.DecimalFormat
-import javax.swing.JComponent
-import javax.swing.JScrollPane
+import javax.swing.*
 
 
 /**
@@ -18,77 +23,141 @@ import javax.swing.JScrollPane
 class PropertiesPanel(
     private val meta: MetaRepository
 ) {
-    private val treeTable = GroupedTable()
-    private val scrollPanel = JScrollPane(treeTable)
+    private var currentNode: ViewNode? = null
+    private val table = JTreeTable(GroupedTableModel(emptyList()))
+    private val scrollPanel = JScrollPane(table)
     private var sizeInDp = false
+
+    init {
+        table.showVerticalLines = true
+        table.showHorizontalLines = true
+        val tableRenderer = table.treeTableCellRenderer
+        tableRenderer.isRootVisible = false
+
+        val copyStroke = KeyStroke.getKeyStroke(
+            KeyEvent.VK_C,
+            Toolkit.getDefaultToolkit().menuShortcutKeyMask,
+            false
+        )
+        table.registerKeyboardAction(CopyAction(), "Copy", copyStroke, JComponent.WHEN_FOCUSED)
+    }
 
     fun getComponent(): JComponent = scrollPanel
 
     fun showProperties(node: ViewNode) {
-        treeTable.updateData(TreeTableModel(node))
-        scrollPanel.repaint()
-        treeTable.repaint()
+        currentNode = node
+        table.setModel(GroupedTableModel(createPropertiesData(node)))
+
+        val rightRenderer = CustomTableCellRenderer()
+        rightRenderer.horizontalAlignment = JLabel.RIGHT
+        table.columnModel.getColumn(1).cellRenderer = rightRenderer
+    }
+
+    private fun createPropertiesData(node: ViewNode): List<TableRowInfo> {
+        val groups = mutableListOf<TableRowInfoImpl>()
+        for (entry in node.groupedProperties) {
+            groups.add(TableRowInfoImpl(entry.key, entry.value, sizeInDp, meta.dpPerPixels))
+        }
+        return groups
     }
 
     fun setSizeDpMode(enabled: Boolean) {
         val shouldInvalidate = sizeInDp != enabled
         sizeInDp = enabled
         if (shouldInvalidate) {
-            treeTable.invalidateTable()
-        }
-    }
-
-    private inner class TreeTableModel(
-        private val node: ViewNode
-    ) : GroupedTableDataModel {
-
-        private val headers = mutableListOf<String>().apply {
-            for (entry in node.groupedProperties) {
-                add(entry.key)
+            currentNode?.let {
+                table.setModel(GroupedTableModel(createPropertiesData(it)))
             }
         }
-
-        override fun getGroupsCount(): Int = node.groupedProperties.size
-
-        override fun getTableRowInfo(groupIndex: Int): TableRowInfo {
-            val key = headers[groupIndex]
-            return ParameterModel(node.groupedProperties.getValue(key))
-        }
-
-        override fun getGroupName(groupIndex: Int): String = headers[groupIndex]
     }
 
-    private inner class ParameterModel(
-        private val properties: List<ViewProperty>
+    /**
+     * Table model.
+     */
+    private class TableRowInfoImpl(
+        private val name: String,
+        properties: List<ViewProperty>,
+        sizeInDp: Boolean,
+        dpPerPixels: Double
     ) : TableRowInfo {
-        override fun getColumnName(col: Int): String {
-            if (col == 0) {
-                return "name"
+        private val rows = mutableListOf<RowInfo>()
+
+        init {
+            for (property in properties) {
+                rows.add(RowInfoImpl(property, sizeInDp, dpPerPixels))
             }
-            return "value"
         }
 
-        override fun getColumnCount() = 2
+        override fun getRowCount(): Int {
+            return rows.size
+        }
 
-        override fun getRowCount() = properties.size
+        override fun getRowAt(row: Int): RowInfo {
+            return rows[row]
+        }
 
-        override fun getValueAt(row: Int, col: Int): String {
-            val currentProperty: ViewProperty = properties[row]
-
-            if (col == 0) {
-                return currentProperty.name
-            }
-            if (sizeInDp && currentProperty.isSizeProperty && meta.dpPerPixels > 1) {
-                return roundOffDecimal(currentProperty.intValue.toDouble() / meta.dpPerPixels) + " dp"
-            }
-            return currentProperty.value
+        override fun toString(): String {
+            return name
         }
     }
 
-    fun roundOffDecimal(number: Double): String {
-        val df = DecimalFormat("#.##")
-        df.roundingMode = RoundingMode.CEILING
-        return df.format(number)
+    /**
+     * Table row value model.
+     */
+    private class RowInfoImpl(
+        private val property: ViewProperty,
+        private val sizeInDp: Boolean,
+        private val dpPerPixels: Double
+    ) : RowInfo {
+        override fun value(): String {
+
+            if (sizeInDp && property.isSizeProperty && dpPerPixels > 1) {
+                return roundOffDecimal(property.intValue.toDouble() / dpPerPixels) + " dp"
+            }
+            return property.value
+        }
+
+        override fun toString(): String {
+            return property.name
+        }
+
+        fun roundOffDecimal(number: Double): String {
+            val df = DecimalFormat("#.##")
+            df.roundingMode = RoundingMode.CEILING
+            return df.format(number)
+        }
+    }
+
+    private inner class CopyAction : ActionListener {
+        override fun actionPerformed(e: ActionEvent) {
+            if (e.actionCommand.compareTo("Copy") != 0) {
+                return
+            }
+            val sbf = StringBuffer()
+            val numcols: Int = table.columnModel.columnCount
+            val numrows: Int = table.selectedRowCount
+
+            if (numrows < 1) {
+                JOptionPane.showMessageDialog(
+                    null, "Invalid Copy Selection",
+                    "Invalid Copy Selection", JOptionPane.ERROR_MESSAGE
+                )
+                return
+            }
+            val rowsselected = table.selectedRows.first()
+
+            for (j in 0 until numcols) {
+                val valueAt = table.getValueAt(rowsselected, j)
+                if (valueAt != null) {
+                    sbf.append(valueAt)
+                }
+                if (j < numcols - 1) sbf.append("\t")
+            }
+
+            val stringSelection = StringSelection(sbf.toString())
+            val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+            clipboard.setContents(stringSelection, null)
+        }
     }
 }
 
