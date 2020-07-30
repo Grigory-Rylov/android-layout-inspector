@@ -19,13 +19,13 @@ class MaterialDarkColors : ThemeColors {
     override val foreground1 = foregroundColor
     override val selectionForeground1 = secondaryColor
     override val hiddenForeground1 = UIManager.getColor("Label.disabledForeground")
-    override val hoveredForeground1 = UIManager.getColor("Button.mouseHoverColor")
+    override val hoveredForeground1 = UIManager.getColor("Button.mouseHoverColor") ?: foregroundColor
     override val selectionHiddenForeground1 = Color(secondaryColor.red, secondaryColor.green, secondaryColor.blue, 220)
 
     override val foreground2 = foregroundMediumColor
     override val selectionForeground2 = Color(secondaryColor.red, secondaryColor.green, secondaryColor.blue, 220)
     override val hiddenForeground2 = UIManager.getColor("Label.disabledForeground")
-    override val hoveredForeground2 = UIManager.getColor("Button.mouseHoverColor")
+    override val hoveredForeground2 = UIManager.getColor("Button.mouseHoverColor") ?: foreground2
     override val selectionHiddenForeground2 = secondaryColor
 
     override val foundTextColor = errorColor

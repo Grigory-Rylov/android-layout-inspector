@@ -1,6 +1,6 @@
 package com.github.grishberg.android.layoutinspector.settings
 
-import com.github.grishberg.android.layoutinspector.ui.Theme
+import com.github.grishberg.android.layoutinspector.ui.theme.Theme
 
 private const val SETTINGS_SHOULD_STOP_ADB = "shouldStopAdbAfterJob"
 private const val SETTINGS_SIZE_IN_DP = "sizeInDp"

@@ -24,6 +24,7 @@ import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeProxy
+import com.github.grishberg.android.layoutinspector.ui.theme.Themes
 import com.github.grishberg.android.layoutinspector.ui.tree.EmptyTreeIcon
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
@@ -90,7 +91,12 @@ class Main(
     init {
         settingsFacade = SettingsFacade(settings)
 
-        themes = Themes(this, settingsFacade, themeProxy, logger)
+        themes = Themes(
+            this,
+            settingsFacade,
+            themeProxy,
+            logger
+        )
 
         val androidHome = System.getenv("ANDROID_HOME")
         if (androidHome != null) {
