@@ -12,19 +12,19 @@ class MaterialDarkColors : ThemeColors {
     private val foregroundMediumColor = Color(255, 255, 255, 153)
 
     override val treeBackground = UIManager.getColor("Tree.background")
-    override val selectionBackground = Color(249, 192, 98)
+    override val selectionBackground = Color(249, 192, 98, 0)
     override val hoverBackground = Color(foregroundColor.red, foregroundColor.green, foregroundColor.blue, 30)
 
 
     override val foreground1 = foregroundColor
-    override val selectionForeground1 = secondaryColor
-    override val hiddenForeground1 = UIManager.getColor("Label.disabledForeground")
+    override val selectionForeground1 = foregroundColor
+    override val hiddenForeground1 = Color(157, 157, 157)
     override val hoveredForeground1 = UIManager.getColor("Button.mouseHoverColor") ?: foregroundColor
-    override val selectionHiddenForeground1 = Color(secondaryColor.red, secondaryColor.green, secondaryColor.blue, 220)
+    override val selectionHiddenForeground1 = Color(selectionForeground1.red, selectionForeground1.green, selectionForeground1.blue, 220)
 
     override val foreground2 = foregroundMediumColor
-    override val selectionForeground2 = Color(secondaryColor.red, secondaryColor.green, secondaryColor.blue, 220)
-    override val hiddenForeground2 = UIManager.getColor("Label.disabledForeground")
+    override val selectionForeground2 = Color(selectionForeground1.red, selectionForeground1.green, selectionForeground1.blue, 220)
+    override val hiddenForeground2 =  Color(130, 130, 130)
     override val hoveredForeground2 = UIManager.getColor("Button.mouseHoverColor") ?: foreground2
     override val selectionHiddenForeground2 = secondaryColor
 

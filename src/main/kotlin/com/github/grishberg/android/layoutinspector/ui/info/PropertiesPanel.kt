@@ -54,6 +54,9 @@ class PropertiesPanel(
                 expandedGroups.remove(expandexGroup.toString())
             }
         })
+
+        val selectionModel = table.selectionModel
+        selectionModel.addListSelectionListener { e -> table.repaint() }
     }
 
     fun getComponent(): JComponent = scrollPanel
