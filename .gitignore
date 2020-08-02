@@ -3,7 +3,10 @@
 .gradle
 *.iml
 build/
-
+out
+meta
+layouts
+.idea
 ### Java template
 # Compiled class file
 *.class
