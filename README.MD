@@ -28,7 +28,7 @@ Also you can switch to *DP* dimension mode.
 
 ## Measure distance between two element
 1) Select first element by **Mouse click** - it will be select by red square
-2) Select second element by **Mouse click + Shift** - it will be select by yellow square.
+2) Select second element by **Mouse click + Ctrl(Cmd)** - it will be select by yellow square.
 
 In the status bar will shown distance between first and second
 ![measurement](assets/measurements.png)
