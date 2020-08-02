@@ -31,7 +31,7 @@ Also you can switch to *DP* dimension mode.
 2) Select second element by **Mouse click + Shift** - it will be select by yellow square.
 
 In the status bar will shown distance between first and second
-![measurement](assets/measurement.png)
+![measurement](assets/measurements.png)
 
 
 ## Hotkeys
