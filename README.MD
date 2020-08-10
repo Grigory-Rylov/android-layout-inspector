@@ -33,7 +33,12 @@ Also you can switch to *DP* dimension mode.
 In the status bar will shown distance between first and second
 ![measurement](assets/measurements.png)
 
-
+## Measure distance with ruler
+1) Press **Shift** and move mouse to see where will be first point of ruler (black rectangle)
+2) **Mouse click + Shift** to start ruler mode
+3) **Mouse drag + Shift** to change ruler size
+You will see ruler size in current units in status bar
+ 
 ## Hotkeys
 ### Files
 **Ctrl + o** - Open file dialog
