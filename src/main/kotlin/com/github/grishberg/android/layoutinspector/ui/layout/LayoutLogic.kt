@@ -14,6 +14,8 @@ import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.round
 
+private const val LOCATION_X_PROPERTY_NAME = "layout:getLocationOnScreen_x()"
+private const val LOCATION_Y_PROPERTY_NAME = "layout:getLocationOnScreen_y()"
 
 class LayoutLogic(
     private val panel: JPanel,
@@ -173,8 +175,8 @@ class LayoutLogic(
         if (node == null) {
             return
         }
-        val left = node.displayInfo.left + parentLeft
-        val top = node.displayInfo.top + parentTop
+        val left = node.namedProperties[LOCATION_X_PROPERTY_NAME]?.intValue ?: node.displayInfo.left + parentLeft
+        val top = node.namedProperties[LOCATION_Y_PROPERTY_NAME]?.intValue ?: node.displayInfo.top + parentTop
         val children = mutableListOf<LayoutModel>()
         val rect = Rectangle(left, top, node.displayInfo.width, node.displayInfo.height)
         val newLayoutModel = LayoutModel(rect, node, children)
