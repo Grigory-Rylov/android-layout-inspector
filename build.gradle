@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.10.16.0'
+version '20.10.16.1'
 
 sourceCompatibility = 1.8
 
