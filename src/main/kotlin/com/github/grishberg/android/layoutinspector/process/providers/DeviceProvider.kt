@@ -3,9 +3,9 @@ package com.github.grishberg.android.layoutinspector.process.providers
 import com.android.ddmlib.AndroidDebugBridge
 import com.android.ddmlib.AndroidDebugBridge.IDeviceChangeListener
 import com.android.ddmlib.IDevice
+import com.android.layoutinspector.common.AdbFacade
 import com.android.layoutinspector.common.AppLogger
 import com.github.grishberg.android.layoutinspector.settings.Settings
-import com.github.grishberg.tracerecorder.adb.AdbWrapper
 import com.github.grishberg.tracerecorder.exceptions.DeviceTimeoutException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -14,13 +14,25 @@ import kotlinx.coroutines.async
 private const val TAG = "DeviceProvider"
 private const val SETTINGS_ADB_INITIAL_DEVICE_ADDRESS = "adbConnectToAddress"
 
-class DeviceProvider(
+interface DeviceProvider {
+    fun stop()
+    fun reconnect()
+    suspend fun requestDevices(): List<IDevice>
+    val deviceChangedActions: MutableSet<DeviceChangedAction>
+
+    interface DeviceChangedAction {
+        fun deviceConnected(device: IDevice)
+        fun deviceDisconnected(device: IDevice)
+    }
+}
+
+class DeviceProviderImpl(
     private val logger: AppLogger,
-    private val adb: AdbWrapper,
+    private val adb: AdbFacade,
     private val settings: Settings
-) {
+) : DeviceProvider {
     private val timeout = 30
-    val deviceChangedActions = mutableListOf<DeviceChangedAction>()
+    override val deviceChangedActions = mutableSetOf<DeviceProvider.DeviceChangedAction>()
 
     init {
         AndroidDebugBridge.addDeviceChangeListener(object : IDeviceChangeListener {
@@ -44,16 +56,16 @@ class DeviceProvider(
         })
     }
 
-    fun stop() {
+    override fun stop() {
         adb.stop()
     }
 
-    fun reconnect() {
+    override fun reconnect() {
         stop()
         connectToAdb()
     }
 
-    suspend fun requestDevices(): List<IDevice> {
+    override suspend fun requestDevices(): List<IDevice> {
         val result = GlobalScope.async(Dispatchers.IO) {
             if (!adb.isConnected()) {
                 connectToAdb()
@@ -74,7 +86,7 @@ class DeviceProvider(
         }
     }
 
-    private fun waitForDevices(adb: AdbWrapper) {
+    private fun waitForDevices(adb: AdbFacade) {
         var count = 0
         while (!adb.hasInitialDeviceList()) {
             try {
@@ -87,10 +99,5 @@ class DeviceProvider(
                 throw DeviceTimeoutException()
             }
         }
-    }
-
-    interface DeviceChangedAction {
-        fun deviceConnected(device: IDevice)
-        fun deviceDisconnected(device: IDevice)
     }
 }

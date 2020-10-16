@@ -42,7 +42,7 @@ class NewLayoutDialog(
     private val startButton: JButton
     private val resetConnectionButton: JButton
     private val clientsList: JList<ClientWrapper>
-    private val clientsChangedListener = CliensListener()
+    private val clientsChangedListener = ClientsListener()
     private val deviceChangedAction = DeviceChangedActions()
     var result: LayoutRecordOptions? = null
         private set
@@ -142,6 +142,7 @@ class NewLayoutDialog(
     }
 
     private fun resetAdbConnection() {
+        startButton.isEnabled = false
         clientListModel.clear()
         devicesComboBox.removeAll()
         deviceProvider.reconnect()
@@ -161,25 +162,25 @@ class NewLayoutDialog(
 
     private fun startRecording() {
         settings.fileNamePrefix = filePrefixField.text.trim()
-        var currentDeviceIndex: Int = clientsList.selectedIndex
-        if (currentDeviceIndex < 0) {
-            logger.w("$TAG: startRecording() selectedIndex = $currentDeviceIndex")
+        var currentClientIndex: Int = clientsList.selectedIndex
+        if (currentClientIndex < 0) {
+            logger.w("$TAG: startRecording() currentClientIndex = $currentClientIndex")
             if (clientListModel.size() == 1) {
-                currentDeviceIndex = 0
+                currentClientIndex = 0
             } else {
                 JOptionPane.showMessageDialog(
-                    this, "Select device before starting", "Select device",
+                    this, "Select application before starting", "Select application",
                     JOptionPane.ERROR_MESSAGE
                 )
                 return
             }
 
         }
-        doStartRecording(currentDeviceIndex)
+        doStartRecording(currentClientIndex)
     }
 
-    private fun doStartRecording(currentDeviceIndex: Int) {
-        val client = clientListModel[currentDeviceIndex]
+    private fun doStartRecording(currentClientIndex: Int) {
+        val client = clientListModel[currentClientIndex]
         val device = devicesComboBox.selectedItem as DeviceWrapper
         val timeoutInSeconds = timeoutField.text.toInt()
         result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim())
@@ -224,9 +225,9 @@ class NewLayoutDialog(
             for (c in clients) {
                 clientListModel.addElement(c)
             }
+            startButton.isEnabled = !clientListModel.isEmpty
             pack()
             repaint()
-
         }
     }
 
@@ -256,7 +257,7 @@ class NewLayoutDialog(
         return async.await()
     }
 
-    private inner class CliensListener : ClientsChangedListener {
+    private inner class ClientsListener : ClientsChangedListener {
         override fun onClientsChanged(device: IDevice) {
             if (!isVisible) {
                 return
@@ -264,6 +265,7 @@ class NewLayoutDialog(
             if (device.serialNumber != (devicesComboBox.selectedItem as DeviceWrapper).device.serialNumber) {
                 return
             }
+            logger.d("$TAG: onClientsChanged $device")
             SwingUtilities.invokeLater {
                 populateWithClients(device)
             }

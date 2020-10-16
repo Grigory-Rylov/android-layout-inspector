@@ -1,6 +1,7 @@
 package com.github.grishberg.android.layoutinspector.ui
 
 import com.android.ddmlib.DdmPreferences
+import com.android.layoutinspector.common.AdbFacade
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.common.SimpleConsoleLogger
 import com.android.layoutinspector.model.LayoutFileData
@@ -9,9 +10,12 @@ import com.github.grishberg.android.layoutinspector.domain.DialogsInput
 import com.github.grishberg.android.layoutinspector.domain.LayoutResultOutput
 import com.github.grishberg.android.layoutinspector.domain.Logic
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
+import com.github.grishberg.android.layoutinspector.process.AdbFacadeImpl
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
+import com.github.grishberg.android.layoutinspector.process.providers.DeviceProviderImpl
 import com.github.grishberg.android.layoutinspector.settings.JsonSettings
+import com.github.grishberg.android.layoutinspector.settings.SETTINGS_ANDROID_HOME
 import com.github.grishberg.android.layoutinspector.settings.Settings
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
@@ -28,7 +32,6 @@ import com.github.grishberg.android.layoutinspector.ui.theme.Themes
 import com.github.grishberg.android.layoutinspector.ui.tree.EmptyTreeIcon
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.github.grishberg.tracerecorder.adb.AdbWrapper
-import com.github.grishberg.tracerecorder.adb.AdbWrapperImpl
 import com.github.grishberg.tracerecorder.exceptions.DebugPortBusyException
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -56,7 +59,9 @@ enum class OpenWindowMode {
 class Main(
     private val mode: OpenWindowMode,
     private val settings: Settings,
-    private val logger: AppLogger
+    private val logger: AppLogger,
+    private val deviceProvider: DeviceProvider,
+    private val adb: AdbFacade
 ) : JFrame("Yet Another Android Layout Inspector. ver${javaClass.getPackage().implementationVersion}"),
     LayoutResultOutput, DialogsInput {
 
@@ -67,8 +72,6 @@ class Main(
     private val propertiesPanel: PropertiesPanel
     private val logic: Logic
     private val statusLabel: JLabel
-
-    private val adb: AdbWrapper
 
     private val splitPane1: JSplitPane
     private val splitPane2: JSplitPane
@@ -97,11 +100,6 @@ class Main(
             themeProxy,
             logger
         )
-
-        val androidHome = System.getenv("ANDROID_HOME")
-        if (androidHome != null) {
-            settingsFacade.androidHome = androidHome
-        }
 
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
@@ -148,9 +146,6 @@ class Main(
         DdmPreferences.setSelectedDebugPort(settingsFacade.adbPort)
 
         windowsDialog = WindowsDialog(this, logger)
-
-        adb = AdbWrapperImpl(true, InspectorLogger(), settingsFacade.androidHome)
-        val deviceProvider = DeviceProvider(logger, adb, settings)
 
         val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settingsFacade)
 
@@ -306,7 +301,7 @@ class Main(
 
     fun openExistingFile(newWindow: Boolean = false) {
         if (newWindow) {
-            val main = Main(OpenWindowMode.OPEN_FILE, settings, logger)
+            val main = Main(OpenWindowMode.OPEN_FILE, settings, logger, deviceProvider, adb)
             main.initUi()
             return
         }
@@ -473,9 +468,17 @@ class Main(
             val logger: AppLogger = SimpleConsoleLogger("")
             val settings = JsonSettings(logger)
 
+            val androidHome = System.getenv("ANDROID_HOME")
+            if (androidHome != null) {
+                settings.setStringValue(SETTINGS_ANDROID_HOME, androidHome)
+            }
+
+            val adbFacade = AdbFacadeImpl(settings)
+            val deviceProvider = DeviceProviderImpl(logger, adbFacade, settings)
+
             createUi()
             // Creating Object of MainWindow class.
-            val sl = Main(OpenWindowMode.DEFAULT, settings, logger)
+            val sl = Main(OpenWindowMode.DEFAULT, settings, logger, deviceProvider, adbFacade)
             // Function to set visibility of JFrame.
             sl.initUi()
         }
