@@ -19,7 +19,7 @@ OR
 3) Select android-layout-inspector-plugin-{VERSION}.jar
 
 ## Getting started
-![Getting startede](assets/start.png)
+<img src="assets/start.png" width="40%"/>
 Menu Tools -> Launch YALI
 
 ## Why Yet another android layout inspector?
@@ -31,7 +31,8 @@ Also you can switch to *DP* dimension mode.
 2) Select second element by **Mouse click + Ctrl(Cmd)** - it will be select by yellow square.
 
 In the status bar will shown distance between first and second
-![measurement](assets/measurements.png)
+
+<img src="assets/measurements.png" width="40%"/>
 
 ## Measure distance with ruler
 1) Press **Shift** and move mouse to see where will be first point of ruler (black rectangle)
