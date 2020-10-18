@@ -1,0 +1,39 @@
+<idea-plugin>
+    <id>com.github.grishberg.android.android-layout-inspector-plugin</id>
+    <name>YALI</name>
+    <vendor email="grishberg@gmail.com" url="http://github.com/Grigory-Rylov">Grigory Rylov</vendor>
+
+    <description><![CDATA[
+    Yet Another Layout Inspector for Android.<br>
+    ]]></description>
+
+    <!-- Android Studio 4.0+ -->
+    <!-- see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html -->
+    <idea-version since-build="193"/>
+
+    <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.android</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+    </extensions>
+
+    <actions>
+        <group id="YALI.TopMenu"
+               text="_YALI"
+               description="YALI Toolbar Menu">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="ShowLayoutInspectorAction"
+                    class="com.github.grishberg.android.li.ShowLayoutInspectorAction"
+                    text="_Launch YALI"
+                    description="Launch Yet Another Layout Inspector for Android"/>
+        </group>
+    </actions>
+    <project-components>
+        <component>
+            <implementation-class>com.github.grishberg.android.li.PluginContext</implementation-class>
+        </component>
+    </project-components>
+</idea-plugin>
