@@ -9,9 +9,14 @@ Allows you to switch between displaying dimensions in **PX** and **DP** (only fo
 
 ## Download
 ![GitHub All Releases](https://img.shields.io/github/downloads/Grigory-Rylov/android-layout-inspector-plugin/total?color=%234caf50&style=for-the-badge)  
-- [Download latest release](https://github.com/Grigory-Rylov/android-layout-inspector-plugin/releases)
 
-Or find [YALI](https://plugins.jetbrains.com/plugin/15227-yali) in plugins repository.
+Find [YALI](https://plugins.jetbrains.com/plugin/15227-yali) in AS plugins repository.
+
+OR
+
+1) [Download latest release](https://github.com/Grigory-Rylov/android-layout-inspector-plugin/releases)
+2) Preferences -> Plugins -> Install plugin from Disk...
+3) Select android-layout-inspector-plugin-{VERSION}.jar
 
 ## Getting started
 ![Getting startede](assets/start.png)
