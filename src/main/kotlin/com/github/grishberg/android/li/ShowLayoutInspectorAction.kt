@@ -13,9 +13,6 @@ import com.github.grishberg.androidstudio.plugins.AdbWrapper
 import com.github.grishberg.androidstudio.plugins.AsAction
 import com.github.grishberg.androidstudio.plugins.ConnectedDeviceInfo
 import com.github.grishberg.androidstudio.plugins.ConnectedDeviceInfoProvider
-import com.intellij.notification.NotificationDisplayType
-import com.intellij.notification.NotificationGroup
-import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import javax.swing.UIManager
@@ -37,17 +34,6 @@ class ShowLayoutInspectorAction : AsAction() {
             AdbFacadeImpl(deviceInfo, project.context().adb)
         )
         main.initUi()
-
-        val noti = NotificationGroup(
-            "myplugin",
-            NotificationDisplayType.BALLOON, true
-        )
-        noti.createNotification(
-            "My Title",
-            "My Message",
-            NotificationType.INFORMATION,
-            null
-        ).notify(e.project)
     }
 
     private fun createUi() {
