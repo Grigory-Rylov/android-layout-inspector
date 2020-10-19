@@ -4,7 +4,17 @@
     <vendor email="grishberg@gmail.com" url="http://github.com/Grigory-Rylov">Grigory Rylov</vendor>
 
     <description><![CDATA[
-    Yet Another Layout Inspector for Android.<br>
+    Yet Another Layout Inspector for Android.<br/>
+    This is analog of Android Studio Layout Manager but with ability to switch size to DP<br/>
+    Also you can mark some elements in tree with bookmarks<br/>
+    <br/>
+    There are two basic ways to open YALI:
+        <ul>
+            <li>Through the Tools->Launch YALI menu</li>
+            <li>By searching for "Launch YALI" in "Find Actions" (osx: cmd+shift+a, windows/linux: ctrl+shift+a)</li>
+        </ul>
+
+    <br/>
     ]]></description>
 
     <!-- Android Studio 4.0+ -->
