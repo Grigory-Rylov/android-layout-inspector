@@ -12,7 +12,7 @@ import org.jetbrains.android.util.AndroidUtils
 data class ConnectedDeviceInfo(
     val devices: List<IDevice>,
     val facet: AndroidFacet,
-    val packageName: String
+    val packageName: String?
 )
 
 class ConnectedDeviceInfoProvider(
@@ -24,7 +24,12 @@ class ConnectedDeviceInfoProvider(
         val facets = AndroidUtils.getApplicationFacets(project)
         if (facets.isNotEmpty()) {
             val facet = getFacet(facets) ?: return null
-            val packageName = ApkProviderUtil.computePackageName(facet)?: AndroidModuleModel.get(facet)?.applicationId ?: return null
+            var packageName: String? = null
+            try {
+                packageName = ApkProviderUtil.computePackageName(facet) ?: AndroidModuleModel.get(facet)?.applicationId ?: return null
+            } catch (e: Throwable ) {
+                e.printStackTrace()
+            }
 
             if (!adb.isReady()) {
                 notificationHelper.error("No platform configured")
@@ -64,7 +69,7 @@ class ConnectedDeviceInfoProvider(
         return facet
     }
 
-    private fun showDeviceChooserDialog(facet: AndroidFacet, packageName: String): ConnectedDeviceInfo? {
+    private fun showDeviceChooserDialog(facet: AndroidFacet, packageName: String?): ConnectedDeviceInfo? {
         val chooser = DeviceChooserDialog(facet)
         chooser.show()
 

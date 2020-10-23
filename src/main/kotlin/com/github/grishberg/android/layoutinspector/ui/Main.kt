@@ -174,7 +174,7 @@ class Main(
         })
         setSize(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT)
         defaultCloseOperation = DISPOSE_ON_CLOSE
-        isLocationByPlatform = true
+        setLocationRelativeTo(null)
         isVisible = true
     }
 
