@@ -19,7 +19,7 @@
 
     <!-- Android Studio 4.0+ -->
     <!-- see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html -->
-    <idea-version since-build="193" until-build="202.*"/>
+    <idea-version since-build="193"/>
 
     <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->

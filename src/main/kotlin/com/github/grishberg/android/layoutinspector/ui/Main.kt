@@ -1,6 +1,5 @@
 package com.github.grishberg.android.layoutinspector.ui
 
-import com.android.ddmlib.DdmPreferences
 import com.android.layoutinspector.common.AdbFacade
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.LayoutFileData
@@ -147,8 +146,6 @@ class Main(
         createMenu(fileMenu)
 
         pack()
-
-        DdmPreferences.setSelectedDebugPort(settingsFacade.adbPort)
 
         windowsDialog = WindowsDialog(this, logger)
 

@@ -37,11 +37,10 @@ dependencies {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    //version '191.8026.42' // 3.5
-    version '193.6911.18'
     alternativeIdePath '/Applications/Android Studio.app'
     type 'IC'
     plugins 'android'
+    updateSinceUntilBuild false
 }
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
@@ -51,7 +50,9 @@ compileTestKotlin {
 }
 patchPluginXml {
     changeNotes """
-      Created plugin for Android Studio 4+.<br>
+      Extended Android Studio versions compatibility.<br>  
+      Added 'copy id' to tree panel context menu.<br>
+      Changed copy id hotkey to cmd/ctrl + alt + c <br>
       """
 }
 
