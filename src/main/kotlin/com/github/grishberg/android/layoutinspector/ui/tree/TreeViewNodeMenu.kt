@@ -12,6 +12,7 @@ typealias CalculateDistanceDelegate = () -> Unit
 
 class TreeViewNodeMenu(
     val owner: JFrame,
+    val treePanel: TreePanel,
     val selectedViewNode: ViewNode,
     val meta: MetaRepository,
     val bookmarks: Bookmarks,
@@ -22,6 +23,8 @@ class TreeViewNodeMenu(
     private val calculateDistance = JMenuItem("Calculate distance")
     private val hideView = JMenuItem("Hide from layout")
     private val removeFromHidden = JMenuItem("Show on layout")
+    private val copyId = JMenuItem("Copy id")
+    private val copyShortClassName = JMenuItem("Copy short class name")
 
     init {
         addToBookmark.addActionListener {
@@ -69,5 +72,14 @@ class TreeViewNodeMenu(
                 delegate.invoke()
             }
         }
+
+        copyId.addActionListener {
+            treePanel.copyIdToClipboard()
+        }
+        copyShortClassName.addActionListener {
+            treePanel.copyShortNameToClipboard()
+        }
+        add(copyId)
+        add(copyShortClassName)
     }
 }

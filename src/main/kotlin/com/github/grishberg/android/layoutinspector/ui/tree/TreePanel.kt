@@ -9,8 +9,17 @@ import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import java.awt.Point
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
-import java.awt.event.*
-import javax.swing.*
+import java.awt.event.ActionEvent
+import java.awt.event.ActionListener
+import java.awt.event.KeyEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
+import javax.swing.JComponent
+import javax.swing.JFrame
+import javax.swing.JTree
+import javax.swing.KeyStroke
+import javax.swing.SwingUtilities
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreeCellRenderer
 import javax.swing.tree.TreeSelectionModel
@@ -30,12 +39,12 @@ class TreePanel(
 
     private val copyFullNameStroke = KeyStroke.getKeyStroke(
         KeyEvent.VK_C,
-        Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.ALT_MASK,
+        Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.SHIFT_MASK,
         false
     )
     private val copyIdStroke = KeyStroke.getKeyStroke(
         KeyEvent.VK_C,
-        Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.SHIFT_MASK,
+        Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.ALT_MASK,
         false
     )
 
@@ -114,7 +123,7 @@ class TreePanel(
         else {
             { calculateDistance(nodeByPoint) }
         }
-        val popupMenu = TreeViewNodeMenu(frame, nodeByPoint, meta, bookmarks, calculateDistanceDelegate)
+        val popupMenu = TreeViewNodeMenu(frame, this, nodeByPoint, meta, bookmarks, calculateDistanceDelegate)
         popupMenu.show(this, point.x, point.y)
     }
 
@@ -183,6 +192,23 @@ class TreePanel(
         repaint()
     }
 
+    fun copyShortNameToClipboard() {
+        val selectedValue = selectionPath.lastPathComponent as ViewNode
+        copyToClipboard(selectedValue.typeAsString())
+    }
+
+    fun copyIdToClipboard() {
+        val selectedValue = selectionPath.lastPathComponent as ViewNode
+        val id: String = selectedValue.id ?: return
+
+        val rawId = if (id.startsWith("id/")) {
+            id.substring(3)
+        } else {
+            id
+        }
+        copyToClipboard(rawId)
+    }
+
     private inner class CopyShortNameAction : ActionListener {
         override fun actionPerformed(e: ActionEvent) {
             if (e.actionCommand.compareTo("Copy") != 0) {
@@ -192,8 +218,7 @@ class TreePanel(
                 return
             }
 
-            val selectedValue = selectionPath.lastPathComponent as ViewNode
-            copyToClipboard(selectedValue.typeAsString())
+            copyShortNameToClipboard()
         }
     }
 
@@ -220,15 +245,7 @@ class TreePanel(
                 return
             }
 
-            val selectedValue = selectionPath.lastPathComponent as ViewNode
-            val id: String = selectedValue.id ?: return
-
-            val rawId = if (id.startsWith("id/")) {
-                id.substring(3)
-            } else {
-                id
-            }
-            copyToClipboard(rawId)
+            copyIdToClipboard()
         }
     }
 
