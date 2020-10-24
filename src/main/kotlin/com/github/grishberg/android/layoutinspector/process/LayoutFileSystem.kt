@@ -9,11 +9,19 @@ import java.io.File
 import java.io.FileOutputStream
 
 private const val TAG = "FileSystem"
+const val LAYOUTS_DIR = "layouts"
 
 class LayoutFileSystem(
-    private val logger: AppLogger
+    private val logger: AppLogger,
+    baseDir: File
 ) {
-    private val layoutDir = "layouts"
+    val layoutDir = File(baseDir, LAYOUTS_DIR)
+
+    init {
+        if (!layoutDir.exists()) {
+            layoutDir.mkdirs()
+        }
+    }
 
     fun saveLayoutToFile(fileName: String, data: ByteArray) {
         GlobalScope.launch(Dispatchers.IO) {
@@ -22,9 +30,9 @@ class LayoutFileSystem(
     }
 
     private fun saveToFile(fileName: String, data: ByteArray) {
-        val dir = File(layoutDir)
+        val dir = layoutDir
         if (!dir.exists()) {
-            dir.mkdir()
+            dir.mkdirs()
         }
 
         var bs: BufferedOutputStream? = null

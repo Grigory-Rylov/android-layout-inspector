@@ -11,7 +11,7 @@ class MaterialLiteColors : ThemeColors {
     private val foregroundMediumColor = Color(0, 0, 0, 153)
 
     override val treeBackground = UIManager.getColor("Tree.background")
-    override val selectionBackground = Color(195, 219, 247)
+    override val selectionBackground = Color(195, 219, 247,0)
 
     override val hoverBackground = Color(
         foregroundColor.red,
@@ -21,7 +21,7 @@ class MaterialLiteColors : ThemeColors {
     )
 
     override val foreground1 = foregroundColor
-    override val selectionForeground1 = foregroundColor
+    override val selectionForeground1 = Color(255, 255, 255)
     override val hiddenForeground1 = UIManager.getColor("Label.disabledForeground")
     override val hoveredForeground1 = foregroundColor
     override val selectionHiddenForeground1 = selectionForeground1

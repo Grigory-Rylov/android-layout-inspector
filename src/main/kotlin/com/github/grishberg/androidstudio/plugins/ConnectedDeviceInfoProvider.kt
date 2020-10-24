@@ -17,10 +17,9 @@ class ConnectedDeviceInfoProvider(
         }
 
         val devices = adb.connectedDevices()
-        return if (devices.isNotEmpty()) {
-            ConnectedDeviceInfo(devices)
-        } else {
-            null
+        if (devices.isEmpty()) {
+            notificationHelper.error("No devices found")
         }
+        return ConnectedDeviceInfo(devices)
     }
 }

@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.10.23.0'
+version '20.10.24.0'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -50,9 +50,8 @@ compileTestKotlin {
 }
 patchPluginXml {
     changeNotes """
-      Extended Android Studio versions compatibility.<br>  
-      Added 'copy id' to tree panel context menu.<br>
-      Changed copy id hotkey to cmd/ctrl + alt + c <br>
+      Removed redundant dialog.<br>
+      Added 'Open layouts dir' file menu item.<br>
       """
 }
 

@@ -22,7 +22,8 @@ typealias HiddenChangedAction = () -> Unit
 
 class MetaRepository(
     private val logger: AppLogger,
-    private val bookmarks: Bookmarks
+    private val bookmarks: Bookmarks,
+    private val baseDir: File
 ) {
     private val gson = GsonBuilder().enableComplexMapKeySerialization().setPrettyPrinting().create()
     var fileName: String = ""
@@ -74,7 +75,7 @@ class MetaRepository(
     }
 
     private fun saveToFile(metaFileName: String, meta: MetaModel) {
-        val currentDir = File(META_DIR)
+        val currentDir = File(baseDir, META_DIR)
         if (!currentDir.exists()) {
             currentDir.mkdirs()
         }

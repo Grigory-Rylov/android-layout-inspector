@@ -26,8 +26,10 @@ import com.github.grishberg.android.layoutinspector.ui.theme.Themes
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.intellij.ui.components.JBScrollPane
 import java.awt.BorderLayout
+import java.awt.Desktop
 import java.awt.Dimension
 import java.awt.event.ActionEvent
+import java.awt.event.ActionListener
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
@@ -93,7 +95,8 @@ class Main(
     private val themes: Themes
     private val filter = FileNameExtensionFilter("Layout inspector files", "li")
     private val bookmarks = Bookmarks()
-    private val metaRepository = MetaRepository(logger, bookmarks)
+    private val baseDir = File("YALI")
+    private val metaRepository = MetaRepository(logger, bookmarks, baseDir)
 
     // Constructor of MainWindow class
     init {
@@ -133,7 +136,6 @@ class Main(
         splitPane2.dividerLocation = INITIAL_SCREEN_WIDTH - (INITIAL_PROPERTIES_WINDOW_WIDTH)
         mainPanel.add(splitPane2, BorderLayout.CENTER)
 
-
         statusLabel = JLabel()
         mainPanel.add(statusLabel, BorderLayout.NORTH)
 
@@ -141,10 +143,6 @@ class Main(
         createStatusBar(statusLabel)
 
         contentPane = mainPanel
-
-        fileMenu = createFileMenu()
-        createMenu(fileMenu)
-
         pack()
 
         windowsDialog = WindowsDialog(this, logger)
@@ -152,7 +150,7 @@ class Main(
         val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settingsFacade)
 
         loadingDialog = LoadingDialog(this)
-        val fileSystem = LayoutFileSystem(logger)
+        val fileSystem = LayoutFileSystem(logger, baseDir)
         logic = Logic(
             devicesInputDialog,
             windowsDialog,
@@ -163,6 +161,8 @@ class Main(
             metaRepository
         )
 
+        fileMenu = createFileMenu(fileSystem)
+        createMenu(fileMenu)
 
         addWindowListener(object : WindowAdapter() {
             override fun windowClosing(windowEvent: WindowEvent) {
@@ -207,7 +207,7 @@ class Main(
         jMenuBar = menuBar
     }
 
-    private fun createFileMenu(): JMenu {
+    private fun createFileMenu(fileSystem: LayoutFileSystem): JMenu {
         val file = JMenu("File")
 
         val openFile = JMenuItem("Open")
@@ -222,9 +222,23 @@ class Main(
         file.add(newFile)
         newFile.addActionListener { arg0: ActionEvent? -> startRecording() }
 
+        val openLayoutsFolder = JMenuItem("Open layouts folder")
+        file.add(openLayoutsFolder)
+        openLayoutsFolder.addActionListener(ActionListener { arg: ActionEvent? ->
+            openLayoutsDirInExternalFileManager(fileSystem)
+        })
 
         file.addSeparator()
         return file
+    }
+
+    private fun openLayoutsDirInExternalFileManager(fileSystem: LayoutFileSystem) {
+        val desktop = Desktop.getDesktop()
+        try {
+            desktop.open(fileSystem.layoutDir)
+        } catch (e: Exception) {
+            logger.e("File Not Found", e)
+        }
     }
 
     private fun createViewMenu(): JMenu? {

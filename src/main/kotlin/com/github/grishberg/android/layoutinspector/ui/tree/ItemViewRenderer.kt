@@ -108,11 +108,6 @@ class ItemViewRenderer(
     }
 
     override fun paintComponent(g: Graphics) {
-        if (selected || hovered) {
-            g.color = selectionBackground
-            g.fillRect(0, 0, width, height)
-        }
-
         var left = iconGap
         val currentNodeIcon = treeNodeIcon
         if (currentNodeIcon != null) {
