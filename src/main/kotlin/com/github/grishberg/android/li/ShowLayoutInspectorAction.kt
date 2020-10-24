@@ -19,7 +19,7 @@ import javax.swing.UIManager
 
 class ShowLayoutInspectorAction : AsAction() {
     override fun actionPerformed(e: AnActionEvent, project: Project) {
-        val provider = ConnectedDeviceInfoProvider(project, project.context().adb, NotificationHelperImpl)
+        val provider = ConnectedDeviceInfoProvider(project.context().adb, NotificationHelperImpl)
         val deviceInfo = provider.provideDeviceInfo() ?: return
 
         val log = SimpleConsoleLogger("")
