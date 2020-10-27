@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.10.24.0'
+version '20.10.27.0'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -52,6 +52,7 @@ patchPluginXml {
     changeNotes """
       Removed redundant dialog.<br>
       Added 'Open layouts dir' file menu item.<br>
+      Request devices list when opened New Layout dialog<br>
       """
 }
 
