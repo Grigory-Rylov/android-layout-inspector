@@ -77,7 +77,7 @@ Settings are stored in `android-layout-inspector-settings.json` :
  - `shouldStopAdbAfterJob` allows to forcibly close ADB after operations and after exit
  - `remoteDeviceAddress` if not empty - try to connect to remote device with address `"remoteDeviceAddress"` and before connection to ADB (experimental)
 
-https://www.buymeacoffee.com/grishberg
+<a href="https://www.buymeacoffee.com/grishberg" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 # License
 
