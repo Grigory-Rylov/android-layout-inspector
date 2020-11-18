@@ -15,7 +15,13 @@
  */
 package com.android.layoutinspector.model
 
-import com.android.ddmlib.*
+import com.android.ddmlib.ByteBufferUtil
+import com.android.ddmlib.Client
+import com.android.ddmlib.ClientData
+import com.android.ddmlib.DebugViewDumpHandler
+import com.android.ddmlib.internal.ClientImpl
+import com.android.ddmlib.internal.jdwp.chunkhandler.ChunkHandler
+import com.android.ddmlib.internal.jdwp.chunkhandler.HandleViewDebug
 import com.android.layoutinspector.LayoutInspectorCaptureOptions
 import com.android.layoutinspector.ProtocolVersion
 import com.android.layoutinspector.common.AppLogger
@@ -70,14 +76,13 @@ class ClientWindow(
 
     private class ListViewRootsHandler(
         private val logger: AppLogger
-    ) :
-        HandleViewDebug.ViewDumpHandler(HandleViewDebug.CHUNK_VULW) {
+    ) : DebugViewDumpHandler(DebugViewDumpHandler.CHUNK_VULW) {
         private val myViewRoots = Lists.newCopyOnWriteArrayList<String>()
         override fun handleViewDebugResult(data: ByteBuffer) {
             val nWindows = data.int
             for (i in 0 until nWindows) {
                 val len = data.int
-                myViewRoots.add(ChunkHandler.getString(data, len))
+                myViewRoots.add(ByteBufferUtil.getString(data, len))
             }
         }
 
@@ -95,7 +100,7 @@ class ClientWindow(
 
     private class CaptureByteArrayHandler(
         private val logger: AppLogger, type: Int
-    ) : HandleViewDebug.ViewDumpHandler(type) {
+    ) : DebugViewDumpHandler(type) {
         private val mData = AtomicReference<ByteArray>()
         override fun handleViewDebugResult(data: ByteBuffer) {
             val b = ByteArray(data.remaining())
@@ -108,7 +113,13 @@ class ClientWindow(
             return mData.get()
         }
 
-        override fun handleUnknownChunk(client: Client?, type: Int, data: ByteBuffer?, isReply: Boolean, msgId: Int) {
+        override fun handleUnknownChunk(
+            client: ClientImpl?,
+            type: Int,
+            data: ByteBuffer?,
+            isReply: Boolean,
+            msgId: Int
+        ) {
             if (type == ChunkHandler.CHUNK_FAIL) {
                 val errorCode: Int
                 val msgLen: Int
@@ -125,7 +136,6 @@ class ClientWindow(
                 )
             }
             logger.w("ddms:        client $client, handler $this")
-
         }
     }
 
@@ -168,7 +178,7 @@ class ClientWindow(
             timeout: Long,
             timeUnit: TimeUnit
         ): ByteArray? {
-            val handler = CaptureByteArrayHandler(logger, HandleViewDebug.CHUNK_VURT)
+            val handler = CaptureByteArrayHandler(logger, DebugViewDumpHandler.CHUNK_VURT)
             HandleViewDebug.dumpViewHierarchy(
                 client, title, skipChildren, includeProperties, useV2, handler
             )
@@ -187,7 +197,7 @@ class ClientWindow(
             timeout: Long,
             timeUnit: TimeUnit
         ): ByteArray? {
-            val handler = CaptureByteArrayHandler(logger, HandleViewDebug.CHUNK_VUOP)
+            val handler = CaptureByteArrayHandler(logger, DebugViewDumpHandler.CHUNK_VUOP)
             HandleViewDebug.captureView(client, title, node.toString(), handler)
             return try {
                 handler.getData(timeout, timeUnit)

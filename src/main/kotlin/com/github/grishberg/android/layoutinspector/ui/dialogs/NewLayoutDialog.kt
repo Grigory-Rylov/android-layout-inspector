@@ -12,10 +12,7 @@ import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import java.awt.Dimension
 import java.awt.event.ComponentEvent
@@ -224,7 +221,11 @@ class NewLayoutDialog(
     }
 
     private suspend fun getClientsWithWindow(device: IDevice, allProcesses: Boolean): List<ClientWrapper> {
-        val async = GlobalScope.async {
+
+        val errorHandler = CoroutineExceptionHandler { _, exception ->
+            logger.e("getClientsWithWindow error", exception)
+        }
+        val async = GlobalScope.async(errorHandler) {
             val clientsWithWindow = mutableListOf<ClientWrapper>()
             val clients = device.clients
             for (c in clients) {
@@ -235,13 +236,17 @@ class NewLayoutDialog(
                     continue
                 }
 
-                val windows =
-                    ClientWindow.getAll(logger, c, settings.clientWindowsTimeout, TimeUnit.SECONDS) ?: emptyList()
+                try {
+                    val windows =
+                        ClientWindow.getAll(logger, c, settings.clientWindowsTimeout, TimeUnit.SECONDS) ?: emptyList()
 
-                if (windows.isNotEmpty()) {
-                    val element = ClientWrapper(c)
-                    logger.d("$TAG: found client: $element, windows count: ${windows.size}")
-                    clientsWithWindow.add(element)
+                    if (windows.isNotEmpty()) {
+                        val element = ClientWrapper(c)
+                        logger.d("$TAG: found client: $element, windows count: ${windows.size}")
+                        clientsWithWindow.add(element)
+                    }
+                } catch (e: Exception) {
+                    logger.e("ClientWindow.getAll error", e)
                 }
             }
             return@async clientsWithWindow

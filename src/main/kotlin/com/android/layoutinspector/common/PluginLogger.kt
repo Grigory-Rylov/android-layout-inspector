@@ -1,19 +1,9 @@
 package com.android.layoutinspector.common
 
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import com.intellij.openapi.diagnostic.Logger
 
-class SimpleConsoleLogger(
-    appFilesDir: String
-) : AppLogger {
-
-    private val log: Logger
-
-    init {
-        System.setProperty("androidTraceViewerLogDir", appFilesDir)
-        log = LoggerFactory.getLogger(SimpleConsoleLogger::class.java)
-    }
-
+class PluginLogger : AppLogger {
+    private val log: Logger = Logger.getInstance("YALI")
     override fun d(msg: String) {
         log.debug(msg)
     }
