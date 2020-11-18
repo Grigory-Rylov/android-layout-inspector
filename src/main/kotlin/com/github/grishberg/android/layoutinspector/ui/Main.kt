@@ -21,7 +21,6 @@ import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeProxy
-import com.github.grishberg.android.layoutinspector.ui.theme.Themes
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.intellij.ui.components.JBScrollPane
 import java.awt.BorderLayout
@@ -65,7 +64,8 @@ class Main(
     private val settingsFacade: SettingsFacade,
     private val logger: AppLogger,
     private val deviceProvider: DeviceProvider,
-    private val adb: AdbFacade
+    private val adb: AdbFacade,
+    private val shouldShowConnectionSettings: Boolean = false
 ) : JFrame("Yet Another Android Layout Inspector."),
     LayoutResultOutput, DialogsInput {
 
@@ -88,22 +88,13 @@ class Main(
     private val statusDistanceLabel: JLabel
 
     private val themeProxy = ThemeProxy()
-    private val themes: Themes
     private val filter = FileNameExtensionFilter("Layout inspector files", "li")
     private val bookmarks = Bookmarks()
-    private val baseDir = File("YALI")
+    private val baseDir = File("captures/YALI")
     private val metaRepository = MetaRepository(logger, bookmarks, baseDir)
 
     // Constructor of MainWindow class
     init {
-
-        themes = Themes(
-            this,
-            settingsFacade,
-            themeProxy,
-            logger
-        )
-
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 
         layoutPanel = LayoutPanel(metaRepository, settingsFacade)
@@ -158,7 +149,7 @@ class Main(
         )
 
         fileMenu = createFileMenu(fileSystem)
-        createMenu(fileMenu)
+        createMenu(fileMenu, shouldShowConnectionSettings)
 
         setSize(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT)
         defaultCloseOperation = DISPOSE_ON_CLOSE
@@ -186,11 +177,11 @@ class Main(
         }
     }
 
-    private fun createMenu(fileMenu: JMenu) {
+    private fun createMenu(fileMenu: JMenu, shouldShowConnectionSettings: Boolean) {
         val menuBar = JMenuBar()
         menuBar.add(fileMenu)
         menuBar.add(createViewMenu())
-        menuBar.add(createSettingsMenu())
+        menuBar.add(createSettingsMenu(shouldShowConnectionSettings))
         jMenuBar = menuBar
     }
 
@@ -264,18 +255,18 @@ class Main(
         return viewMenu
     }
 
-    private fun createSettingsMenu(): JMenu {
+    private fun createSettingsMenu(shouldShowConnectionSettings: Boolean): JMenu {
         val settingsMenu = JMenu("Settings")
 
-        val disconnectAdbAfterJob = JCheckBoxMenuItem("Disconnect ADB after operation")
-        disconnectAdbAfterJob.isSelected = settingsFacade.shouldStopAdbAfterJob()
-        disconnectAdbAfterJob.addActionListener { e ->
-            val aButton = e.source as AbstractButton
-            settingsFacade.setStopAdbAfterJob(aButton.model.isSelected)
+        if (shouldShowConnectionSettings) {
+            val disconnectAdbAfterJob = JCheckBoxMenuItem("Disconnect ADB after operation")
+            disconnectAdbAfterJob.isSelected = settingsFacade.shouldStopAdbAfterJob()
+            disconnectAdbAfterJob.addActionListener { e ->
+                val aButton = e.source as AbstractButton
+                settingsFacade.setStopAdbAfterJob(aButton.model.isSelected)
+            }
+            settingsMenu.add(disconnectAdbAfterJob)
         }
-        settingsMenu.add(disconnectAdbAfterJob)
-
-
         val allowSelectNotDrawnView = JCheckBoxMenuItem("Allow select hidden view")
         allowSelectNotDrawnView.isSelected = settingsFacade.allowedSelectHiddenView
         allowSelectNotDrawnView.addActionListener { e ->
@@ -299,7 +290,7 @@ class Main(
 
     fun openExistingFile(newWindow: Boolean = false) {
         if (newWindow) {
-            val main = Main(OpenWindowMode.OPEN_FILE, settings, logger, deviceProvider, adb)
+            val main = Main(OpenWindowMode.OPEN_FILE, settingsFacade, logger, deviceProvider, adb)
             main.initUi()
             return
         }

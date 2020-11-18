@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.11.16.2'
+version '20.11.18.0'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -76,6 +76,6 @@ task(verifySetup) {
 
 patchPluginXml {
     changeNotes """
-      Android Studio 4.1 compability.<br>
+      Android Studio 4.1 compatibility.<br>
       """
 }

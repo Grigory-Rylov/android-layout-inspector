@@ -12,7 +12,11 @@ import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import java.awt.Dimension
 import java.awt.event.ComponentEvent
@@ -151,6 +155,7 @@ class NewLayoutDialog(
 
     private fun startRecording() {
         settings.fileNamePrefix = filePrefixField.text.trim()
+        settings.captureLayoutTimeout = timeoutField.value.toLong()
         var currentClientIndex: Int = clientsList.selectedIndex
         if (currentClientIndex < 0) {
             logger.w("$TAG: startRecording() currentClientIndex = $currentClientIndex")

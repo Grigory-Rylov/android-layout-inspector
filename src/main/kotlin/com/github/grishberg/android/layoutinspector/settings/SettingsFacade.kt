@@ -14,4 +14,7 @@ interface SettingsFacade {
     fun shouldShowSizeInDp(): Boolean
 
     fun showSizeInDp(state: Boolean)
+
+    fun shouldStopAdbAfterJob(): Boolean
+    fun setStopAdbAfterJob(selected: Boolean)
 }

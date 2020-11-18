@@ -28,7 +28,7 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Add your extensions here -->
+        <applicationService serviceImplementation="com.github.grishberg.android.li.StorageService"/>
     </extensions>
 
     <actions>

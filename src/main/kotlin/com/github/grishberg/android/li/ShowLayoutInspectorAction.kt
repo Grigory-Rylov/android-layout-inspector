@@ -4,7 +4,6 @@ import com.android.ddmlib.IDevice
 import com.android.layoutinspector.common.AdbFacade
 import com.android.layoutinspector.common.PluginLogger
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
-import com.github.grishberg.android.layoutinspector.settings.JsonSettings
 import com.github.grishberg.android.layoutinspector.ui.Main
 import com.github.grishberg.android.layoutinspector.ui.OpenWindowMode
 import com.github.grishberg.android.layoutinspector.ui.tree.EmptyTreeIcon
@@ -14,14 +13,13 @@ import com.github.grishberg.androidstudio.plugins.AsAction
 import com.github.grishberg.androidstudio.plugins.ConnectedDeviceInfoProvider
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
-import java.io.File
 import javax.swing.UIManager
 
 class ShowLayoutInspectorAction : AsAction() {
     override fun actionPerformed(e: AnActionEvent, project: Project) {
+        val settings = StorageService.getInstance().state ?: PluginState()
         val provider = ConnectedDeviceInfoProvider(project.context().adb, NotificationHelperImpl)
         val log = PluginLogger()
-        val settings = JsonSettings(log, File("YALI"))
 
         createUi()
         val main = Main(
