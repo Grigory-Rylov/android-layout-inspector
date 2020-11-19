@@ -11,6 +11,7 @@ import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
+import com.github.grishberg.android.layoutinspector.ui.common.createAccelerator
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
@@ -253,6 +254,18 @@ class Main(
             setSizeDpMode(true)
             settingsFacade.showSizeInDp(true)
         }
+
+        viewMenu.addSeparator()
+
+        val resetZoom = JMenuItem("Reset zoom")
+        viewMenu.add(resetZoom)
+        resetZoom.addActionListener { layoutPanel.resetZoom() }
+        resetZoom.accelerator = createAccelerator('Z')
+
+        val fitScreen = JMenuItem("Fit to screen")
+        viewMenu.add(fitScreen)
+        fitScreen.addActionListener { layoutPanel.fitZoom() }
+        fitScreen.accelerator = createAccelerator('F')
 
         viewMenu.addSeparator()
 
