@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.10.27.0'
+version '20.11.19.0'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -18,13 +18,26 @@ repositories {
     }
 }
 
+if (!hasProperty('studioCompilePath')) {
+    throw new GradleException("No StudioCompilePath value was set, please create gradle.properties file")
+}
+
+// See https://github.com/JetBrains/gradle-intellij-plugin/
+intellij {
+    updateSinceUntilBuild false
+    plugins 'android'
+    intellij.localPath = project.hasProperty("studioCompilePath") ? studioCompilePath : studioRunPath
+}
+
+runIde {
+    ideDirectory studioCompilePath
+}
+
 dependencies {
     implementation "org.jooq:joor-java-8:0.9.7"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    // https://mvnrepository.com/artifact/com.google.code.gson/gson
     implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.6'
 
-    //implementation group: 'com.android.tools.ddms', name: 'ddmlib', version: '26.6.3'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.3.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2'
 
@@ -32,33 +45,38 @@ dependencies {
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile "org.slf4j:slf4j-api:1.7.25"
+    compile "org.slf4j:slf4j-log4j12:1.7.25"
+    compile group: 'log4j', name: 'log4j', version: '1.2.17'
+
+    compileOnly fileTree(dir: "$studioCompilePath/plugins/android/lib", include: ['*.jar'])
+    compileOnly fileTree(dir: "$studioCompilePath/lib", include: ['*.jar'])
+
+    testCompile 'junit:junit:4.12'
+    testCompile fileTree(dir: "$studioCompilePath/plugins/android/lib", include: ['*.jar'])
+    testCompile fileTree(dir: "$studioCompilePath/lib", include: ['*.jar'])
 }
 
-// See https://github.com/JetBrains/gradle-intellij-plugin/
-intellij {
-    alternativeIdePath '/Applications/Android Studio.app'
-    type 'IC'
-    plugins 'android'
-    updateSinceUntilBuild false
-}
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
-patchPluginXml {
-    changeNotes """
-      Removed redundant dialog.<br>
-      Added 'Open layouts dir' file menu item.<br>
-      Request devices list when opened New Layout dialog<br>
-      """
+
+task(verifySetup) {
+    doLast {
+        def ideaJar = "$StudioCompilePath/lib/idea.jar"
+        if (!file(ideaJar).exists()) {
+            throw new GradleException("$ideaJar not found, set StudioCompilePath in gradle.properties")
+        }
+    }
 }
 
-jar {
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
+
+patchPluginXml {
+    changeNotes """
+      Android Studio 4.1 compatibility.<br>
+      Fixed themes.<br>
+      """
 }

@@ -10,7 +10,6 @@ import com.github.grishberg.android.layoutinspector.domain.Logic
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
-import com.github.grishberg.android.layoutinspector.settings.Settings
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
@@ -30,8 +29,6 @@ import java.awt.Desktop
 import java.awt.Dimension
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
-import java.awt.event.WindowAdapter
-import java.awt.event.WindowEvent
 import java.io.File
 import javax.swing.AbstractButton
 import javax.swing.BoxLayout
@@ -65,7 +62,7 @@ enum class OpenWindowMode {
 // create a class MainWindow extending JFrame
 class Main(
     private val mode: OpenWindowMode,
-    private val settings: Settings,
+    private val settingsFacade: SettingsFacade,
     private val logger: AppLogger,
     private val deviceProvider: DeviceProvider,
     private val adb: AdbFacade
@@ -90,20 +87,17 @@ class Main(
     private val mainPanel: JPanel
     private val statusDistanceLabel: JLabel
 
-    private val settingsFacade: SettingsFacade = SettingsFacade(settings)
     private val themeProxy = ThemeProxy()
     private val themes: Themes
     private val filter = FileNameExtensionFilter("Layout inspector files", "li")
     private val bookmarks = Bookmarks()
-    private val baseDir = File("YALI")
+    private val baseDir = File("captures/YALI")
     private val metaRepository = MetaRepository(logger, bookmarks, baseDir)
 
     // Constructor of MainWindow class
     init {
-
         themes = Themes(
             this,
-            settingsFacade,
             themeProxy,
             logger
         )
@@ -164,11 +158,6 @@ class Main(
         fileMenu = createFileMenu(fileSystem)
         createMenu(fileMenu)
 
-        addWindowListener(object : WindowAdapter() {
-            override fun windowClosing(windowEvent: WindowEvent) {
-                doOnClose()
-            }
-        })
         setSize(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT)
         defaultCloseOperation = DISPOSE_ON_CLOSE
         setLocationRelativeTo(null)
@@ -193,10 +182,6 @@ class Main(
         } else {
             logic.openFile()
         }
-    }
-
-    private fun doOnClose() {
-        settings.save()
     }
 
     private fun createMenu(fileMenu: JMenu) {
@@ -280,15 +265,6 @@ class Main(
     private fun createSettingsMenu(): JMenu {
         val settingsMenu = JMenu("Settings")
 
-        val disconnectAdbAfterJob = JCheckBoxMenuItem("Disconnect ADB after operation")
-        disconnectAdbAfterJob.isSelected = settingsFacade.shouldStopAdbAfterJob()
-        disconnectAdbAfterJob.addActionListener { e ->
-            val aButton = e.source as AbstractButton
-            settingsFacade.setStopAdbAfterJob(aButton.model.isSelected)
-        }
-        settingsMenu.add(disconnectAdbAfterJob)
-
-
         val allowSelectNotDrawnView = JCheckBoxMenuItem("Allow select hidden view")
         allowSelectNotDrawnView.isSelected = settingsFacade.allowedSelectHiddenView
         allowSelectNotDrawnView.addActionListener { e ->
@@ -312,7 +288,7 @@ class Main(
 
     fun openExistingFile(newWindow: Boolean = false) {
         if (newWindow) {
-            val main = Main(OpenWindowMode.OPEN_FILE, settings, logger, deviceProvider, adb)
+            val main = Main(OpenWindowMode.OPEN_FILE, settingsFacade, logger, deviceProvider, adb)
             main.initUi()
             return
         }

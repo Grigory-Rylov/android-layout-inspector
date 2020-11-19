@@ -9,12 +9,13 @@ private const val TAG = "JsonSettings"
 
 
 class JsonSettings (
-    private val log: AppLogger
+    private val log: AppLogger,
+    private val baseDir: File
 ) : Settings {
     private val gson = GsonBuilder().enableComplexMapKeySerialization().setPrettyPrinting().create()
 
     private val settingsMap = mutableMapOf<String, Any>()
-    private val settingsFile = File("android-layout-inspector-settings.json")
+    private val settingsFile = File(baseDir,"android-layout-inspector-settings.json")
 
     init {
         try {

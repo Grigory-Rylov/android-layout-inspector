@@ -19,6 +19,7 @@ class LoadingDialog(owner: Frame) : JDialog(owner, false) {
 
         val label = JLabel("Loading...")
         label.setHorizontalAlignment(JLabel.CENTER);
+        iconLabel.setHorizontalAlignment(JLabel.CENTER);
         panel.add(iconLabel, BorderLayout.CENTER)
         panel.add(label, BorderLayout.PAGE_START)
         setContentPane(panel)

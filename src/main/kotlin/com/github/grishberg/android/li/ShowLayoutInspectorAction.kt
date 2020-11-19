@@ -2,9 +2,8 @@ package com.github.grishberg.android.li
 
 import com.android.ddmlib.IDevice
 import com.android.layoutinspector.common.AdbFacade
-import com.android.layoutinspector.common.SimpleConsoleLogger
+import com.android.layoutinspector.common.PluginLogger
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
-import com.github.grishberg.android.layoutinspector.settings.JsonSettings
 import com.github.grishberg.android.layoutinspector.ui.Main
 import com.github.grishberg.android.layoutinspector.ui.OpenWindowMode
 import com.github.grishberg.android.layoutinspector.ui.tree.EmptyTreeIcon
@@ -18,9 +17,9 @@ import javax.swing.UIManager
 
 class ShowLayoutInspectorAction : AsAction() {
     override fun actionPerformed(e: AnActionEvent, project: Project) {
+        val settings = StorageService.getInstance().state ?: PluginState()
         val provider = ConnectedDeviceInfoProvider(project.context().adb, NotificationHelperImpl)
-        val log = SimpleConsoleLogger("")
-        val settings = JsonSettings(log)
+        val log = PluginLogger()
 
         createUi()
         val main = Main(

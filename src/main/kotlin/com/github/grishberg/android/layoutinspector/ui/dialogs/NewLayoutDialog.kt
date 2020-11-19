@@ -12,6 +12,7 @@ import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -154,6 +155,7 @@ class NewLayoutDialog(
 
     private fun startRecording() {
         settings.fileNamePrefix = filePrefixField.text.trim()
+        settings.captureLayoutTimeout = timeoutField.value.toLong()
         var currentClientIndex: Int = clientsList.selectedIndex
         if (currentClientIndex < 0) {
             logger.w("$TAG: startRecording() currentClientIndex = $currentClientIndex")
@@ -224,7 +226,11 @@ class NewLayoutDialog(
     }
 
     private suspend fun getClientsWithWindow(device: IDevice, allProcesses: Boolean): List<ClientWrapper> {
-        val async = GlobalScope.async {
+
+        val errorHandler = CoroutineExceptionHandler { _, exception ->
+            logger.e("getClientsWithWindow error", exception)
+        }
+        val async = GlobalScope.async(errorHandler) {
             val clientsWithWindow = mutableListOf<ClientWrapper>()
             val clients = device.clients
             for (c in clients) {
@@ -235,13 +241,17 @@ class NewLayoutDialog(
                     continue
                 }
 
-                val windows =
-                    ClientWindow.getAll(logger, c, settings.clientWindowsTimeout, TimeUnit.SECONDS) ?: emptyList()
+                try {
+                    val windows =
+                        ClientWindow.getAll(logger, c, settings.clientWindowsTimeout, TimeUnit.SECONDS) ?: emptyList()
 
-                if (windows.isNotEmpty()) {
-                    val element = ClientWrapper(c)
-                    logger.d("$TAG: found client: $element, windows count: ${windows.size}")
-                    clientsWithWindow.add(element)
+                    if (windows.isNotEmpty()) {
+                        val element = ClientWrapper(c)
+                        logger.d("$TAG: found client: $element, windows count: ${windows.size}")
+                        clientsWithWindow.add(element)
+                    }
+                } catch (e: Exception) {
+                    logger.e("ClientWindow.getAll error", e)
                 }
             }
             return@async clientsWithWindow
