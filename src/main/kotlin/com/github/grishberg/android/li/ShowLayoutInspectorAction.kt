@@ -13,7 +13,10 @@ import com.github.grishberg.androidstudio.plugins.AsAction
 import com.github.grishberg.androidstudio.plugins.ConnectedDeviceInfoProvider
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
+import java.io.File
 import javax.swing.UIManager
+
+private const val PLUGIN_DIR = "captures/YALI"
 
 class ShowLayoutInspectorAction : AsAction() {
     override fun actionPerformed(e: AnActionEvent, project: Project) {
@@ -27,9 +30,23 @@ class ShowLayoutInspectorAction : AsAction() {
             settings,
             log,
             DeviceProviderImpl(provider),
-            AdbFacadeImpl(provider, project.context().adb)
+            AdbFacadeImpl(provider, project.context().adb),
+            prepareBaseDir(project)
         )
         main.initUi()
+    }
+
+    private fun prepareBaseDir(project: Project): File {
+        val baseDir = if (project.basePath != null)
+            File(project.basePath, PLUGIN_DIR)
+        else
+            File(PLUGIN_DIR)
+
+        if (!baseDir.exists()) {
+            baseDir.mkdirs()
+        }
+
+        return baseDir
     }
 
     private fun createUi() {

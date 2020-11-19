@@ -77,6 +77,6 @@ task(verifySetup) {
 patchPluginXml {
     changeNotes """
       Android Studio 4.1 compatibility.<br>
-      Fixed themes.<br>
+      Store files into <current project folder>/captures/YALI
       """
 }

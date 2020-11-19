@@ -65,7 +65,8 @@ class Main(
     private val settingsFacade: SettingsFacade,
     private val logger: AppLogger,
     private val deviceProvider: DeviceProvider,
-    private val adb: AdbFacade
+    private val adb: AdbFacade,
+    private val baseDir: File
 ) : JFrame("Yet Another Android Layout Inspector."),
     LayoutResultOutput, DialogsInput {
 
@@ -91,7 +92,6 @@ class Main(
     private val themes: Themes
     private val filter = FileNameExtensionFilter("Layout inspector files", "li")
     private val bookmarks = Bookmarks()
-    private val baseDir = File("captures/YALI")
     private val metaRepository = MetaRepository(logger, bookmarks, baseDir)
 
     // Constructor of MainWindow class
@@ -288,7 +288,7 @@ class Main(
 
     fun openExistingFile(newWindow: Boolean = false) {
         if (newWindow) {
-            val main = Main(OpenWindowMode.OPEN_FILE, settingsFacade, logger, deviceProvider, adb)
+            val main = Main(OpenWindowMode.OPEN_FILE, settingsFacade, logger, deviceProvider, adb, baseDir)
             main.initUi()
             return
         }
