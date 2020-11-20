@@ -2,13 +2,19 @@ package com.github.grishberg.android.layoutinspector.ui.dialogs
 
 import java.awt.BorderLayout
 import java.awt.Frame
-import javax.swing.*
+import javax.swing.BorderFactory
+import javax.swing.ImageIcon
+import javax.swing.JDialog
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.WindowConstants
 
 class LoadingDialog(owner: Frame) : JDialog(owner, false) {
 
     init {
         val panel = JPanel()
-        panel.layout = BorderLayout()
+        panel.layout = BorderLayout(4, 4)
+        panel.border = BorderFactory.createEmptyBorder(32, 32, 32, 32)
 
         val cldr = this.javaClass.classLoader
         val imageURL = cldr.getResource("icons/loading.gif")
