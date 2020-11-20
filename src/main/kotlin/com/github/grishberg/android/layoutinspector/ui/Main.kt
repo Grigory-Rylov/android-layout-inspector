@@ -31,6 +31,7 @@ import java.awt.Dimension
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.io.File
+import java.net.URI
 import javax.swing.AbstractButton
 import javax.swing.BoxLayout
 import javax.swing.ButtonGroup
@@ -45,6 +46,7 @@ import javax.swing.JPanel
 import javax.swing.JRadioButtonMenuItem
 import javax.swing.JScrollPane
 import javax.swing.JSplitPane
+import javax.swing.JToolBar
 import javax.swing.SwingConstants
 import javax.swing.border.BevelBorder
 import javax.swing.filechooser.FileNameExtensionFilter
@@ -58,6 +60,10 @@ private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
 enum class OpenWindowMode {
     DEFAULT,
     OPEN_FILE
+}
+
+enum class Actions {
+    RESET_ZOOM, FIT_TO_SCREEN, HELP
 }
 
 // create a class MainWindow extending JFrame
@@ -123,7 +129,12 @@ class Main(
             JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS
         )
 
+        val toolbar = JToolBar()
+        toolbar.isFloatable = false
+        ButtonsBuilder(layoutPanel, this, themes).addToolbarButtons(toolbar)
+
         mainPanel = JPanel(BorderLayout())
+        mainPanel.add(toolbar, BorderLayout.NORTH)
         splitPane1 = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, layoutPanel, treeScrollPane)
         splitPane2 = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, splitPane1, propertiesPanel.getComponent())
         splitPane2.resizeWeight = 1.0
@@ -131,8 +142,9 @@ class Main(
         splitPane2.dividerLocation = INITIAL_SCREEN_WIDTH - (INITIAL_PROPERTIES_WINDOW_WIDTH)
         mainPanel.add(splitPane2, BorderLayout.CENTER)
 
+
         statusLabel = JLabel()
-        mainPanel.add(statusLabel, BorderLayout.NORTH)
+        mainPanel.add(statusLabel, BorderLayout.SOUTH)
 
         statusDistanceLabel = JLabel()
         createStatusBar(statusLabel)
@@ -427,5 +439,22 @@ class Main(
 
     fun calculateDistance(selectedValue: ViewNode, targetNode: ViewNode) {
         layoutPanel.calculateDistanceBetweenTwoViewNodes(selectedValue, targetNode)
+    }
+
+    fun goToHelp() {
+        openWebpage("https://github.com/Grigory-Rylov/android-layout-inspector")
+    }
+
+    private fun openWebpage(uri: String): Boolean {
+        val desktop = if (Desktop.isDesktopSupported()) Desktop.getDesktop() else null
+        if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+            try {
+                desktop.browse(URI.create(uri))
+                return true
+            } catch (e: java.lang.Exception) {
+                e.printStackTrace()
+            }
+        }
+        return false
     }
 }

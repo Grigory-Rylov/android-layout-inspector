@@ -12,9 +12,11 @@ class Themes(
     private val themeProxy: ThemeProxy,
     logger: AppLogger
 ) {
+    val isDark: Boolean
+        get() = UIUtil.isUnderDarcula()
+
     init {
         try {
-            val isDark = UIUtil.isUnderDarcula()
             if (isDark) {
                 setDarkTheme()
             } else {

@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.11.19.0'
+version '20.11.20.0'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -76,7 +76,6 @@ task(verifySetup) {
 
 patchPluginXml {
     changeNotes """
-      Android Studio 4.1 compatibility.<br>
-      Store files into <current project folder>/captures/YALI
+      Added toolbar buttons with zoom actions.<br>
       """
 }

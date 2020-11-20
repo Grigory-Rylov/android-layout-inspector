@@ -12,15 +12,15 @@ import javax.swing.ImageIcon
 
 private const val ICON_SIZE = 18
 
-class IconsStore() {
-    fun createImageIcon(path: String): ImageIcon {
+class IconsStore(private val iconSize: Int = ICON_SIZE) {
+    fun createImageIcon(path: String, altText: String = ""): ImageIcon {
         val icon = IconLoader.getIcon(path)
 
         var image: BufferedImage? = ImageUtil.toBufferedImage(IconUtil.toImage(icon))
         image =
-            Scalr.resize(image, Scalr.Method.ULTRA_QUALITY, if (UIUtil.isRetina()) ICON_SIZE else JBUI.scale(ICON_SIZE))
+            Scalr.resize(image, Scalr.Method.ULTRA_QUALITY, if (UIUtil.isRetina()) iconSize else JBUI.scale(iconSize))
         return if (image != null) {
-            ImageIcon(image)
+            ImageIcon(image, altText)
         } else {
             throw IllegalStateException("Image $path not found")
         }
