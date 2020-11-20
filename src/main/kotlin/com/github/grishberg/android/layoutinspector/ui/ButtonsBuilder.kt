@@ -8,32 +8,33 @@ import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import javax.swing.JButton
 import javax.swing.JToolBar
-private const val BUTTON_SIZE = 32
+
+private const val BUTTON_SIZE = 22
 
 class ButtonsBuilder(
     private val layoutPanel: LayoutPanel,
     private val main: Main,
     private val themes: Themes
 ) : ActionListener {
-    private val iconStore = IconsStore()
+    private val iconStore = IconsStore(BUTTON_SIZE - 8)
 
     fun addToolbarButtons(toolBar: JToolBar) {
         val resetZoomButton = makeToolbarButton(
             "1:1", "resetzoom",
             Actions.RESET_ZOOM,
-            "Reset zoom"
+            "Reset zoom (z)"
         )
         toolBar.add(resetZoomButton)
 
         val fitScreenButton = makeToolbarButton(
-            "fit to screen", "fitscreen",
+            "{-}", "fitscreen",
             Actions.FIT_TO_SCREEN,
-            "Fits to screen"
+            "Fits to screen (f)"
         )
         toolBar.add(fitScreenButton)
 
         val helpButton = makeToolbarButton(
-            "Manual", "help",
+            "?", "help",
             Actions.HELP,
             "Go to home page"
         )
@@ -47,17 +48,16 @@ class ButtonsBuilder(
         toolTipText: String
     ): JButton? {
         val imageLocation = if (themes.isDark) {
-            "/icons/dark/$iconName.png"
+            "/icons/dark/$iconName.svg"
         } else {
-            "/icons/light/$iconName.png"
+            "/icons/light/$iconName.svg"
         }
-        val icon = iconStore.createImageIcon(imageLocation, altText)
-        val button = JButton(icon)
+        val button = JButton(altText)
         button.actionCommand = actionCommand.name
         button.toolTipText = toolTipText
         button.addActionListener(this)
-        button.preferredSize = Dimension(BUTTON_SIZE, BUTTON_SIZE)
-        button.maximumSize = Dimension(BUTTON_SIZE, BUTTON_SIZE)
+        button.preferredSize = Dimension(32, BUTTON_SIZE)
+        button.maximumSize = Dimension(32, BUTTON_SIZE)
         return button
     }
 

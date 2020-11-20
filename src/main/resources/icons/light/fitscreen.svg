@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<g id="layer1" >
+<rect x="30.911911" y="41.323547" width="89.49925" height="936.63635"   fill="rgb(0,0,0)" stroke-width="1" stroke="rgb(0,0,0)"/>
+<rect x="897.4526" y="34.78589" width="89.49925" height="936.63635"   fill="rgb(0,0,0)" stroke-width="1" stroke="rgb(0,0,0)"/>
+<rect x="513.12134" y="178.25531" width="33.424988" height="690.3965" transform="rotate(90.0,529.83386,523.45355)"  fill="rgb(0,0,0)" stroke-width="1" stroke="rgb(0,0,0)"/>
+<rect x="165.07631" y="541.2893" width="98.94562" height="21.451477" transform="rotate(30.0,214.54912,552.015)"  fill="rgb(0,0,0)" stroke-width="1" stroke="rgb(0,0,0)"/>
+<rect x="166.0113" y="476.36707" width="98.94562" height="21.451477" transform="rotate(150.0,215.48412,487.0928)"  fill="rgb(0,0,0)" stroke-width="1" stroke="rgb(0,0,0)"/>
+<rect x="759.1393" y="541.464" width="98.94562" height="21.451477" transform="rotate(150.0,808.61206,552.1897)"  fill="rgb(0,0,0)" stroke-width="1" stroke="rgb(0,0,0)"/>
+<rect x="758.5979" y="477.2511" width="98.94562" height="21.451477" transform="rotate(30.0,808.0707,487.97684)"  fill="rgb(0,0,0)" stroke-width="1" stroke="rgb(0,0,0)"/>
+</g>
+</svg>
