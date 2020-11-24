@@ -46,7 +46,7 @@ class NewLayoutDialog(
 ) : CloseByEscapeDialog(owner, TITLE, true), LayoutRecordOptionsInput {
     private val timeoutField = JNumberField(20)
     private val filePrefixField = JTextField(20)
-    private val showAllPrecesses: JCheckBox
+    private val showAllProcesses: JCheckBox
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
     private val devicesModel = DevicesCompoBoxModel()
@@ -78,8 +78,8 @@ class NewLayoutDialog(
             populateWithClients(device.device)
         }
 
-        showAllPrecesses = JCheckBox("any processes")
-        showAllPrecesses.addActionListener {
+        showAllProcesses = JCheckBox("any processes")
+        showAllProcesses.addActionListener {
             val deviceWrapper = devicesComboBox.selectedItem as DeviceWrapper?
 
             if (deviceWrapper != null) {
@@ -117,7 +117,7 @@ class NewLayoutDialog(
         val panelBuilder = LabeledGridBuilder()
         panelBuilder.addLabeledComponent("device: ", devicesComboBox)
         panelBuilder.addSingleComponent(JLabel("Applications:"))
-        panelBuilder.addSingleComponent(showAllPrecesses)
+        panelBuilder.addSingleComponent(showAllProcesses)
         panelBuilder.addSingleComponent(listScroll)
         panelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
         panelBuilder.addLabeledComponent("File name prefix: ", filePrefixField)
@@ -214,7 +214,7 @@ class NewLayoutDialog(
 
     private fun populateWithClients(device: IDevice) {
         GlobalScope.launch(Dispatchers.Swing) {
-            val clients = getClientsWithWindow(device, showAllPrecesses.isSelected)
+            val clients = getClientsWithWindow(device, showAllProcesses.isSelected)
             clientListModel.clear()
             for (c in clients) {
                 clientListModel.addElement(c)
