@@ -15,6 +15,8 @@ Allows you to switch between displaying dimensions in **PX** and **DP** (only fo
 ![GitHub All Releases](https://img.shields.io/github/downloads/Grigory-Rylov/android-layout-inspector/total?color=%234caf50&style=for-the-badge)  
 - [Download latest release](https://github.com/Grigory-Rylov/android-layout-inspector/releases)
 
+Also you can install YALI as a [Android Studio plugin](https://plugins.jetbrains.com/plugin/15227-yali) in AS plugins repository.
+
 ## Launching
 1) Ensure you've set `ANDROID_HOME` environment variable
 
