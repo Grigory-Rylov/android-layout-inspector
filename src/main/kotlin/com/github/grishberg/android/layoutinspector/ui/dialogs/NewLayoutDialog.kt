@@ -18,13 +18,21 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
+import java.awt.Component
+import java.awt.Container
 import java.awt.Dimension
+import java.awt.FocusTraversalPolicy
+import java.awt.event.ActionEvent
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
+import java.awt.event.FocusEvent
+import java.awt.event.FocusListener
 import java.awt.event.ItemEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.util.concurrent.TimeUnit
+import javax.swing.AbstractAction
+import javax.swing.BorderFactory
 import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JCheckBox
@@ -32,7 +40,9 @@ import javax.swing.JFrame
 import javax.swing.JLabel
 import javax.swing.JOptionPane
 import javax.swing.JTextField
+import javax.swing.KeyStroke
 import javax.swing.ListSelectionModel
+import javax.swing.UIManager
 
 
 private const val TAG = "NewLayoutDialog"
@@ -88,17 +98,9 @@ class NewLayoutDialog(
         }
 
         clientsList = JBList(clientListModel)
-        clientsList.selectionMode = ListSelectionModel.SINGLE_SELECTION
         val listScroll = JBScrollPane(clientsList)
-        clientsList.addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(evt: MouseEvent) {
-                val list = evt.getSource() as JBList<*>
-                if (evt.clickCount == 2) { // Double-click detected
-                    val index = list.locationToIndex(evt.point)
-                    startRecording()
-                }
-            }
-        })
+        setupClientsList(clientsList)
+
         listScroll.preferredSize = Dimension(300, 400)
 
         filePrefixField.toolTipText = "If not empty - will adds prefix to file name."
@@ -117,8 +119,8 @@ class NewLayoutDialog(
         val panelBuilder = LabeledGridBuilder()
         panelBuilder.addLabeledComponent("device: ", devicesComboBox)
         panelBuilder.addSingleComponent(JLabel("Applications:"))
-        panelBuilder.addSingleComponent(showAllProcesses)
         panelBuilder.addSingleComponent(listScroll)
+        panelBuilder.addSingleComponent(showAllProcesses)
         panelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
         panelBuilder.addLabeledComponent("File name prefix: ", filePrefixField)
         if (deviceProvider.isReconnectionAllowed) {
@@ -127,6 +129,8 @@ class NewLayoutDialog(
             panelBuilder.addSingleComponent(startButton)
         }
         contentPane = panelBuilder.content
+
+        contentPane.focusTraversalPolicy = FocusPolicy()
 
         pack()
         addComponentListener(object : ComponentListener {
@@ -137,6 +141,44 @@ class NewLayoutDialog(
             override fun componentMoved(e: ComponentEvent?) = Unit
             override fun componentHidden(e: ComponentEvent?) = Unit
             override fun componentShown(e: ComponentEvent?) = Unit
+        })
+    }
+
+    private fun setupClientsList(clientsList: JBList<ClientWrapper>) {
+        clientsList.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        clientsList.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(evt: MouseEvent) {
+                val list = evt.getSource() as JBList<*>
+                if (evt.clickCount == 2) { // Double-click detected
+                    val index = list.locationToIndex(evt.point)
+                    startRecording()
+                }
+            }
+        })
+        clientsList.getInputMap(JBList.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("ENTER"), "start")
+        clientsList.actionMap.put("start", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                if (this@NewLayoutDialog.clientsList.model.size == 0) {
+                    return
+                }
+                startRecording()
+            }
+        })
+        clientsList.addFocusListener(object : FocusListener {
+            override fun focusGained(e: FocusEvent?) {
+                clientsList.border = BorderFactory.createLineBorder(UIManager.getColor("Button.focus"))
+                if (clientsList.itemsCount == 0) {
+                    return
+                }
+                val selected = clientsList.selectedIndex
+                if (selected < 0) {
+                    clientsList.selectedIndex = 0
+                }
+            }
+
+            override fun focusLost(e: FocusEvent?) {
+                clientsList.border = BorderFactory.createEmptyBorder()
+            }
         })
     }
 
@@ -209,6 +251,9 @@ class NewLayoutDialog(
             if (devicesComboBox.itemCount > 0) {
                 devicesComboBox.selectedIndex = 0
             }
+            if (devicesComboBox.itemCount == 1) {
+                clientsList.requestFocus()
+            }
         }
     }
 
@@ -220,6 +265,9 @@ class NewLayoutDialog(
                 clientListModel.addElement(c)
             }
             startButton.isEnabled = !clientListModel.isEmpty
+            if (!clientListModel.isEmpty && clientsList.selectedIndex < 0) {
+                clientsList.selectedIndex = 0
+            }
             pack()
             repaint()
         }
@@ -279,6 +327,45 @@ class NewLayoutDialog(
             if (devicesModel.size == 0) {
                 devicesComboBox.selectedItem = null
             }
+        }
+    }
+
+    private inner class FocusPolicy : FocusTraversalPolicy() {
+        override fun getComponentAfter(aContainer: Container, aComponent: Component): Component {
+            return when (aComponent) {
+                devicesComboBox -> clientsList
+                clientsList -> showAllProcesses
+                showAllProcesses -> timeoutField
+                timeoutField -> filePrefixField
+                filePrefixField -> startButton
+                else -> getFirstComponent(aContainer)
+            }
+        }
+
+        override fun getComponentBefore(aContainer: Container, aComponent: Component): Component {// not used
+            return when (aComponent) {
+                devicesComboBox -> clientsList
+                clientsList -> devicesComboBox
+                showAllProcesses -> clientsList
+                timeoutField -> showAllProcesses
+                filePrefixField -> timeoutField
+                else -> getLastComponent(aContainer)
+            }
+        }
+
+        override fun getFirstComponent(aContainer: Container): Component {
+            if (devicesComboBox.model.size == 1) {
+                return clientsList
+            }
+            return devicesComboBox
+        }
+
+        override fun getLastComponent(aContainer: Container): Component {
+            return startButton
+        }
+
+        override fun getDefaultComponent(aContainer: Container): Component {
+            return clientsList
         }
     }
 }
