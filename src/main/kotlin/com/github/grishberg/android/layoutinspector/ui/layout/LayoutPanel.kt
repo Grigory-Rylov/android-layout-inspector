@@ -45,7 +45,7 @@ class LayoutPanel(
 
             override fun onMouseCtrlClicked(transformed: Point2D) {
                 transformedPoint.setLocation(transformed)
-                logic.selectElementAndMeasureIfNeede(transformedPoint)
+                logic.selectElementAndMeasureIfNeeded(transformedPoint)
             }
 
             override fun onMouseShiftMoved(screenPoint: Point, transformed: Point2D) {

@@ -87,7 +87,7 @@ class LayoutLogic(
         }
     }
 
-    fun selectElementAndMeasureIfNeede(point: Point) {
+    fun selectElementAndMeasureIfNeeded(point: Point) {
         panel.requestFocus()
         val foundNode = getChildAtPoint(point)
         if (foundNode != null) {
