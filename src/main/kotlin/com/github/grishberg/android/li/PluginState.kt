@@ -15,6 +15,8 @@ class PluginState : SettingsFacade {
 
     override var fileNamePrefix: String = ""
 
+    override var ignoreLastClickedView: Boolean = true
+
     override fun shouldShowSizeInDp(): Boolean = shouldShowSizeInDp
 
     override fun showSizeInDp(state: Boolean) {

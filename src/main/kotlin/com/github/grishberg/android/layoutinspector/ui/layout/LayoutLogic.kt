@@ -4,7 +4,15 @@ import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
-import java.awt.*
+import java.awt.BasicStroke
+import java.awt.Color
+import java.awt.Dimension
+import java.awt.Graphics2D
+import java.awt.GraphicsEnvironment
+import java.awt.Point
+import java.awt.Rectangle
+import java.awt.Shape
+import java.awt.Stroke
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
@@ -23,6 +31,7 @@ class LayoutLogic(
     private val settings: SettingsFacade
 ) {
     private val GFX_CONFIG = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
+    private val skippedNodes = mutableMapOf<ViewNode, Boolean>()
 
     var onLayoutSelectedAction: OnLayoutSelectedAction? = null
 
@@ -79,11 +88,34 @@ class LayoutLogic(
         measureRectangle = null
         measureLines.clear()
         panel.requestFocus()
+        clearSkippedTouches()
+
         val foundNode = getChildAtPoint(point)
+
+        removeSkippedNodesThatWasNotClicked()
+
         if (foundNode != null) {
             recalculateDistanceAction = null
             selectedRectangle = foundNode.rect
             onLayoutSelectedAction?.onNodeSelected(foundNode.node)
+
+            if (settings.ignoreLastClickedView) {
+                skippedNodes[foundNode.node] = true
+            }
+        }
+    }
+
+    private fun clearSkippedTouches() {
+        for (n in skippedNodes) {
+            n.setValue(false)
+        }
+    }
+
+
+    private fun removeSkippedNodesThatWasNotClicked() {
+        val nodesToRemove = skippedNodes.filter { it.value }
+        for (n in nodesToRemove) {
+            skippedNodes.remove(n.key)
         }
     }
 
@@ -196,14 +228,24 @@ class LayoutLogic(
     }
 
     private fun isNodeVisible(node: ViewNode): Boolean {
+        markSkippedAsTouched(node)
+
+        if (shouldSkipNode(node)) {
+            return false
+        }
         if (meta.shouldHideInLayout(node)) {
             return false
         }
         return node.displayInfo.isVisible
     }
 
+    private fun shouldSkipNode(node: ViewNode): Boolean {
+        return skippedNodes.contains(node)
+    }
+
     private fun getChildAtPoint(point: Point): LayoutModel? {
         for (element in layoutModelRoots) {
+            markSkippedAsTouched(element.node)
             val itemByPos = findFirstElementByPosition(point, element)
             if (itemByPos != null) {
                 return itemByPos
@@ -233,6 +275,12 @@ class LayoutLogic(
             return Dimension(400, 640)
         }
         return Dimension(screenshot!!.width, screenshot!!.height)
+    }
+
+    private fun markSkippedAsTouched(element: ViewNode) {
+        if (skippedNodes[element] != null) {
+            skippedNodes[element] = true
+        }
     }
 
     fun draw(

@@ -2,6 +2,8 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
+import com.github.grishberg.android.layoutinspector.ui.common.createControlAccelerator
+import com.github.grishberg.android.layoutinspector.ui.common.createControlAltAccelerator
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.NewBookmarkDialog
 import javax.swing.JFrame
@@ -23,8 +25,12 @@ class TreeViewNodeMenu(
     private val calculateDistance = JMenuItem("Calculate distance")
     private val hideView = JMenuItem("Hide from layout")
     private val removeFromHidden = JMenuItem("Show on layout")
-    private val copyId = JMenuItem("Copy id")
-    private val copyShortClassName = JMenuItem("Copy short class name")
+    private val copyId = JMenuItem("Copy id").apply {
+        accelerator = createControlAltAccelerator('C')
+    }
+    private val copyShortClassName = JMenuItem("Copy short class name").apply {
+        accelerator = createControlAccelerator('C')
+    }
 
     init {
         addToBookmark.addActionListener {

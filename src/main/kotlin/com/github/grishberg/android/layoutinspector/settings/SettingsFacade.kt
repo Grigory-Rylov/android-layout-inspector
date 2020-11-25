@@ -11,6 +11,8 @@ interface SettingsFacade {
 
     var fileNamePrefix: String
 
+    var ignoreLastClickedView: Boolean
+
     fun shouldShowSizeInDp(): Boolean
 
     fun showSizeInDp(state: Boolean)

@@ -297,6 +297,14 @@ class Main(
             settingsFacade.allowedSelectHiddenView = aButton.model.isSelected
         }
         settingsMenu.add(allowSelectNotDrawnView)
+
+        val ignoreLastClickedView = JCheckBoxMenuItem("Skip last clicked view on next click")
+        ignoreLastClickedView.isSelected = settingsFacade.ignoreLastClickedView
+        ignoreLastClickedView.addActionListener { e ->
+            val aButton = e.source as AbstractButton
+            settingsFacade.ignoreLastClickedView = aButton.model.isSelected
+        }
+        settingsMenu.add(ignoreLastClickedView)
         return settingsMenu
     }
 

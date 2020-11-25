@@ -20,6 +20,10 @@ fun createControlShiftAccelerator(keyChar: Char): KeyStroke {
     return KeyStroke.getKeyStroke(keyChar, Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.SHIFT_MASK)
 }
 
+fun createControlAltAccelerator(keyChar: Char): KeyStroke {
+    return KeyStroke.getKeyStroke(keyChar, Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.ALT_MASK)
+}
+
 fun createShiftAccelerator(keyChar: Char): KeyStroke {
     return KeyStroke.getKeyStroke(keyChar, ActionEvent.SHIFT_MASK)
 }
