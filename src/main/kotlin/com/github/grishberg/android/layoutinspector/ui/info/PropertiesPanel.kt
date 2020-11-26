@@ -7,6 +7,7 @@ import com.github.grishberg.expandabletree.JTreeTable
 import com.github.grishberg.expandabletree.model.GroupedTableModel
 import com.github.grishberg.expandabletree.model.RowInfo
 import com.github.grishberg.expandabletree.model.TableRowInfo
+import java.awt.Component
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.awt.event.ActionEvent
@@ -17,6 +18,12 @@ import java.text.DecimalFormat
 import javax.swing.*
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
+import javax.swing.tree.DefaultTreeCellRenderer
+import java.awt.Dimension
+import javax.swing.JLabel
+import javax.swing.JTree
+
+
 
 
 /**
@@ -69,6 +76,10 @@ class PropertiesPanel(
         val rightRenderer = CustomTableCellRenderer()
         rightRenderer.horizontalAlignment = JLabel.RIGHT
         table.columnModel.getColumn(1).cellRenderer = rightRenderer
+
+        val treeFont = table.treeTableCellRenderer.font
+        table.tree.rowHeight = treeFont.size + 6
+
         for (expanded in expandedGroups) {
             val rowIndexByName = rowIndexByName(createPropertiesData, expanded)
             if (rowIndexByName >= 0) {
@@ -192,5 +203,6 @@ class PropertiesPanel(
             clipboard.setContents(stringSelection, null)
         }
     }
+
 }
 
