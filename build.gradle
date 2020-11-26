@@ -76,6 +76,7 @@ task(verifySetup) {
 
 patchPluginXml {
     changeNotes """
-      Fixed info panel cell height<br>
+      Fixed info panel cell height.<br>
+      Fixed measure distance between two views on linux.<br>
       """
 }
