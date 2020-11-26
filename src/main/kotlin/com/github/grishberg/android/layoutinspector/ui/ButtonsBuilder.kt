@@ -56,8 +56,8 @@ class ButtonsBuilder(
         button.actionCommand = actionCommand.name
         button.toolTipText = toolTipText
         button.addActionListener(this)
-        button.preferredSize = Dimension(32, BUTTON_SIZE)
-        button.maximumSize = Dimension(32, BUTTON_SIZE)
+        button.preferredSize = Dimension(48, BUTTON_SIZE)
+        button.maximumSize = Dimension(48, BUTTON_SIZE)
         return button
     }
 

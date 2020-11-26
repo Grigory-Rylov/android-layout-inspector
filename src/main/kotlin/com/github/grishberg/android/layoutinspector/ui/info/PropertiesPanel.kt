@@ -7,7 +7,6 @@ import com.github.grishberg.expandabletree.JTreeTable
 import com.github.grishberg.expandabletree.model.GroupedTableModel
 import com.github.grishberg.expandabletree.model.RowInfo
 import com.github.grishberg.expandabletree.model.TableRowInfo
-import java.awt.Component
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.awt.event.ActionEvent
@@ -18,12 +17,6 @@ import java.text.DecimalFormat
 import javax.swing.*
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
-import javax.swing.tree.DefaultTreeCellRenderer
-import java.awt.Dimension
-import javax.swing.JLabel
-import javax.swing.JTree
-
-
 
 
 /**
