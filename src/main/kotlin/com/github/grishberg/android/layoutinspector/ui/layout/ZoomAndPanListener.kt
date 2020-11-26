@@ -3,6 +3,8 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 import java.awt.Component
 import java.awt.Point
 import java.awt.event.*
+import java.awt.event.InputEvent.CTRL_DOWN_MASK
+import java.awt.event.InputEvent.META_DOWN_MASK
 import java.awt.geom.AffineTransform
 import java.awt.geom.NoninvertibleTransformException
 import java.awt.geom.Point2D
@@ -137,7 +139,7 @@ class ZoomAndPanListener(
     }
 
     private fun isCtrlPressed(e: MouseEvent): Boolean {
-        return e.modifiersEx and 256 > 0
+        return e.modifiersEx and META_DOWN_MASK > 0 || e.modifiersEx and CTRL_DOWN_MASK > 0
     }
 
     private fun moveCamera(e: MouseEvent) {
