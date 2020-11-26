@@ -12,6 +12,7 @@ import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.createAccelerator
+import com.github.grishberg.android.layoutinspector.ui.common.createControlAccelerator
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
@@ -29,7 +30,6 @@ import java.awt.BorderLayout
 import java.awt.Desktop
 import java.awt.Dimension
 import java.awt.event.ActionEvent
-import java.awt.event.ActionListener
 import java.io.File
 import java.net.URI
 import javax.swing.AbstractButton
@@ -211,6 +211,7 @@ class Main(
         val openFile = JMenuItem("Open")
         file.add(openFile)
         openFile.addActionListener { arg0: ActionEvent? -> openExistingFile() }
+        openFile.accelerator = createControlAccelerator('O')
 
         val openFileInNewWindow = JMenuItem("Open in new window")
         file.add(openFileInNewWindow)
@@ -219,12 +220,13 @@ class Main(
         val newFile = JMenuItem("Record new Layout info")
         file.add(newFile)
         newFile.addActionListener { arg0: ActionEvent? -> startRecording() }
+        newFile.accelerator = createControlAccelerator('N')
 
         val openLayoutsFolder = JMenuItem("Open layouts folder")
         file.add(openLayoutsFolder)
-        openLayoutsFolder.addActionListener(ActionListener { arg: ActionEvent? ->
+        openLayoutsFolder.addActionListener { arg: ActionEvent? ->
             openLayoutsDirInExternalFileManager(fileSystem)
-        })
+        }
 
         file.addSeparator()
         return file

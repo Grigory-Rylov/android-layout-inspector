@@ -90,7 +90,7 @@ class LayoutLogic(
         panel.requestFocus()
         clearSkippedTouches()
 
-        val foundNode = getChildAtPoint(point)
+        val foundNode = getChildAtPoint(point, settings.ignoreLastClickedView)
 
         removeSkippedNodesThatWasNotClicked()
 
@@ -111,9 +111,8 @@ class LayoutLogic(
         }
     }
 
-
     private fun removeSkippedNodesThatWasNotClicked() {
-        val nodesToRemove = skippedNodes.filter { it.value }
+        val nodesToRemove = skippedNodes.filter { !it.value }
         for (n in nodesToRemove) {
             skippedNodes.remove(n.key)
         }
@@ -213,7 +212,7 @@ class LayoutLogic(
         val rect = Rectangle(left, top, node.displayInfo.width, node.displayInfo.height)
         val newLayoutModel = LayoutModel(rect, node, children)
         parentsChildren.add(newLayoutModel)
-        if (isNodeVisible(node)) {
+        if (isNodeVisible(node, false)) {
             rectangles.add(newLayoutModel)
         }
         allRectangles[node] = rect
@@ -227,11 +226,16 @@ class LayoutLogic(
         }
     }
 
-    private fun isNodeVisible(node: ViewNode): Boolean {
-        markSkippedAsTouched(node)
+    private fun isNodeVisible(
+        node: ViewNode,
+        shouldSkipViews: Boolean
+    ): Boolean {
+        if (shouldSkipViews) {
+            markSkippedAsTouched(node)
 
-        if (shouldSkipNode(node)) {
-            return false
+            if (shouldSkipNode(node)) {
+                return false
+            }
         }
         if (meta.shouldHideInLayout(node)) {
             return false
@@ -243,24 +247,42 @@ class LayoutLogic(
         return skippedNodes.contains(node)
     }
 
-    private fun getChildAtPoint(point: Point): LayoutModel? {
+    private fun getChildAtPoint(point: Point, shouldSkipViews: Boolean = false): LayoutModel? {
         for (element in layoutModelRoots) {
-            markSkippedAsTouched(element.node)
-            val itemByPos = findFirstElementByPosition(point, element)
+            if (shouldSkipViews) {
+                markSkippedAsTouched(element.node)
+
+                if (shouldSkipNode(element.node)) {
+                    continue
+                }
+            }
+            val itemByPos = findFirstElementByPosition(point, element, shouldSkipViews)
             if (itemByPos != null) {
                 return itemByPos
             }
         }
+        if (shouldSkipViews) {
+            skippedNodes.clear()
+            return getChildAtPoint(point)
+        }
         return null
     }
 
-    private fun findFirstElementByPosition(point: Point, parent: LayoutModel): LayoutModel? {
+    private fun findFirstElementByPosition(
+        point: Point,
+        parent: LayoutModel,
+        shouldSkipViews: Boolean
+    ): LayoutModel? {
         val childCount = parent.children.size
         for (i in childCount - 1 downTo 0) {
             val child = parent.children[i]
             val rect = child.rect
-            if (rect.contains(point) && (isNodeVisible(child.node) || settings.allowedSelectHiddenView)) {
-                return findFirstElementByPosition(point, child)
+            if (rect.contains(point) && (isNodeVisible(
+                    child.node,
+                    shouldSkipViews
+                ) || settings.allowedSelectHiddenView)
+            ) {
+                return findFirstElementByPosition(point, child, shouldSkipViews)
             }
         }
 
@@ -379,6 +401,8 @@ class LayoutLogic(
     }
 
     fun onMouseRightMove(tranformed: Point2D) {
+        clearSkippedTouches()
+
         selectedRectangle?.let {
             val fakeShape = Rectangle2D.Double(round(tranformed.x), round(tranformed.y), 0.0, 0.0)
             calculateDistance(it, fakeShape, reverseLineSource = true)
