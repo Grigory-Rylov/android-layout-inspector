@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '20.11.26.0'
+version '20.11.27.0'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -76,8 +76,6 @@ task(verifySetup) {
 
 patchPluginXml {
     changeNotes """
-      New feature: 'Skip last clicked view on next click' Allows you to select views behind current view.<br>
-      To enable check Settings -> 'Skip last clicked view on next click'.<br>
-      To reset hidden view use right mouse click.<br>
+      Fixed info panel cell height<br>
       """
 }
