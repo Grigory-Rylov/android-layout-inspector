@@ -1,34 +1,37 @@
 package com.github.grishberg.android.layoutinspector.domain
 
 import com.android.layoutinspector.common.AppLogger
-import com.android.layoutinspector.parser.LayoutFileDataParser
+import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchers
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.LayoutInspectorCaptureTask
 import com.github.grishberg.android.layoutinspector.process.providers.ScreenSizeProvider
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.swing.Swing
 import java.io.IOException
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
 
 private const val TAG = "Logic"
 
 class Logic(
     private val devicesInput: LayoutRecordOptionsInput,
+    private val windowsListInput: WindowsListInput,
     private val clientWindowsInput: ClientWindowsInput,
+    private val layoutParserInput: LayoutParserInput,
     private val output: LayoutResultOutput,
     private val logger: AppLogger,
     private val layoutFileSystem: LayoutFileSystem,
     private val dialogsInput: DialogsInput,
-    private val metaRepository: MetaRepository
+    private val metaRepository: MetaRepository,
+    private val coroutineScope: CoroutineScope,
+    private val dispatchers: CoroutinesDispatchers
 ) {
     private val screenSizeProvider = ScreenSizeProvider()
 
     private val errorHandler = CoroutineExceptionHandler { _, exception ->
-        GlobalScope.launch(Dispatchers.Swing) {
+        coroutineScope.launch(dispatchers.ui) {
             output.hideLoading()
             logger.e(exception.message.orEmpty(), exception)
             output.showError(exception.message.orEmpty())
@@ -36,12 +39,28 @@ class Logic(
     }
 
     fun startRecording() {
-        GlobalScope.launch(errorHandler) {
+        coroutineScope.launch(errorHandler) {
             val recordOptions = devicesInput.getLayoutOptions() ?: return@launch
 
             output.showLoading()
 
-            val window = clientWindowsInput.getSelectedWindow(recordOptions)
+            val windows = coroutineScope.async(dispatchers.worker) {
+                return@async clientWindowsInput.getClientWindows(recordOptions)
+            }
+            val windowList = windows.await()
+
+            if (windowList.isEmpty()) {
+                throw IllegalStateException("No windows for client")
+            }
+
+            val window = if (windowList.size == 1) {
+                windowList[0]
+            } else {
+                output.hideLoading()
+                val selectedWindow = windowsListInput.getSelectedWindow(windowList)
+                output.showLoading()
+                selectedWindow
+            }
 
             val density = recordOptions.device.density
             logger.d("$TAG: density = $density")
@@ -81,7 +100,7 @@ class Logic(
         metaRepository.serialize()
 
         logger.d("$TAG: Received result, parsing...")
-        val capture = LayoutFileDataParser.parseFromBytes(data)
+        val capture = layoutParserInput.parseFromBytes(data)
         logger.d("$TAG: Parsing is ended.")
 
         output.showResult(capture)
@@ -90,7 +109,7 @@ class Logic(
     fun openFile() {
         val file = dialogsInput.showOpenFileDialogAndReturnResult() ?: return
         try {
-            val capture = LayoutFileDataParser.parseFromFile(file)
+            val capture = layoutParserInput.parseFromFile(file)
             metaRepository.restoreForFile(file.name, capture.node)
 
             output.showResult(capture)

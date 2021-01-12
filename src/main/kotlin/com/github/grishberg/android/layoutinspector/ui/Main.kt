@@ -4,11 +4,15 @@ import com.android.layoutinspector.common.AdbFacade
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchersImpl
+import com.github.grishberg.android.layoutinspector.common.MainScope
 import com.github.grishberg.android.layoutinspector.domain.DialogsInput
 import com.github.grishberg.android.layoutinspector.domain.LayoutResultOutput
 import com.github.grishberg.android.layoutinspector.domain.Logic
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
+import com.github.grishberg.android.layoutinspector.process.LayoutParserImpl
+import com.github.grishberg.android.layoutinspector.process.providers.ClientWindowsProvider
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.createAccelerator
@@ -90,6 +94,7 @@ class Main(
     private val fileMenu: JMenu
     private val loadingDialog: LoadingDialog
     private val windowsDialog: WindowsDialog
+    private val clientWindowsProvider: ClientWindowsProvider
     private val findDialog: FindDialog
 
     private val mainPanel: JPanel
@@ -153,19 +158,27 @@ class Main(
         pack()
 
         windowsDialog = WindowsDialog(this, logger)
+        clientWindowsProvider = ClientWindowsProvider(logger)
 
         val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settingsFacade)
 
         loadingDialog = LoadingDialog(this)
+        val coroutineScope = MainScope()
+        val coroutinesDispatchers = CoroutinesDispatchersImpl()
+
         val fileSystem = LayoutFileSystem(logger, baseDir)
         logic = Logic(
             devicesInputDialog,
             windowsDialog,
+            clientWindowsProvider,
+            LayoutParserImpl(),
             this,
             logger,
             fileSystem,
             this,
-            metaRepository
+            metaRepository,
+            coroutineScope,
+            coroutinesDispatchers
         )
 
         fileMenu = createFileMenu(fileSystem)

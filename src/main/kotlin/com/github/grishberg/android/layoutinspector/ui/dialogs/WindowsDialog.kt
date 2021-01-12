@@ -2,18 +2,19 @@ package com.github.grishberg.android.layoutinspector.ui.dialogs
 
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ClientWindow
-import com.github.grishberg.android.layoutinspector.domain.ClientWindowsInput
-import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptions
+import com.github.grishberg.android.layoutinspector.domain.WindowsListInput
 import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import java.awt.Dimension
 import java.awt.Frame
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import java.util.concurrent.TimeUnit
-import javax.swing.*
+import javax.swing.DefaultListModel
+import javax.swing.JButton
+import javax.swing.JDialog
+import javax.swing.JLabel
+import javax.swing.JList
+import javax.swing.JScrollPane
+import javax.swing.ListSelectionModel
 
 private const val TITLE = "Select window"
 private const val TAG = "WindowsDialog"
@@ -21,7 +22,7 @@ private const val TAG = "WindowsDialog"
 class WindowsDialog(
     private val owner: Frame,
     private val logger: AppLogger
-) : JDialog(owner, TITLE, true), ClientWindowsInput {
+) : JDialog(owner, TITLE, true), WindowsListInput {
     private val clientWindowList: JList<ClientWindow>
 
     private val clientWindowListModel = DefaultListModel<ClientWindow>()
@@ -53,26 +54,12 @@ class WindowsDialog(
         pack()
     }
 
-    override suspend fun getSelectedWindow(options: LayoutRecordOptions): ClientWindow {
-        logger.d("$TAG show dialog for client ${options.client}")
+    override suspend fun getSelectedWindow(windows: List<ClientWindow>): ClientWindow {
+        logger.d("$TAG show dialog for client $windows")
 
         clientWindowListModel.clear()
-        val windows = GlobalScope.async(Dispatchers.IO) {
-            val windows =
-                ClientWindow.getAll(logger, options.client, options.timeoutInSeconds.toLong(), TimeUnit.SECONDS)
-                    ?: emptyList()
-            return@async windows
-        }
-        val windowList = windows.await()
-        if (windowList.size == 1) {
-            return windowList[0]
-        }
 
-        if (windowList.isEmpty()) {
-            throw IllegalStateException("No windows for client")
-        }
-
-        for (w in windowList) {
+        for (w in windows) {
             clientWindowListModel.addElement(w)
             logger.d("$TAG found window $w")
         }
