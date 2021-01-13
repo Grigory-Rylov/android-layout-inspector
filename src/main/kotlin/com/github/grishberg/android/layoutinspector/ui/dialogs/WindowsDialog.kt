@@ -3,7 +3,9 @@ package com.github.grishberg.android.layoutinspector.ui.dialogs
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ClientWindow
 import com.github.grishberg.android.layoutinspector.domain.WindowsListInput
-import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
+import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBScrollPane
+import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Frame
 import java.awt.event.MouseAdapter
@@ -13,7 +15,7 @@ import javax.swing.JButton
 import javax.swing.JDialog
 import javax.swing.JLabel
 import javax.swing.JList
-import javax.swing.JScrollPane
+import javax.swing.JPanel
 import javax.swing.ListSelectionModel
 
 private const val TITLE = "Select window"
@@ -26,31 +28,36 @@ class WindowsDialog(
     private val clientWindowList: JList<ClientWindow>
 
     private val clientWindowListModel = DefaultListModel<ClientWindow>()
-    private val startButton: JButton
+    private val startButton = JButton("Start")
 
     init {
-        clientWindowList = JList(clientWindowListModel)
+        clientWindowList = JBList(clientWindowListModel)
         clientWindowList.selectionMode = ListSelectionModel.SINGLE_SELECTION
-        val listScroll = JScrollPane(clientWindowList)
+        val listScroll = JBScrollPane(clientWindowList)
         clientWindowList.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(evt: MouseEvent) {
                 val list = evt.getSource() as JList<*>
                 if (evt.clickCount == 2) { // Double-click detected
                     isVisible = false
                 }
+                if (clientWindowList.selectedIndex >= 0) {
+                    startButton.isEnabled = true
+                }
             }
         })
-        startButton = JButton("Start")
+
         startButton.addActionListener {
             isVisible = false
         }
 
         listScroll.preferredSize = Dimension(640, 400)
-        val panelBuilder = LabeledGridBuilder()
-        panelBuilder.addSingleComponent(JLabel("Windows:"))
-        panelBuilder.addSingleComponent(listScroll)
-        panelBuilder.addSingleComponent(startButton)
-        contentPane = panelBuilder.content
+        val content = JPanel()
+        content.layout = BorderLayout()
+        content.add(JLabel("Windows:"), BorderLayout.NORTH)
+        content.add(listScroll, BorderLayout.CENTER)
+        content.add(startButton, BorderLayout.SOUTH)
+        startButton.isEnabled = false
+        contentPane = content
         pack()
     }
 
@@ -64,6 +71,7 @@ class WindowsDialog(
             logger.d("$TAG found window $w")
         }
         setLocationRelativeTo(owner)
+        startButton.isEnabled = false
         isVisible = true
 
 
