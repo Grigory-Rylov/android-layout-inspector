@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '21.01.13.0'
+version '21.04.07.0'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -76,7 +76,7 @@ task(verifySetup) {
 
 patchPluginXml {
     changeNotes """
-      Fixed showing progress when Windows selection dialog is shown.<br>
-      Fixed Windows selection dialog resizing.<br>
+      Refresh adb device list after opening new layout dialog.<br>
+      Fixed stopping recording layout after closing loading dialog.<br>
       """
 }

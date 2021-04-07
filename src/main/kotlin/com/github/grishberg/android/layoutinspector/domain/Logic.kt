@@ -7,7 +7,9 @@ import com.github.grishberg.android.layoutinspector.process.LayoutInspectorCaptu
 import com.github.grishberg.android.layoutinspector.process.providers.ScreenSizeProvider
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -29,6 +31,7 @@ class Logic(
     private val dispatchers: CoroutinesDispatchers
 ) {
     private val screenSizeProvider = ScreenSizeProvider()
+    private var recordingJob: Job? = null
 
     private val errorHandler = CoroutineExceptionHandler { _, exception ->
         coroutineScope.launch(dispatchers.ui) {
@@ -39,7 +42,7 @@ class Logic(
     }
 
     fun startRecording() {
-        coroutineScope.launch(errorHandler) {
+        recordingJob = coroutineScope.launch(errorHandler) {
             val recordOptions = devicesInput.getLayoutOptions() ?: return@launch
 
             output.showLoading()
@@ -116,5 +119,11 @@ class Logic(
         } catch (e: IOException) {
             output.showError(e.message.toString())
         }
+    }
+
+    fun onLoadingDialogClosed() {
+        recordingJob?.cancel()
+        output.hideLoading()
+        recordingJob = null
     }
 }

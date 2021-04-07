@@ -19,6 +19,7 @@ import com.github.grishberg.android.layoutinspector.ui.common.createAccelerator
 import com.github.grishberg.android.layoutinspector.ui.common.createControlAccelerator
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
+import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialogClosedEventListener
 import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.WindowsDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
@@ -162,7 +163,6 @@ class Main(
 
         val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settingsFacade)
 
-        loadingDialog = LoadingDialog(this)
         val coroutineScope = MainScope()
         val coroutinesDispatchers = CoroutinesDispatchersImpl()
 
@@ -180,6 +180,12 @@ class Main(
             coroutineScope,
             coroutinesDispatchers
         )
+
+        loadingDialog = LoadingDialog(this, object : LoadingDialogClosedEventListener {
+            override fun onLoadingDialogClosed() {
+                logic.onLoadingDialogClosed()
+            }
+        })
 
         fileMenu = createFileMenu(fileSystem)
         createMenu(fileMenu)

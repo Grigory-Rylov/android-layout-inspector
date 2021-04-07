@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<g id="layer1" >
+<path
+	fill="#27AE60" fill-opacity="1.0"
+	d="M 523.2696 65.8114 C 386.6816 65.8114 275.1238 172.9785 268.0928 307.8162 L 778.4464 307.8162 C 771.4154 172.9785 659.8575 65.8114 523.2696 65.8114 z " />
+<rect x="259.7525" y="325.47388" width="520.54205" height="472.54315"   fill="rgb(46,204,113)" stroke-width="1" stroke="rgb(46,204,113)"/>
+<rect x="299.56454" y="810.5084" width="161.37051" height="180.82825"   fill="rgb(22,160,133)" stroke-width="1" stroke="rgb(22,160,133)"/>
+<rect x="575.9582" y="810.5084" width="152.53497" height="180.82825"   fill="rgb(52,152,219)" stroke-width="1" stroke="rgb(52,152,219)"/>
+<rect x="810.6371" y="338.0185" width="112.08545" height="444.4713"  ry="49.0" fill="rgb(52,152,219)" stroke-width="1" stroke="rgb(52,152,219)"/>
+<rect x="120.836914" y="341.02112" width="112.08545" height="441.83856"  ry="49.0" fill="rgb(241,196,15)" stroke-width="1" stroke="rgb(241,196,15)"/>
+<rect x="623.07477" y="51.03" width="73.29932" height="143.49268" transform="rotate(31.544205,659.7244,122.77634)" ry="31.0" fill="rgb(52,152,219)" stroke-width="1" stroke="rgb(52,152,219)"/>
+<rect x="338.79364" y="47.866425" width="73.29932" height="143.49268" transform="rotate(-43.302616,375.4433,119.61276)" ry="31.0" fill="rgb(39,174,96)" stroke-width="1" stroke="rgb(39,174,96)"/>
+<circle cx="427.0382" cy="202.19083" r="24.283966" fill="#FFFFFF" fill-opacity="1.0" />
+<path
+	fill="#3498DB" fill-opacity="1.0"
+	d="M 522.8499 59.7381 C 518.8972 59.7381 514.9650 59.8257 511.0551 59.9991 L 511.0553 59.9991 L 511.0553 307.6381 L 784.2427 307.6381 C 777.0405 169.5158 662.7651 59.7381 522.8499 59.7381 z " />
+<circle cx="620.08606" cy="202.58675" r="24.283966" fill="#FFFFFF" fill-opacity="1.0" />
+<rect x="511.0553" y="0.0" width="512.9447" height="29.914658"   fill="rgb(52,152,219)" stroke-width="1" stroke="rgb(52,152,219)"/>
+<rect x="992.00507" y="8.469261" width="31.994934" height="1015.53076"   fill="rgb(52,152,219)" stroke-width="1" stroke="rgb(52,152,219)"/>
+<rect x="520.02356" y="1000.7046" width="499.4355" height="23.29541"   fill="rgb(52,152,219)" stroke-width="1" stroke="rgb(52,152,219)"/>
+<rect x="511.0553" y="325.47388" width="269.23926" height="472.54315"   fill="rgb(52,152,219)" stroke-width="1" stroke="rgb(52,152,219)"/>
+</g>
+</svg>

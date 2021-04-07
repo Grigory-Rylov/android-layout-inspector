@@ -6,11 +6,17 @@ data class ConnectedDeviceInfo(
     val devices: List<IDevice>
 )
 
+interface AdbProvider {
+    fun getAdb(): AdbWrapper
+}
+
 class ConnectedDeviceInfoProvider(
-    private val adb: AdbWrapper,
+    private val adbProvider: AdbProvider,
     private val notificationHelper: NotificationHelper
 ) {
     fun provideDeviceInfo(): ConnectedDeviceInfo? {
+        val adb = adbProvider.getAdb()
+
         if (!adb.isReady()) {
             notificationHelper.error("No platform configured")
             return null

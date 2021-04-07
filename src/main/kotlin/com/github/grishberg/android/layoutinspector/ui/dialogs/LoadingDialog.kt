@@ -2,6 +2,8 @@ package com.github.grishberg.android.layoutinspector.ui.dialogs
 
 import java.awt.BorderLayout
 import java.awt.Frame
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import javax.swing.BorderFactory
 import javax.swing.ImageIcon
 import javax.swing.JDialog
@@ -9,7 +11,14 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.WindowConstants
 
-class LoadingDialog(owner: Frame) : JDialog(owner, false) {
+interface LoadingDialogClosedEventListener {
+    fun onLoadingDialogClosed()
+}
+
+class LoadingDialog(
+    owner: Frame,
+    eventListener: LoadingDialogClosedEventListener
+) : JDialog(owner, false) {
 
     init {
         val panel = JPanel()
@@ -31,5 +40,15 @@ class LoadingDialog(owner: Frame) : JDialog(owner, false) {
         setContentPane(panel)
         defaultCloseOperation = WindowConstants.DO_NOTHING_ON_CLOSE
         pack()
+
+        addWindowListener(object : WindowAdapter() {
+            override fun windowClosed(e: WindowEvent) = Unit
+
+            override fun windowClosing(e: WindowEvent) {
+                eventListener.onLoadingDialogClosed()
+            }
+        })
     }
+
+
 }
