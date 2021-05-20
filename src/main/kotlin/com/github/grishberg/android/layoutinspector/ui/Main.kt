@@ -35,12 +35,17 @@ import java.awt.BorderLayout
 import java.awt.Desktop
 import java.awt.Dimension
 import java.awt.event.ActionEvent
+import java.awt.event.KeyEvent
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import java.io.File
 import java.net.URI
+import javax.swing.AbstractAction
 import javax.swing.AbstractButton
 import javax.swing.BoxLayout
 import javax.swing.ButtonGroup
 import javax.swing.JCheckBoxMenuItem
+import javax.swing.JComponent
 import javax.swing.JFileChooser
 import javax.swing.JFrame
 import javax.swing.JLabel
@@ -52,6 +57,7 @@ import javax.swing.JRadioButtonMenuItem
 import javax.swing.JScrollPane
 import javax.swing.JSplitPane
 import javax.swing.JToolBar
+import javax.swing.KeyStroke
 import javax.swing.SwingConstants
 import javax.swing.border.BevelBorder
 import javax.swing.filechooser.FileNameExtensionFilter
@@ -115,7 +121,23 @@ class Main(
             logger
         )
 
-        defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+            KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "Cancel"
+        )
+
+        getRootPane().actionMap.put("Cancel", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                close()
+            }
+        })
+
+        // on close window the close method is called
+        defaultCloseOperation = DO_NOTHING_ON_CLOSE
+        addWindowListener(object : WindowAdapter() {
+            override fun windowClosing(evt: WindowEvent) {
+                close()
+            }
+        })
 
         layoutPanel = LayoutPanel(metaRepository, settingsFacade)
         treePanel = TreePanel(this, themeProxy, metaRepository, bookmarks, main = this)
@@ -194,6 +216,11 @@ class Main(
         defaultCloseOperation = DISPOSE_ON_CLOSE
         setLocationRelativeTo(null)
         isVisible = true
+    }
+
+    private fun close() {
+        isVisible = false
+        dispose();
     }
 
     private fun createStatusBar(statusLabel: JLabel) {
