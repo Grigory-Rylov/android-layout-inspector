@@ -58,6 +58,18 @@ class TreePanel(
         registerKeyboardAction(CopyIdAction(), "Copy", copyIdStroke, JComponent.WHEN_FOCUSED)
 
         addTreeSelectionListener {
+            var hasSelections = false
+            for (i in it.paths.indices) {
+                if (it.isAddedPath(i)) {
+                    hasSelections = true
+                    break
+                }
+            }
+
+            if (!hasSelections) {
+                return@addTreeSelectionListener
+            }
+
             if (selectedFromLayoutClick) {
                 selectedFromLayoutClick = false
                 return@addTreeSelectionListener

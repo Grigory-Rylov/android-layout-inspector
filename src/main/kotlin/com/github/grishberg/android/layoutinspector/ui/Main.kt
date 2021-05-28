@@ -52,6 +52,7 @@ import javax.swing.JLabel
 import javax.swing.JMenu
 import javax.swing.JMenuBar
 import javax.swing.JMenuItem
+import javax.swing.JOptionPane
 import javax.swing.JPanel
 import javax.swing.JRadioButtonMenuItem
 import javax.swing.JScrollPane
@@ -120,16 +121,6 @@ class Main(
             themeProxy,
             logger
         )
-
-        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
-            KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "Cancel"
-        )
-
-        getRootPane().actionMap.put("Cancel", object : AbstractAction() {
-            override fun actionPerformed(e: ActionEvent) {
-                close()
-            }
-        })
 
         // on close window the close method is called
         defaultCloseOperation = DO_NOTHING_ON_CLOSE
@@ -211,6 +202,42 @@ class Main(
 
         fileMenu = createFileMenu(fileSystem)
         createMenu(fileMenu)
+
+
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+            KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "Cancel"
+        )
+
+        getRootPane().actionMap.put("Cancel", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                if (!logic.hasOpenedLayouts()) {
+                    close()
+                    return
+                }
+
+                if (!layoutPanel.hasSelection()) {
+                    val ObjButtons = arrayOf("Yes", "No")
+                    val PromptResult = JOptionPane.showOptionDialog(
+                        null,
+                        "Are you sure you want to exit?",
+                        "Closing YALI",
+                        JOptionPane.DEFAULT_OPTION,
+                        JOptionPane.WARNING_MESSAGE,
+                        null,
+                        ObjButtons,
+                        ObjButtons[1]
+                    )
+                    if (PromptResult == JOptionPane.YES_OPTION) {
+                        close()
+                    }
+
+                    return
+                }
+
+                layoutPanel.removeSelection()
+                treePanel.clearSelection()
+            }
+        })
 
         setSize(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT)
         defaultCloseOperation = DISPOSE_ON_CLOSE

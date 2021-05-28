@@ -32,6 +32,7 @@ class Logic(
 ) {
     private val screenSizeProvider = ScreenSizeProvider()
     private var recordingJob: Job? = null
+    private var isOpenedLayout = false
 
     private val errorHandler = CoroutineExceptionHandler { _, exception ->
         coroutineScope.launch(dispatchers.ui) {
@@ -107,6 +108,7 @@ class Logic(
         logger.d("$TAG: Parsing is ended.")
 
         output.showResult(capture)
+        isOpenedLayout = true
     }
 
     fun openFile() {
@@ -116,6 +118,7 @@ class Logic(
             metaRepository.restoreForFile(file.name, capture.node)
 
             output.showResult(capture)
+            isOpenedLayout = true
         } catch (e: IOException) {
             output.showError(e.message.toString())
         }
@@ -126,4 +129,6 @@ class Logic(
         output.hideLoading()
         recordingJob = null
     }
+
+    fun hasOpenedLayouts() = isOpenedLayout
 }

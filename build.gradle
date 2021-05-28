@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '21.05.19.0'
+version '21.05.28.0'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -76,6 +76,7 @@ task(verifySetup) {
 
 patchPluginXml {
     changeNotes """
-      Close YALI by ESC.<br>
+      Remove selection by ESC.<br>
+      Prompt before closing by ESC.<br>
       """
 }
