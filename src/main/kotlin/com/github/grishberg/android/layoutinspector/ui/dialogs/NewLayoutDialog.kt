@@ -65,6 +65,8 @@ class NewLayoutDialog(
     private val resetConnectionButton: JButton
     private val clientsList: JBList<ClientWrapper>
     private val deviceChangedAction = DeviceChangedActions()
+    private var lastSelectedProcessName: String? = null
+
     var result: LayoutRecordOptions? = null
         private set
 
@@ -217,6 +219,7 @@ class NewLayoutDialog(
 
     private fun doStartRecording(currentClientIndex: Int) {
         val client = clientListModel[currentClientIndex]
+        lastSelectedProcessName = client.toString()
         val device = devicesComboBox.selectedItem as DeviceWrapper
         val timeoutInSeconds = timeoutField.text.toInt()
         result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim())
@@ -261,12 +264,17 @@ class NewLayoutDialog(
         GlobalScope.launch(Dispatchers.Swing) {
             val clients = getClientsWithWindow(device, showAllProcesses.isSelected)
             clientListModel.clear()
-            for (c in clients) {
-                clientListModel.addElement(c)
+            var selectedIndex = 0
+            for (i in clients.indices) {
+                val client = clients[i]
+                clientListModel.addElement(client)
+                if (client.toString() == lastSelectedProcessName) {
+                    selectedIndex = i
+                }
             }
             startButton.isEnabled = !clientListModel.isEmpty
             if (!clientListModel.isEmpty && clientsList.selectedIndex < 0) {
-                clientsList.selectedIndex = 0
+                clientsList.selectedIndex = selectedIndex
             }
             pack()
             repaint()
