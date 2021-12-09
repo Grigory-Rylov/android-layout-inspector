@@ -71,6 +71,9 @@ class LayoutLogic(
 
     private val distances = DistanceBetweenTwoShape(meta)
     private var recalculateDistanceAction: CalculateDistanceAction? = null
+    private var screenshotOffsetX: Int = 0
+    private var screenshotOffsetY: Int = 0
+    private var screenshotOffsetTransform: AffineTransform = AffineTransform.getTranslateInstance(0.0, 0.0)
 
     init {
         meta.hiddenChangedAction.add { panel.invalidate() }
@@ -172,6 +175,10 @@ class LayoutLogic(
         rectangles.clear()
         layoutModelRoots.clear()
 
+        layoutData.node?.let { node ->
+            screenshotOffsetX = node.namedProperties[LOCATION_X_PROPERTY_NAME]?.intValue ?: node.displayInfo.left
+            screenshotOffsetY = node.namedProperties[LOCATION_Y_PROPERTY_NAME]?.intValue ?: node.displayInfo.top
+        }
         addFromViewNode(layoutModelRoots, layoutData.node, 0, 0)
     }
 
@@ -311,7 +318,10 @@ class LayoutLogic(
         screenTransformedRectangle: Rectangle2D.Double
     ) {
         screenshot?.let {
-            g.drawImage(it, at, null)
+            screenshotOffsetTransform.setToIdentity()
+            screenshotOffsetTransform.setTransform(at)
+            screenshotOffsetTransform.translate(screenshotOffsetX.toDouble(), screenshotOffsetY.toDouble())
+            g.drawImage(it, screenshotOffsetTransform, null)
         }
 
         g.stroke = BasicStroke(1f)

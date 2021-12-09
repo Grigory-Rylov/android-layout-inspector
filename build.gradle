@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '21.05.28.0'
+version '21.12.09.0'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -76,7 +76,6 @@ task(verifySetup) {
 
 patchPluginXml {
     changeNotes """
-      Remove selection by ESC.<br>
-      Prompt before closing by ESC.<br>
+      Fixed screenshot offset in landscape on phones with cutouts.<br>
       """
 }
