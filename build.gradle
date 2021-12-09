@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '21.12.09.0'
+version '21.12.09.1'
 
 sourceCompatibility = 8
 targetCompatibility = 8
@@ -77,5 +77,6 @@ task(verifySetup) {
 patchPluginXml {
     changeNotes """
       Fixed screenshot offset in landscape on phones with cutouts.<br>
+      Fix propertie panel invalidation.<br>
       """
 }
