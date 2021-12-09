@@ -79,6 +79,7 @@ class PropertiesPanel(
                 table.tree.expandRow(rowIndexByName)
             }
         }
+        table.tree.repaint()
     }
 
     private fun rowIndexByName(createPropertiesData: List<TableRowInfo>, expanded: String): Int {

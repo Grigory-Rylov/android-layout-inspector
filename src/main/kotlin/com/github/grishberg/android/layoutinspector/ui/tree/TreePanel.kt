@@ -78,6 +78,7 @@ class TreePanel(
             val selectedNode = path.lastPathComponent
             if (selectedNode is ViewNode) {
                 nodeSelectedAction?.onViewNodeSelected(selectedNode)
+                repaint()
             }
         }
         addMouseMotionListener(object : MouseAdapter() {
