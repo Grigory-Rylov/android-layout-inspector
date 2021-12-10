@@ -77,7 +77,7 @@ class Logic(
 
             val task = LayoutInspectorCaptureTask(logger)
 
-            val liResult = task.capture(window, recordOptions.timeoutInSeconds)
+            val liResult = task.capture(recordOptions.client, window, recordOptions.timeoutInSeconds)
 
             output.hideLoading()
 

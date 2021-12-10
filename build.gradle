@@ -79,5 +79,6 @@ patchPluginXml {
       Fixed screenshot offset in landscape on phones with cutouts.<br>
       Fix propertie panel invalidation.<br>
       Copy id by ctrl(cmd) + c.<br>
+      Clear selection after capture new layout.<br>
       """
 }

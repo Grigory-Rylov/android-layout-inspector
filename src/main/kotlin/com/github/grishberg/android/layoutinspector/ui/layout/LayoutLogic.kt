@@ -166,6 +166,8 @@ class LayoutLogic(
     }
 
     fun showLayoutResult(layoutData: LayoutFileData) {
+        removeSelection()
+
         root = layoutData.node
 
         layoutData.bufferedImage?.let {
