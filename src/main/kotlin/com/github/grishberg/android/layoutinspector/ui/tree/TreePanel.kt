@@ -34,19 +34,19 @@ class TreePanel(
 ) : JTree(DefaultMutableTreeNode()) {
     var nodeSelectedAction: OnNodeSelectedAction? = null
     private var selectedFromLayoutClick = false
-    private val copyTypeStroke =
-        KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().menuShortcutKeyMask, false)
+    private val copyTypeStroke = KeyStroke.getKeyStroke(
+        KeyEvent.VK_C,
+        Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.ALT_MASK,
+        false
+    )
 
     private val copyFullNameStroke = KeyStroke.getKeyStroke(
         KeyEvent.VK_C,
         Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.SHIFT_MASK,
         false
     )
-    private val copyIdStroke = KeyStroke.getKeyStroke(
-        KeyEvent.VK_C,
-        Toolkit.getDefaultToolkit().menuShortcutKeyMask + ActionEvent.ALT_MASK,
-        false
-    )
+    private val copyIdStroke =
+        KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().menuShortcutKeyMask, false)
 
     private val foundItems = mutableListOf<ViewNode>()
     private var viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme, bookmarks)
