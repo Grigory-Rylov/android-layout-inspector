@@ -6,12 +6,12 @@ import com.intellij.notification.NotificationType
 
 fun info(msg: String) {
     val noti = NotificationGroup(
-        "myplugin",
+        "YALI",
         NotificationDisplayType.BALLOON, true
     )
     noti.createNotification(
-        "My Title",
-        "My Message",
+        "Info:",
+        msg,
         NotificationType.INFORMATION,
         null
     ).notify(null)

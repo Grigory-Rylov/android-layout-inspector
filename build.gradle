@@ -1,16 +1,25 @@
 plugins {
     id 'java'
     id 'org.jetbrains.intellij' version '0.5.0'
-    id 'org.jetbrains.kotlin.jvm' version '1.4.10'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.10'
 }
 
 group 'com.github.grishberg.android'
-version '21.12.10.0'
+version '22.04.04.1'
 
-sourceCompatibility = 8
-targetCompatibility = 8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 repositories {
+    maven {
+        url=uri("https://www.jetbrains.com/intellij-repository/snapshots/")
+    }
+    maven {
+        url=uri("https://oss.sonatype.org/content/repositories/snapshots/")
+    }
+    maven {
+        url=uri("https://www.jetbrains.com/intellij-repository/releases")
+    }
     mavenCentral()
     maven { url 'https://jitpack.io' }
     maven {
@@ -24,9 +33,9 @@ if (!hasProperty('studioCompilePath')) {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    updateSinceUntilBuild false
+    updateSinceUntilBuild true
     plugins 'android'
-    intellij.localPath = project.hasProperty("studioCompilePath") ? studioCompilePath : studioRunPath
+    version "212-EAP-SNAPSHOT"
 }
 
 runIde {
@@ -58,10 +67,10 @@ dependencies {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
 }
 
 task(verifySetup) {
@@ -75,10 +84,9 @@ task(verifySetup) {
 
 
 patchPluginXml {
+    sinceBuild("211")
+    untilBuild("212.*")
     changeNotes """
-      Fixed screenshot offset in landscape on phones with cutouts.<br>
-      Fix propertie panel invalidation.<br>
-      Copy id by ctrl(cmd) + c.<br>
-      Clear selection after capture new layout.<br>
+      Fixed storing last selected process and window.<br>
       """
 }

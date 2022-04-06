@@ -2,7 +2,6 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 
 
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
-import sun.swing.DefaultLookup
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.FontMetrics
@@ -146,13 +145,13 @@ class ItemViewRenderer(
         // null. As such, if the value is null, this does not reset the
         // value.
         if (!initiated || closedIcon is UIResource) {
-            closedIcon = DefaultLookup.getIcon(this, ui, "Tree.closedIcon")
+            closedIcon = UIManager.getIcon("Tree.closedIcon")
             closedIcon?.let {
                 leafWidth = it.iconWidth
             }
         }
         if (!initiated || openIcon is UIManager) {
-            openIcon = DefaultLookup.getIcon(this, ui, "Tree.openIcon")
+            openIcon = UIManager.getIcon("Tree.openIcon")
         }
     }
 }

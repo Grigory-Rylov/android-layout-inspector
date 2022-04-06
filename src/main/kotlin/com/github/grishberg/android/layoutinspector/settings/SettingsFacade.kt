@@ -13,10 +13,15 @@ interface SettingsFacade {
 
     var ignoreLastClickedView: Boolean
 
+    var lastProcessName: String
+
+    var lastWindowName: String
+
     fun shouldShowSizeInDp(): Boolean
 
     fun showSizeInDp(state: Boolean)
 
     fun shouldStopAdbAfterJob(): Boolean
+
     fun setStopAdbAfterJob(selected: Boolean)
 }

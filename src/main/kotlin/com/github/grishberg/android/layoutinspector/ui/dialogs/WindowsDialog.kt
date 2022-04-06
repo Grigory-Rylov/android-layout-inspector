@@ -3,19 +3,23 @@ package com.github.grishberg.android.layoutinspector.ui.dialogs
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ClientWindow
 import com.github.grishberg.android.layoutinspector.domain.WindowsListInput
+import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Frame
+import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import javax.swing.AbstractAction
 import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JDialog
 import javax.swing.JLabel
 import javax.swing.JList
 import javax.swing.JPanel
+import javax.swing.KeyStroke
 import javax.swing.ListSelectionModel
 
 private const val TITLE = "Select window"
@@ -23,6 +27,7 @@ private const val TAG = "WindowsDialog"
 
 class WindowsDialog(
     private val owner: Frame,
+    private val settings: SettingsFacade,
     private val logger: AppLogger
 ) : JDialog(owner, TITLE, true), WindowsListInput {
     private val clientWindowList: JList<ClientWindow>
@@ -36,15 +41,26 @@ class WindowsDialog(
         val listScroll = JBScrollPane(clientWindowList)
         clientWindowList.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(evt: MouseEvent) {
-                val list = evt.getSource() as JList<*>
                 if (evt.clickCount == 2) { // Double-click detected
                     isVisible = false
                 }
+            }
+        })
+
+        clientWindowList.getInputMap(JBList.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("ENTER"), "start")
+        clientWindowList.actionMap.put("start", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
                 if (clientWindowList.selectedIndex >= 0) {
-                    startButton.isEnabled = true
+                    isVisible = false
                 }
             }
         })
+
+        clientWindowList.addListSelectionListener {
+            if (clientWindowList.selectedIndex >= 0) {
+                startButton.isEnabled = true
+            }
+        }
 
         startButton.addActionListener {
             isVisible = false
@@ -66,16 +82,25 @@ class WindowsDialog(
 
         clientWindowListModel.clear()
 
-        for (w in windows) {
-            clientWindowListModel.addElement(w)
-            logger.d("$TAG found window $w")
+        var selectedIndex = -1
+        for (index in windows.indices) {
+            val window = windows[index]
+            clientWindowListModel.addElement(window)
+            if (window.displayName == settings.lastWindowName) {
+                selectedIndex = index
+            }
+            logger.d("$TAG found window $window")
         }
         setLocationRelativeTo(owner)
         startButton.isEnabled = false
+        if (selectedIndex >= 0) {
+            clientWindowList.selectedIndex = selectedIndex
+        }
         isVisible = true
 
-
         logger.d("$TAG dialog is closed")
-        return clientWindowListModel[clientWindowList.selectedIndex]
+        val selectedWindow = clientWindowListModel[clientWindowList.selectedIndex]
+        settings.lastWindowName = selectedWindow?.displayName ?: ""
+        return selectedWindow
     }
 }
