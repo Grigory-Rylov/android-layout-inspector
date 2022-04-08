@@ -171,7 +171,7 @@ class Main(
         contentPane = mainPanel
         pack()
 
-        windowsDialog = WindowsDialog(this, logger)
+        windowsDialog = WindowsDialog(this, settingsFacade, logger)
         clientWindowsProvider = ClientWindowsProvider(logger)
 
         val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settingsFacade)

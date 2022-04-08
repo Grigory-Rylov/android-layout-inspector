@@ -1,14 +1,8 @@
 package com.github.grishberg.androidstudio.plugins
 
-import com.android.ddmlib.AdbCommandRejectedException
-import com.android.ddmlib.IDevice
-import com.android.ddmlib.ShellCommandUnresponsiveException
-import com.android.ddmlib.TimeoutException
 import com.android.tools.idea.gradle.project.sync.GradleSyncState
 import com.intellij.openapi.project.Project
 import org.joor.Reflect
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 class AsUtils {
     // The android debugger class is not available in Intellij 2016.1.

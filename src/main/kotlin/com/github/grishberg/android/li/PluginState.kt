@@ -17,6 +17,10 @@ class PluginState : SettingsFacade {
 
     override var ignoreLastClickedView: Boolean = false
 
+    override var lastProcessName: String = ""
+
+    override var lastWindowName: String = ""
+
     override fun shouldShowSizeInDp(): Boolean = shouldShowSizeInDp
 
     override fun showSizeInDp(state: Boolean) {
@@ -24,5 +28,6 @@ class PluginState : SettingsFacade {
     }
 
     override fun shouldStopAdbAfterJob(): Boolean = false
+
     override fun setStopAdbAfterJob(selected: Boolean) = Unit
 }
