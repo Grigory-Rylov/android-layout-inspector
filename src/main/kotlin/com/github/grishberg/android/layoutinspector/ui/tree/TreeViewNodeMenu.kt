@@ -22,6 +22,7 @@ class TreeViewNodeMenu(
 ) : JPopupMenu() {
     private val addToBookmark = JMenuItem("Add to bookmarks")
     private val editBookmark = JMenuItem("Edit bookmark")
+    private val deleteBookmark = JMenuItem("Delete bookmark")
     private val calculateDistance = JMenuItem("Calculate distance")
     private val hideView = JMenuItem("Hide from layout")
     private val removeFromHidden = JMenuItem("Show on layout")
@@ -47,6 +48,7 @@ class TreeViewNodeMenu(
             add(addToBookmark)
         } else {
             add(editBookmark)
+
             editBookmark.addActionListener {
                 val bookmarksDialog = NewBookmarkDialog(owner, selectedViewNode)
                 bookmarksDialog.showEditDialog(existingBookmarkInfo)
@@ -54,9 +56,12 @@ class TreeViewNodeMenu(
                 bookmarksDialog.result?.let {
                     bookmarks.edit(existingBookmarkInfo, it)
                 }
-                bookmarks
             }
 
+            add(deleteBookmark)
+            deleteBookmark.addActionListener {
+                bookmarks.remove(existingBookmarkInfo)
+            }
         }
 
         if (meta.shouldHideInLayout(selectedViewNode)) {
