@@ -67,11 +67,7 @@ class NodeViewTreeCellRenderer(
         }
 
         val defaultTextForeground = text1Foreground.textForeground(selected, hovered, highlighted, visible)
-        val foreground1 = if (selected) {
-            defaultTextForeground
-        } else {
-            bookmarks.getForegroundForItem(value, defaultTextForeground)
-        }
+        val foreground1 = bookmarks.getForegroundForItem(value, defaultTextForeground)
 
         val foreground2 = text2Foreground.textForeground(selected, hovered, highlighted, visible)
         itemRenderer.setForeground(foreground1, foreground2)
@@ -94,6 +90,8 @@ class NodeViewTreeCellRenderer(
 
         return itemRenderer
     }
+
+    private fun createSelectedColor(color: Color) = lighter(color, 0.5f)
 
     private fun titleColor(colorWithoutAlpha: Color): Color {
         val y =
@@ -166,4 +164,23 @@ class NodeViewTreeCellRenderer(
         return theme.viewIcon
     }
 
+    fun lighter(color: Color, ratio: Float): Color {
+        return mergeColors(Color.WHITE, ratio, color, 1 - ratio)
+    }
+
+    /**
+     * Merges two colors. The two floating point arguments specify "how much" of the corresponding color is added to the
+     * resulting color. Both arguments should (but don't have to) add to `1.0`.
+     *
+     *
+     * This method is null-safe. If one of the given colors is `null`, the other color is returned (unchanged).
+     */
+    fun mergeColors(a: Color, fa: Float, b: Color, fb: Float): Color {
+
+        return Color(
+            (fa * a.red + fb * b.red) / (fa + fb) / 255f,
+            (fa * a.green + fb * b.green) / (fa + fb) / 255f,
+            (fa * a.blue + fb * b.blue) / (fa + fb) / 255f
+        )
+    }
 }
