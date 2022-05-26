@@ -37,6 +37,7 @@ class NewBookmarkDialog(
         content.add(colorChooser, BorderLayout.CENTER)
 
         val okButton = JButton("OK")
+        getRootPane().defaultButton = okButton
         content.add(okButton, BorderLayout.PAGE_END)
         okButton.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
