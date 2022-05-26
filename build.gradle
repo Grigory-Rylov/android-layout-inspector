@@ -85,6 +85,8 @@ patchPluginXml {
     sinceBuild("211")
     untilBuild("212.*")
     changeNotes """
-      Fixed storing last selected process and window.<br>
+      New properties panel with filer.<br>
+      Fixed removing bookmarks.<br>
+      Fixed showing bookmarks under selection.<br>
       """
 }
