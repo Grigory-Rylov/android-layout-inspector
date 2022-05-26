@@ -35,6 +35,10 @@ class MaterialLiteColors : ThemeColors {
     override val foundTextColor = Color(204, 42, 49)
     override val selectedFoundTextColor = primaryColor
 
+    override val groupForeground = Color(177, 177, 177)
+    override val groupBackground = Color(69, 72, 74)
+    override val propertiesPanelHovered = treeBackground
+    override val propertiesPanelBackground = treeBackground
 
     private val iconsStore = IconsStore()
 

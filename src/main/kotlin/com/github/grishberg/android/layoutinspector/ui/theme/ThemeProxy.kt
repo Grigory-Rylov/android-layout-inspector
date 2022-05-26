@@ -109,6 +109,18 @@ class ThemeProxy : ThemeColors {
     override val viewIcon: ImageIcon
         get() = currentTheme.nestedScrollViewIcon
 
+    override val groupForeground: Color
+        get() = currentTheme.groupForeground
+
+    override val groupBackground: Color
+        get() = currentTheme.groupBackground
+
+    override val propertiesPanelHovered: Color
+        get() = currentTheme.propertiesPanelHovered
+
+    override val propertiesPanelBackground: Color
+        get() = currentTheme.propertiesPanelBackground
+
     private val actions = mutableListOf<() -> Unit>()
 
     override fun addColorChangedAction(action: () -> Unit) {

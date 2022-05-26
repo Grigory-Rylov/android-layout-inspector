@@ -31,6 +31,11 @@ class MaterialDarkColors : ThemeColors {
     override val foundTextColor = errorColor
     override val selectedFoundTextColor = primaryColor
 
+    override val groupForeground = Color(187, 187, 187)
+    override val groupBackground = Color(86, 86, 86)
+    override val propertiesPanelHovered = Color(70, 70, 70)
+    override val propertiesPanelBackground= Color(44, 44, 44)
+
     private val iconsStore = IconsStore()
     override val textIcon = iconsStore.createImageIcon("/icons/dark/text.png")
     override val fabIcon = iconsStore.createImageIcon("/icons/dark/fab.png")

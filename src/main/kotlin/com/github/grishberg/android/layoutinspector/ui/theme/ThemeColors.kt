@@ -20,6 +20,12 @@ interface ThemeColors {
     val hoveredForeground1: Color
     val hoveredForeground2: Color
 
+    val groupForeground: Color
+    val groupBackground: Color
+
+    val propertiesPanelHovered: Color
+    val propertiesPanelBackground: Color
+
     val selectionHiddenForeground1: Color
     val selectionHiddenForeground2: Color
     val foundTextColor: Color
