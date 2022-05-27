@@ -4,6 +4,8 @@ import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
 import com.github.grishberg.android.layoutinspector.ui.info.RowInfoImpl
+import com.github.grishberg.android.layoutinspector.ui.info.flat.filter.FilterView
+import com.github.grishberg.android.layoutinspector.ui.info.flat.filter.PropertiesTableFilter
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -14,27 +16,25 @@ import java.awt.event.ActionListener
 import java.awt.event.KeyEvent
 import java.util.regex.PatternSyntaxException
 import javax.swing.JComponent
-import javax.swing.JLabel
 import javax.swing.JOptionPane
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.JTable
-import javax.swing.JTextField
 import javax.swing.KeyStroke
 import javax.swing.ListSelectionModel
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
 import javax.swing.table.TableRowSorter
 
 class FlatPropertiesWithFilterPanel(
     private val meta: MetaRepository,
     themeColors: ThemeColors,
+    filterView: FilterView,
 ) : JPanel(), PropertiesPanel {
     private var currentNode: ViewNode? = null
     private var sorter: TableRowSorter<FlatGroupTableModel>
     private val table: JTable
     private var sizeInDp = false
     private val model = FlatGroupTableModel(emptyMap())
+
 
     init {
         layout = BorderLayout()
@@ -46,8 +46,6 @@ class FlatPropertiesWithFilterPanel(
         table.rowSorter = sorter
 
         val scrollPane = JScrollPane(table)
-        //scrollPane.setBounds(5, 10, 300, 150)
-// Force the scrollbars to always be displayed
         scrollPane.setHorizontalScrollBarPolicy(
             JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS
         )
@@ -74,40 +72,16 @@ class FlatPropertiesWithFilterPanel(
         table.registerKeyboardAction(CopyAction(), "Copy", copyStroke, JComponent.WHEN_FOCUSED)
 
         add(scrollPane, BorderLayout.CENTER)
-        add(createFilterPanel(), BorderLayout.NORTH)
+        add(filterView.component, BorderLayout.NORTH)
 
+        filterView.setOnTextChangedListener {
+            filter(it)
+        }
 
         this.preferredSize = Dimension(
             table.preferredSize.width,
             table.preferredSize.height + 85
         )
-    }
-
-    private fun createFilterPanel(): JPanel {
-        val panel = JPanel(BorderLayout())
-        val label = JLabel("Filter")
-        panel.add(label, BorderLayout.WEST);
-        val filterText = JTextField("")
-        panel.add(filterText, BorderLayout.CENTER)
-
-        filterText.document.addDocumentListener(object : DocumentListener {
-            override fun changedUpdate(e: DocumentEvent) {
-                onTextChanged()
-            }
-
-            override fun removeUpdate(e: DocumentEvent) {
-                onTextChanged()
-            }
-
-            override fun insertUpdate(e: DocumentEvent) {
-                onTextChanged()
-            }
-
-            private fun onTextChanged() {
-                filter(filterText.text)
-            }
-        })
-        return panel
     }
 
     private fun filter(text: String) {

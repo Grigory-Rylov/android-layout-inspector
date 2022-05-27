@@ -83,9 +83,8 @@ task(verifySetup) {
 
 patchPluginXml {
     sinceBuild("211")
-    untilBuild("212.*")
     changeNotes """
-      New properties panel with filer.<br>
+      New properties panel with filter.<br>
       Fixed removing bookmarks.<br>
       Fixed showing bookmarks under selection.<br>
       """

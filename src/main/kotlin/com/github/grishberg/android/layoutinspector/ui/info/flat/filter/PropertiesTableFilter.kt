@@ -1,5 +1,7 @@
-package com.github.grishberg.android.layoutinspector.ui.info.flat
+package com.github.grishberg.android.layoutinspector.ui.info.flat.filter
 
+import com.github.grishberg.android.layoutinspector.ui.info.flat.FlatGroupTableModel
+import com.github.grishberg.android.layoutinspector.ui.info.flat.TableValue
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import javax.swing.RowFilter

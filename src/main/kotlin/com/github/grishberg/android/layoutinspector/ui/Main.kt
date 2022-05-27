@@ -23,8 +23,9 @@ import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialogClos
 import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.WindowsDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
-import com.github.grishberg.android.layoutinspector.ui.info.flat.FlatPropertiesWithFilterPanel
 import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
+import com.github.grishberg.android.layoutinspector.ui.info.flat.FlatPropertiesWithFilterPanel
+import com.github.grishberg.android.layoutinspector.ui.info.flat.filter.SimpleFilterTextView
 import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
@@ -133,7 +134,7 @@ class Main(
 
         layoutPanel = LayoutPanel(metaRepository, settingsFacade)
         treePanel = TreePanel(this, themeProxy, metaRepository, bookmarks, main = this)
-        propertiesPanel = FlatPropertiesWithFilterPanel(metaRepository, themeProxy)
+        propertiesPanel = FlatPropertiesWithFilterPanel(metaRepository, themeProxy, SimpleFilterTextView())
         propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
         layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
 
