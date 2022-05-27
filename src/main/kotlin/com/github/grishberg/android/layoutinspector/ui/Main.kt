@@ -134,7 +134,7 @@ class Main(
 
         layoutPanel = LayoutPanel(metaRepository, settingsFacade)
         treePanel = TreePanel(this, themeProxy, metaRepository, bookmarks, main = this)
-        propertiesPanel = FlatPropertiesWithFilterPanel(metaRepository, themeProxy, SimpleFilterTextView())
+        propertiesPanel = FlatPropertiesWithFilterPanel(metaRepository, themeProxy, SimpleFilterTextView(settingsFacade))
         propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
         layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
 

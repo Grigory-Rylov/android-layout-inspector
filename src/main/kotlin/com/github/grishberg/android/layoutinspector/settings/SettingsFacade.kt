@@ -17,6 +17,8 @@ interface SettingsFacade {
 
     var lastWindowName: String
 
+    var lastFilter: String
+
     fun shouldShowSizeInDp(): Boolean
 
     fun showSizeInDp(state: Boolean)

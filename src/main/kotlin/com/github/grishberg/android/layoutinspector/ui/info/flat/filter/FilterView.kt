@@ -5,7 +5,7 @@ import java.awt.Component
 interface FilterView {
     val component: Component
 
-    fun getFilterText(): String
+    val filterText: String
 
     fun setOnTextChangedListener(listener: (String) -> Unit)
 }

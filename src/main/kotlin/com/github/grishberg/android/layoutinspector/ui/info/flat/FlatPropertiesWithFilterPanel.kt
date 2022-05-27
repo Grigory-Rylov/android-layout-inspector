@@ -27,7 +27,7 @@ import javax.swing.table.TableRowSorter
 class FlatPropertiesWithFilterPanel(
     private val meta: MetaRepository,
     themeColors: ThemeColors,
-    filterView: FilterView,
+    private val filterView: FilterView,
 ) : JPanel(), PropertiesPanel {
     private var currentNode: ViewNode? = null
     private var sorter: TableRowSorter<FlatGroupTableModel>
@@ -103,6 +103,9 @@ class FlatPropertiesWithFilterPanel(
         currentNode = node
         val createPropertiesData = createPropertiesData(node)
         model.updateData(createPropertiesData)
+        if (filterView.filterText.isNotEmpty()) {
+            filter(filterView.filterText)
+        }
         table.repaint()
     }
 

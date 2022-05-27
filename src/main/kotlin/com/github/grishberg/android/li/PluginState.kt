@@ -21,6 +21,8 @@ class PluginState : SettingsFacade {
 
     override var lastWindowName: String = ""
 
+    override var lastFilter: String = ""
+
     override fun shouldShowSizeInDp(): Boolean = shouldShowSizeInDp
 
     override fun showSizeInDp(state: Boolean) {

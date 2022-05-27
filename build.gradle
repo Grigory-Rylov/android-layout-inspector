@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '22.05.26'
+version '22.05.27'
 
 sourceCompatibility = 11
 targetCompatibility = 11
@@ -85,6 +85,8 @@ patchPluginXml {
     sinceBuild("211")
     changeNotes """
       New properties panel with filter.<br>
+      Store last filter word.<br>
+      Added clear filter button.<br>
       Fixed removing bookmarks.<br>
       Fixed showing bookmarks under selection.<br>
       """
