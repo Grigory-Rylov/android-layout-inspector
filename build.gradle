@@ -85,5 +85,6 @@ patchPluginXml {
     sinceBuild("211")
     changeNotes """
       Added summary group to properties panel with x, y, width, height.<br>
+      Fixed properties panel groups height.<br>
       """
 }
