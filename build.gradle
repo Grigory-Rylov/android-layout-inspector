@@ -5,20 +5,20 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '22.05.27'
+version '22.06.17.0'
 
 sourceCompatibility = 11
 targetCompatibility = 11
 
 repositories {
     maven {
-        url=uri("https://www.jetbrains.com/intellij-repository/snapshots/")
+        url = uri("https://www.jetbrains.com/intellij-repository/snapshots/")
     }
     maven {
-        url=uri("https://oss.sonatype.org/content/repositories/snapshots/")
+        url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
     }
     maven {
-        url=uri("https://www.jetbrains.com/intellij-repository/releases")
+        url = uri("https://www.jetbrains.com/intellij-repository/releases")
     }
     mavenCentral()
     maven { url 'https://jitpack.io' }
@@ -84,10 +84,6 @@ task(verifySetup) {
 patchPluginXml {
     sinceBuild("211")
     changeNotes """
-      New properties panel with filter.<br>
-      Store last filter word.<br>
-      Added clear filter button.<br>
-      Fixed removing bookmarks.<br>
-      Fixed showing bookmarks under selection.<br>
+      Added summary group to properties panel with x, y, width, height.<br>
       """
 }

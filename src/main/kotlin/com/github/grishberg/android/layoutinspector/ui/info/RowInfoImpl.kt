@@ -10,10 +10,11 @@ import java.text.DecimalFormat
 data class RowInfoImpl(
     private val property: ViewProperty,
     private val sizeInDp: Boolean,
-    private val dpPerPixels: Double
+    private val dpPerPixels: Double,
+    private val alterName: String? = null
 ) {
 
-    fun name() = property.name
+    fun name() = alterName ?: property.name
 
     fun value(): String {
 

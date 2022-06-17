@@ -89,6 +89,7 @@ class LayoutPanel(
         logic.showLayoutResult(layoutData)
         fitZoom()
         repaint()
+        invalidate()
     }
 
     fun selectNode(viewNode: ViewNode) {

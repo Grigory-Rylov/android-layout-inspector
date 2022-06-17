@@ -111,6 +111,7 @@ class FlatPropertiesWithFilterPanel(
 
     private fun createPropertiesData(node: ViewNode): Map<String, List<RowInfoImpl>> {
         val result = mutableMapOf<String, List<RowInfoImpl>>()
+        createSummary(result, node)
         for (entry in node.groupedProperties) {
 
             val rows = mutableListOf<RowInfoImpl>()
@@ -120,6 +121,29 @@ class FlatPropertiesWithFilterPanel(
             result[entry.key] = rows
         }
         return result
+    }
+
+    private fun createSummary(result: MutableMap<String, List<RowInfoImpl>>, node: ViewNode) {
+        val widthProperty = node.getProperty("measurement:mMeasuredWidth")
+        val heightProperty = node.getProperty("measurement:mMeasuredHeight")
+        val xProperty = node.getProperty("layout:getLocationOnScreen_x()")
+        val yProperty = node.getProperty("layout:getLocationOnScreen_y()")
+
+        val rows = mutableListOf<RowInfoImpl>()
+        xProperty?.let {
+            rows.add(RowInfoImpl(it, sizeInDp, meta.dpPerPixels, "x"))
+        }
+        yProperty?.let {
+            rows.add(RowInfoImpl(it, sizeInDp, meta.dpPerPixels, "y"))
+        }
+        widthProperty?.let {
+            rows.add(RowInfoImpl(it, sizeInDp, meta.dpPerPixels, "width"))
+        }
+        heightProperty?.let {
+            rows.add(RowInfoImpl(it, sizeInDp, meta.dpPerPixels, "height"))
+        }
+
+        result["Summary"] = rows
     }
 
     override fun setSizeDpMode(enabled: Boolean) {

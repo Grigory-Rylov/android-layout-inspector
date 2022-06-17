@@ -164,6 +164,7 @@ class TreePanel(
         resultOutput.node?.let {
             model = ViewNodeTreeModel(it)
             expandAllNodes(this)
+            invalidate()
         }
     }
 
