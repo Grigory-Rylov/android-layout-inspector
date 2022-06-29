@@ -9,4 +9,6 @@ interface PropertiesPanel {
     fun showProperties(node: ViewNode)
 
     fun setSizeDpMode(enabled: Boolean)
+
+    fun roundDp(enabled: Boolean)
 }

@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '22.06.17.0'
+version '22.06.29.0'
 
 sourceCompatibility = 11
 targetCompatibility = 11
@@ -84,7 +84,6 @@ task(verifySetup) {
 patchPluginXml {
     sinceBuild("211")
     changeNotes """
-      Added summary group to properties panel with x, y, width, height.<br>
-      Fixed properties panel groups height.<br>
+      Added 'Round dimensions' menu item to settings.<br>
       """
 }

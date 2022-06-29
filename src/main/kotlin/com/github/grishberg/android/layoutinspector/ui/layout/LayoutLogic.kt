@@ -412,6 +412,14 @@ class LayoutLogic(
         recalculateDistanceAction?.recalculate()
     }
 
+    fun roundDp() {
+        if (!distances.sizeInDpEnabled) {
+            return
+        }
+
+        recalculateDistanceAction?.recalculate()
+    }
+
     fun onMouseRightMove(tranformed: Point2D) {
         clearSkippedTouches()
 

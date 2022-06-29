@@ -2,6 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.info.flat
 
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
+import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
 import com.github.grishberg.android.layoutinspector.ui.info.RowInfoImpl
 import com.github.grishberg.android.layoutinspector.ui.info.flat.filter.FilterView
@@ -26,6 +27,7 @@ import javax.swing.table.TableRowSorter
 
 class FlatPropertiesWithFilterPanel(
     private val meta: MetaRepository,
+    settings: SettingsFacade,
     themeColors: ThemeColors,
     private val filterView: FilterView,
 ) : JPanel(), PropertiesPanel {
@@ -33,6 +35,7 @@ class FlatPropertiesWithFilterPanel(
     private var sorter: TableRowSorter<FlatGroupTableModel>
     private val table: JTable
     private var sizeInDp = false
+    private var shouldRoundDp = settings.roundDimensions
     private val model = FlatGroupTableModel(emptyMap())
 
 
@@ -116,7 +119,7 @@ class FlatPropertiesWithFilterPanel(
 
             val rows = mutableListOf<RowInfoImpl>()
             for (property in entry.value) {
-                rows.add(RowInfoImpl(property, sizeInDp, meta.dpPerPixels))
+                rows.add(RowInfoImpl(property, sizeInDp, shouldRoundDp, meta.dpPerPixels))
             }
             result[entry.key] = rows
         }
@@ -131,16 +134,16 @@ class FlatPropertiesWithFilterPanel(
 
         val rows = mutableListOf<RowInfoImpl>()
         xProperty?.let {
-            rows.add(RowInfoImpl(it, sizeInDp, meta.dpPerPixels, "x"))
+            rows.add(RowInfoImpl(it, sizeInDp, shouldRoundDp, meta.dpPerPixels, "x"))
         }
         yProperty?.let {
-            rows.add(RowInfoImpl(it, sizeInDp, meta.dpPerPixels, "y"))
+            rows.add(RowInfoImpl(it, sizeInDp, shouldRoundDp, meta.dpPerPixels, "y"))
         }
         widthProperty?.let {
-            rows.add(RowInfoImpl(it, sizeInDp, meta.dpPerPixels, "width"))
+            rows.add(RowInfoImpl(it, sizeInDp, shouldRoundDp, meta.dpPerPixels, "width"))
         }
         heightProperty?.let {
-            rows.add(RowInfoImpl(it, sizeInDp, meta.dpPerPixels, "height"))
+            rows.add(RowInfoImpl(it, sizeInDp, shouldRoundDp, meta.dpPerPixels, "height"))
         }
 
         result["Summary"] = rows
@@ -150,6 +153,16 @@ class FlatPropertiesWithFilterPanel(
         val shouldInvalidate = sizeInDp != enabled
         sizeInDp = enabled
         if (shouldInvalidate) {
+            currentNode?.let {
+                table.model = FlatGroupTableModel(createPropertiesData(it))
+            }
+        }
+    }
+
+    override fun roundDp(enabled: Boolean) {
+        val shouldInvalidate = shouldRoundDp != enabled
+        shouldRoundDp = enabled
+        if (shouldInvalidate && sizeInDp) {
             currentNode?.let {
                 table.model = FlatGroupTableModel(createPropertiesData(it))
             }

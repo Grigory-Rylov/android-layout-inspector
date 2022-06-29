@@ -17,6 +17,8 @@ class PluginState : SettingsFacade {
 
     override var ignoreLastClickedView: Boolean = false
 
+    override var roundDimensions: Boolean = true
+
     override var lastProcessName: String = ""
 
     override var lastWindowName: String = ""

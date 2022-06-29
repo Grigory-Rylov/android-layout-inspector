@@ -10,6 +10,7 @@ import java.text.DecimalFormat
 data class RowInfoImpl(
     private val property: ViewProperty,
     private val sizeInDp: Boolean,
+    private val roundDp: Boolean,
     private val dpPerPixels: Double,
     private val alterName: String? = null
 ) {
@@ -29,7 +30,7 @@ data class RowInfoImpl(
     }
 
     private fun roundOffDecimal(number: Double): String {
-        val df = DecimalFormat("#.##")
+        val df = DecimalFormat(if (roundDp) "#" else "#.##")
         df.roundingMode = RoundingMode.CEILING
         return df.format(number)
     }

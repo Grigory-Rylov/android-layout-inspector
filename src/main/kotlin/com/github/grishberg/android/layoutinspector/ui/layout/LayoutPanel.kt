@@ -156,6 +156,11 @@ class LayoutPanel(
         logic.setSizeDpMode(sizeInDpEnabled)
     }
 
+
+    fun roundDp() {
+        logic.roundDp()
+    }
+
     fun hasSelection() = logic.hasSelection()
 
     fun removeSelection() {

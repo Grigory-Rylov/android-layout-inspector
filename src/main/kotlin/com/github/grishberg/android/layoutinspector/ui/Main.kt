@@ -64,6 +64,7 @@ import javax.swing.KeyStroke
 import javax.swing.SwingConstants
 import javax.swing.border.BevelBorder
 import javax.swing.filechooser.FileNameExtensionFilter
+import kotlin.math.roundToInt
 
 
 private const val INITIAL_SCREEN_WIDTH = 1024
@@ -134,7 +135,12 @@ class Main(
 
         layoutPanel = LayoutPanel(metaRepository, settingsFacade)
         treePanel = TreePanel(this, themeProxy, metaRepository, bookmarks, main = this)
-        propertiesPanel = FlatPropertiesWithFilterPanel(metaRepository, themeProxy, SimpleFilterTextView(settingsFacade))
+        propertiesPanel = FlatPropertiesWithFilterPanel(
+            metaRepository,
+            settingsFacade,
+            themeProxy,
+            SimpleFilterTextView(settingsFacade)
+        )
         propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
         layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
 
@@ -375,14 +381,29 @@ class Main(
         }
         settingsMenu.add(allowSelectNotDrawnView)
 
-        val ignoreLastClickedView = JCheckBoxMenuItem("Skip last clicked view on next click")
+        val ignoreLastClickedView = JCheckBoxMenuItem("Select parent view on next click")
         ignoreLastClickedView.isSelected = settingsFacade.ignoreLastClickedView
         ignoreLastClickedView.addActionListener { e ->
             val aButton = e.source as AbstractButton
             settingsFacade.ignoreLastClickedView = aButton.model.isSelected
         }
         settingsMenu.add(ignoreLastClickedView)
+
+
+        val roundDimensions = JCheckBoxMenuItem("Round dimensions")
+        roundDimensions.isSelected = settingsFacade.roundDimensions
+        roundDimensions.addActionListener { e ->
+            val aButton = e.source as AbstractButton
+            settingsFacade.roundDimensions = aButton.model.isSelected
+            invalidateDimensions()
+        }
+        settingsMenu.add(roundDimensions)
         return settingsMenu
+    }
+
+    private fun invalidateDimensions() {
+        propertiesPanel.roundDp(settingsFacade.roundDimensions)
+        layoutPanel.roundDp()
     }
 
     private fun setSizeDpMode(enabled: Boolean) {
@@ -472,7 +493,11 @@ class Main(
                     DistanceType.BOTTOM -> sb.append("bottom = ")
                 }
                 if (settingsFacade.shouldShowSizeInDp()) {
-                    sb.append("%.2f".format(dimen.value))
+                    if (settingsFacade.roundDimensions) {
+                        sb.append("${dimen.value.roundToInt()}")
+                    } else {
+                        sb.append("%.2f".format(dimen.value))
+                    }
                 } else {
                     sb.append("${dimen.value.toInt()}")
                 }

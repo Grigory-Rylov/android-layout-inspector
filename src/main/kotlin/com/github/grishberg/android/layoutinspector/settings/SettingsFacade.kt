@@ -13,6 +13,8 @@ interface SettingsFacade {
 
     var ignoreLastClickedView: Boolean
 
+    var roundDimensions: Boolean
+
     var lastProcessName: String
 
     var lastWindowName: String
