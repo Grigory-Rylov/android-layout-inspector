@@ -101,15 +101,15 @@ object ViewNodeParser {
         if (delimIndex < 0) {
             throw IllegalArgumentException("Invalid format for ViewNode, missing @: $data")
         }
-        var name = data.substring(0, delimIndex)
+        val name = data.substring(0, delimIndex)
         data = data.substring(delimIndex + 1)
         delimIndex = data.indexOf(' ')
         val hash = data.substring(0, delimIndex)
         val node = ViewNode(parent, name, hash)
-        node.index = if (parent == null) 0 else parent!!.children.size
+        node.index = parent?.children?.size ?: 0
         if (data.length > delimIndex + 1) {
             loadProperties(node, data.substring(delimIndex + 1), skippedProperties)
-            node.id = node.getProperty("mID", "id")!!.value
+            node.id = node.getProperty("mID", "id")?.value
         }
         node.displayInfo = DisplayInfoFactory.createDisplayInfoFromNode(node)
         parent?.let {

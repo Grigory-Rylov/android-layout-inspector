@@ -44,7 +44,7 @@ object LayoutFileDataParser {
     ): LayoutFileData {
         val bufferedImage: BufferedImage?
         var node: ViewNode? = null
-        var options = LayoutInspectorCaptureOptions()
+        val options = LayoutInspectorCaptureOptions()
         var previewBytes = ByteArray(0)
         ObjectInputStream(ByteArrayInputStream(bytes)).use { input ->
             // Parse options

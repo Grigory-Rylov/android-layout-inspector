@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '22.06.29.0'
+version '22.07.06.0'
 
 sourceCompatibility = 11
 targetCompatibility = 11
@@ -35,7 +35,7 @@ if (!hasProperty('studioCompilePath')) {
 intellij {
     updateSinceUntilBuild true
     plugins 'android'
-    version "212-EAP-SNAPSHOT"
+    version "213-EAP-SNAPSHOT"
 }
 
 runIde {
@@ -84,6 +84,7 @@ task(verifySetup) {
 patchPluginXml {
     sinceBuild("211")
     changeNotes """
-      Added 'Round dimensions' menu item to settings.<br>
+      Enable "Select parent view on next click" feature by default.<br>
+      Force use protocol level 2.<br>
       """
 }

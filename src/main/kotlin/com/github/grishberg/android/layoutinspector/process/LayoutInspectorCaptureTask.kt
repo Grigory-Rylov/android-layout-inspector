@@ -25,8 +25,7 @@ class LayoutInspectorCaptureTask(
 
             try {
                 val version: ProtocolVersion = determineProtocolVersion(
-                    client.device.version.apiLevel,
-                    StudioFlags.LAYOUT_INSPECTOR_V2_PROTOCOL_ENABLED.get()
+                    client.device.version.apiLevel, true
                 )
                 val options = LayoutInspectorCaptureOptions()
                 options.version = version
