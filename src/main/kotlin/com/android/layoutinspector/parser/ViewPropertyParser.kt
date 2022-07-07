@@ -26,7 +26,14 @@ object ViewPropertyParser {
         "measurement:mMeasuredHeight", "measurement:mMeasuredWidth", "measurement:mMinHeight", "measurement:mMinWidth",
         "measurement:getMeasuredHeightAndState()", "measurement:getMeasuredWidthAndState()",
         "drawing:getPivotX()", "drawing:getPivotY()", "drawing:getTranslationX()", "drawing:getTranslationY()",
-        "drawing:getTranslationZ()", "drawing:getX()", "drawing:getY()", "drawing:getZ()"
+        "drawing:getTranslationZ()", "drawing:getX()", "drawing:getY()", "drawing:getZ()",
+// protocol v2
+        "layout:left", "layout:right",
+        "layout:bottom", "layout:top",
+        "layout:width", "layout:height",
+        "measurement:measuredWidth", "measurement:minWidth", "measurement:measuredHeight", "measurement:minHeight",
+        "drawing:translationX", "drawing:translationY", "drawing:translationZ",
+        "drawing:pivotX", "drawing:pivotY"
     )
 
     fun parse(propertyFullName: String, value: String): ViewProperty {

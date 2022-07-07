@@ -86,9 +86,7 @@ object LayoutInspectorBridge {
             )
         } finally {
             try {
-                if (output != null) {
-                    output.close()
-                }
+                output?.close()
             } catch (e: IOException) {
                 return LayoutInspectorResult(
                     null,

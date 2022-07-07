@@ -215,8 +215,12 @@ class LayoutLogic(
         if (node == null) {
             return
         }
-        val left = node.namedProperties[LOCATION_X_PROPERTY_NAME]?.intValue ?: node.displayInfo.left + parentLeft
-        val top = node.namedProperties[LOCATION_Y_PROPERTY_NAME]?.intValue ?: node.displayInfo.top + parentTop
+        val translateX = node.displayInfo.translateX
+        val translateY = node.displayInfo.translateY
+        val left = node.namedProperties[LOCATION_X_PROPERTY_NAME]?.intValue
+            ?: (node.displayInfo.left + parentLeft + translateX).toInt()
+        val top = node.namedProperties[LOCATION_Y_PROPERTY_NAME]?.intValue
+            ?: (node.displayInfo.top + parentTop + translateY).toInt()
         val children = mutableListOf<LayoutModel>()
         val rect = Rectangle(left, top, node.displayInfo.width, node.displayInfo.height)
         val newLayoutModel = LayoutModel(rect, node, children)
