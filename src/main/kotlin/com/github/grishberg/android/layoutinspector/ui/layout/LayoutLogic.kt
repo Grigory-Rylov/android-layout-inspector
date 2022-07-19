@@ -22,8 +22,6 @@ import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.round
 
-private const val LOCATION_X_PROPERTY_NAME = "layout:getLocationOnScreen_x()"
-private const val LOCATION_Y_PROPERTY_NAME = "layout:getLocationOnScreen_y()"
 
 class LayoutLogic(
     private val panel: JPanel,
@@ -178,10 +176,10 @@ class LayoutLogic(
         layoutModelRoots.clear()
 
         layoutData.node?.let { node ->
-            screenshotOffsetX = node.namedProperties[LOCATION_X_PROPERTY_NAME]?.intValue ?: node.displayInfo.left
-            screenshotOffsetY = node.namedProperties[LOCATION_Y_PROPERTY_NAME]?.intValue ?: node.displayInfo.top
+            screenshotOffsetX = node.locationOnScreenX
+            screenshotOffsetY = node.locationOnScreenY
         }
-        addFromViewNode(layoutModelRoots, layoutData.node, 0, 0)
+        addFromViewNode(layoutModelRoots, layoutData.node)
     }
 
     private fun toCompatibleImage(image: BufferedImage): BufferedImage {
@@ -209,18 +207,13 @@ class LayoutLogic(
     private fun addFromViewNode(
         parentsChildren: MutableList<LayoutModel>,
         node: ViewNode?,
-        parentLeft: Int,
-        parentTop: Int
     ) {
         if (node == null) {
             return
         }
-        val translateX = node.displayInfo.translateX
-        val translateY = node.displayInfo.translateY
-        val left = node.namedProperties[LOCATION_X_PROPERTY_NAME]?.intValue
-            ?: (node.displayInfo.left + parentLeft + translateX).toInt()
-        val top = node.namedProperties[LOCATION_Y_PROPERTY_NAME]?.intValue
-            ?: (node.displayInfo.top + parentTop + translateY).toInt()
+
+        val left = node.locationOnScreenX
+        val top = node.locationOnScreenY
         val children = mutableListOf<LayoutModel>()
         val rect = Rectangle(left, top, node.displayInfo.width, node.displayInfo.height)
         val newLayoutModel = LayoutModel(rect, node, children)
@@ -235,7 +228,7 @@ class LayoutLogic(
 
         val count = node.childCount
         for (i in 0 until count) {
-            addFromViewNode(children, node.getChildAt(i), left, top)
+            addFromViewNode(children, node.getChildAt(i))
         }
     }
 

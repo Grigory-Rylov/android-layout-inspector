@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package com.android.layoutinspector.parser
+
 import com.android.layoutinspector.model.ViewNode
 import com.android.layoutinspector.model.ViewProperty
 import com.google.common.base.Verify.verify
@@ -21,11 +22,13 @@ import com.google.common.collect.Lists
 import com.google.common.collect.Maps
 import java.nio.ByteBuffer
 import java.util.HashMap
+
 private const val META_KEY = "meta"
 private const val HASH_KEY = "$META_KEY:__hash__"
 private const val NAME_KEY = "$META_KEY:__name__"
 private const val CHILD_COUNT_KEY = "__childCount__"
 private const val CHILD_KEY = "__child__"
+
 class ViewNodeV2Parser {
     private var ids: Map<String, Short>? = null
     private var mStringTable: Map<Short, Any>? = null
@@ -49,6 +52,7 @@ class ViewNodeV2Parser {
         root.updateNodeDrawn(true)
         return root
     }
+
     private fun createViewNode(
         propMap: Map<Short, Any>,
         parent: ViewNode? = null
@@ -59,39 +63,18 @@ class ViewNodeV2Parser {
         if (hashProperty is Int) {
             hash = Integer.toHexString(hashProperty)
         }
-        val node = ViewNode(parent, getStringProperty(propMap, NAME_KEY), hash)
-        loadProperties(node, propMap)
-        node.displayInfo = DisplayInfoFactory.createDisplayInfoFromNode(node)
-        return node
+        return loadPropertiesAndCreateNode(parent, propMap, hash)
     }
+
     private fun getProperty(props: Map<Short, Any>, key: String): Any? {
         return props[ids!![key]]
     }
-    private fun reverse(m: Map<Short, Any>): Map<String, Short> {
-        val r = HashMap<String, Short>(m.size)
-        for ((key, value) in m) {
-            r[value as String] = key
-        }
-        return r
-    }
-    private fun getPropertyKey(name: String): Short? {
-        return ids!![name]
-    }
-    private fun getPropertyName(key: Short): String? {
-        val v = mStringTable!![key]
-        return v as? String
-    }
-    private fun getStringProperty(view: Map<Short, Any>, key: String): String {
-        val v = view[getPropertyKey(key)]
-        if (v is String) {
-            return v
-        }
-        return ""
-    }
-    private fun getChildIndex(name: String): Int {
-        return name.substring(name.indexOf(CHILD_KEY) + 9).toInt()
-    }
-    private fun loadProperties(node: ViewNode, viewProperties: Map<Short, Any>) {
+
+    private fun loadPropertiesAndCreateNode(
+        parent: ViewNode?,
+        viewProperties: Map<Short, Any>,
+        hash: String
+    ): ViewNode {
         val namedProperties: MutableMap<String, ViewProperty> = Maps.newHashMap()
         val properties: MutableList<ViewProperty> = Lists.newArrayList()
         val childrenProps: MutableMap<String, Any> = Maps.newHashMap()
@@ -109,16 +92,52 @@ class ViewNodeV2Parser {
                 namedProperties[property.name] = property
             }
         }
-        node.namedProperties.putAll(namedProperties)
-        node.properties.addAll(properties)
-        node.properties.map { node.addPropertyToGroup(it) }
+        val node = ViewNode(
+            parent, getStringProperty(viewProperties, NAME_KEY), hash,
+            namedProperties = namedProperties,
+            properties = properties,
+            displayInfo = DisplayInfoFactory.createDisplayInfoFromNamedProperties(namedProperties)
+        )
         node.namedProperties["id"]?.let {
             node.id = it.value
         }
+
+
         // hide meta props
         val metaProps = node.groupedProperties.remove(META_KEY)
         addChildren(node, metaProps!!, childrenProps)
+        return node
     }
+
+    private fun reverse(m: Map<Short, Any>): Map<String, Short> {
+        val r = HashMap<String, Short>(m.size)
+        for ((key, value) in m) {
+            r[value as String] = key
+        }
+        return r
+    }
+
+    private fun getPropertyKey(name: String): Short? {
+        return ids!![name]
+    }
+
+    private fun getPropertyName(key: Short): String? {
+        val v = mStringTable!![key]
+        return v as? String
+    }
+
+    private fun getStringProperty(view: Map<Short, Any>, key: String): String {
+        val v = view[getPropertyKey(key)]
+        if (v is String) {
+            return v
+        }
+        return ""
+    }
+
+    private fun getChildIndex(name: String): Int {
+        return name.substring(name.indexOf(CHILD_KEY) + 9).toInt()
+    }
+
     private fun addChildren(
         parent: ViewNode,
         metaProps: MutableList<ViewProperty>,
@@ -127,11 +146,15 @@ class ViewNodeV2Parser {
         // no children if there is no matching prop
         val childCountProp = metaProps.find { it.name == CHILD_COUNT_KEY } ?: return
         val childCount = childCountProp.value.toInt()
-        val children = childrenProps.entries.sortedBy { getChildIndex(it.key) }.map { createViewNode(it.value as Map<Short, Any>, parent) }
-        verify(childCount == children.size, String.format(
-            "Expect view node %s to have %d children but instead found %d",
-            parent, childCount, children.size
-        ))
+        val children = childrenProps.entries.sortedBy { getChildIndex(it.key) }.map {
+            createViewNode(it.value as Map<Short, Any>, parent)
+        }
+        verify(
+            childCount == children.size, String.format(
+                "Expect view node %s to have %d children but instead found %d",
+                parent, childCount, children.size
+            )
+        )
         parent.children.addAll(children)
     }
 }

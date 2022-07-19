@@ -15,40 +15,39 @@
  */
 package com.android.layoutinspector.parser
 import com.android.layoutinspector.model.DisplayInfo
-import com.android.layoutinspector.model.ViewNode
 import com.android.layoutinspector.model.ViewProperty
 object DisplayInfoFactory {
-    fun createDisplayInfoFromNode(node: ViewNode): DisplayInfo {
-        val left = getInt(node.getProperty("mLeft", "layout:mLeft", "left"), 0)
-        val top = getInt(node.getProperty("mTop", "layout:mTop", "top"), 0)
-        val width = getInt(node.getProperty("getWidth()", "layout:getWidth()", "width"), 10)
-        val height = getInt(node.getProperty("getHeight()", "layout:getHeight()", "height"), 10)
-        val scrollX = getInt(node.getProperty("mScrollX", "scrolling:mScrollX", "scrollX"), 0)
-        val scrollY = getInt(node.getProperty("mScrollY", "scrolling:mScrollY", "scrollY"), 0)
+    fun createDisplayInfoFromNamedProperties(namedProperties: Map<String, ViewProperty>): DisplayInfo {
+        val left = getInt(getProperty(namedProperties, "mLeft", "layout:mLeft", "left"), 0)
+        val top = getInt(getProperty(namedProperties, "mTop", "layout:mTop", "top"), 0)
+        val width = getInt(getProperty(namedProperties, "getWidth()", "layout:getWidth()", "width"), 10)
+        val height = getInt(getProperty(namedProperties, "getHeight()", "layout:getHeight()", "height"), 10)
+        val scrollX = getInt(getProperty(namedProperties, "mScrollX", "scrolling:mScrollX", "scrollX"), 0)
+        val scrollY = getInt(getProperty(namedProperties, "mScrollY", "scrolling:mScrollY", "scrollY"), 0)
         val willNotDraw =
-            getBoolean(node.getProperty("willNotDraw()", "drawing:willNotDraw()", "willNotDraw"), false)
+            getBoolean(getProperty(namedProperties, "willNotDraw()", "drawing:willNotDraw()", "willNotDraw"), false)
         val clipChildren = getBoolean(
-            node.getProperty("getClipChildren()", "drawing:getClipChildren()", "clipChildren"), true
+            getProperty(namedProperties, "getClipChildren()", "drawing:getClipChildren()", "clipChildren"), true
         )
         val translateX =
-            getFloat(node.getProperty("getTranslationX", "drawing:getTranslationX()", "translationX"), 0f)
+            getFloat(getProperty(namedProperties, "getTranslationX", "drawing:getTranslationX()", "translationX"), 0f)
         val translateY =
-            getFloat(node.getProperty("getTranslationY", "drawing:getTranslationY()", "translationY"), 0f)
-        val scaleX = getFloat(node.getProperty("getScaleX()", "drawing:getScaleX()", "scaleX"), 1f)
-        val scaleY = getFloat(node.getProperty("getScaleY()", "drawing:getScaleY()", "scaleY"), 1f)
-        var descProp = node.getProperty("accessibility:getContentDescription()", "contentDescription")
+            getFloat(getProperty(namedProperties, "getTranslationY", "drawing:getTranslationY()", "translationY"), 0f)
+        val scaleX = getFloat(getProperty(namedProperties, "getScaleX()", "drawing:getScaleX()", "scaleX"), 1f)
+        val scaleY = getFloat(getProperty(namedProperties, "getScaleY()", "drawing:getScaleY()", "scaleY"), 1f)
+        var descProp = getProperty(namedProperties, "accessibility:getContentDescription()", "contentDescription")
         var contentDescription: String? = if (descProp != null && descProp.value != "null")
             descProp.value
         else
             null
         if (contentDescription == null) {
-            descProp = node.getProperty("text:mText")
+            descProp = getProperty(namedProperties, "text:mText")
             contentDescription = if (descProp != null && descProp.value != "null")
                 descProp.value
             else
                 null
         }
-        val visibility = node.getProperty("getVisibility()", "misc:getVisibility()", "visibility")
+        val visibility = getProperty(namedProperties, "getVisibility()", "misc:getVisibility()", "visibility")
         val isVisible = (visibility == null
                 || "0" == visibility.value
                 || "VISIBLE" == visibility.value)
@@ -69,6 +68,16 @@ object DisplayInfoFactory {
             contentDescription
         )
     }
+    private fun getProperty(namedProperties: Map<String, ViewProperty>, name: String, vararg altNames: String): ViewProperty? {
+        var property: ViewProperty? = namedProperties[name]
+        var i = 0
+        while (property == null && i < altNames.size) {
+            property = namedProperties[altNames[i]]
+            i++
+        }
+        return property
+    }
+
     private fun getBoolean(p: ViewProperty?, defaultValue: Boolean): Boolean {
         if (p != null) {
             return try {

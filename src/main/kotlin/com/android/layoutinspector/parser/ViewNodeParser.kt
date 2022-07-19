@@ -17,12 +17,17 @@ package com.android.layoutinspector.parser
 
 import com.android.layoutinspector.ProtocolVersion
 import com.android.layoutinspector.model.ViewNode
+import com.android.layoutinspector.model.ViewProperty
 import com.google.common.base.Charsets
+import com.google.common.collect.Lists
+import com.google.common.collect.Maps
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStreamReader
-import java.util.*
+import java.util.ArrayList
+import java.util.Collections
+import java.util.Stack
 import java.util.function.BiConsumer
 import java.util.function.BinaryOperator
 import java.util.function.Function
@@ -105,26 +110,31 @@ object ViewNodeParser {
         data = data.substring(delimIndex + 1)
         delimIndex = data.indexOf(' ')
         val hash = data.substring(0, delimIndex)
-        val node = ViewNode(parent, name, hash)
-        node.index = parent?.children?.size ?: 0
-        if (data.length > delimIndex + 1) {
-            loadProperties(node, data.substring(delimIndex + 1), skippedProperties)
-            node.id = node.getProperty("mID", "id")?.value
+
+        val node = if (data.length > delimIndex + 1) {
+            loadPropertiesAndCreateNode(parent, name, hash, data.substring(delimIndex + 1), skippedProperties)
+        } else {
+            ViewNode(parent, name, hash)
         }
-        node.displayInfo = DisplayInfoFactory.createDisplayInfoFromNode(node)
+        node.index = parent?.children?.size ?: 0
         parent?.let {
             it.children.add(node)
         }
         return node
     }
 
-    private fun loadProperties(
-        node: ViewNode,
+    private fun loadPropertiesAndCreateNode(
+        parent: ViewNode?,
+        name: String,
+        hash: String,
         data: String,
         skippedProperties: Collection<String>
-    ) {
+    ): ViewNode {
         var start = 0
         var stop: Boolean
+        val namedProperties: MutableMap<String, ViewProperty> = Maps.newHashMap()
+        val properties: MutableList<ViewProperty> = Lists.newArrayList()
+
         do {
             val index = data.indexOf('=', start)
             val fullName = data.substring(start, index)
@@ -134,16 +144,25 @@ object ViewNodeParser {
             if (!skippedProperties.contains(fullName)) {
                 val value = data.substring(index2 + 1, index2 + 1 + length)
                 val property = ViewPropertyParser.parse(fullName, value)
-                node.properties.add(property)
-                node.namedProperties[property.fullName] = property
-                node.addPropertyToGroup(property)
+                properties.add(property)
+                namedProperties[property.fullName] = property
+                // TODO: check it's ok for old parser
+                //node.addPropertyToGroup(property)
             }
             stop = start >= data.length
             if (!stop) {
                 start += 1
             }
         } while (!stop)
-        node.properties.sort()
+        properties.sort()
+        val node = ViewNode(
+            parent, name, hash, namedProperties = namedProperties,
+            properties = properties,
+            displayInfo = DisplayInfoFactory.createDisplayInfoFromNamedProperties(namedProperties),
+        )
+        node.id = node.getProperty("mID", "id")?.value
+
+        return node
     }
 
     /**

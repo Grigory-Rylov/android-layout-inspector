@@ -18,7 +18,9 @@ package com.android.layoutinspector.model
 import com.google.common.collect.Lists
 import com.google.common.collect.Maps
 import java.awt.Rectangle
-import java.util.*
+import java.util.Collections
+import java.util.Enumeration
+import java.util.LinkedList
 import javax.swing.tree.TreeNode
 import javax.swing.tree.TreePath
 
@@ -30,7 +32,13 @@ private const val MAX_TEXT_LENGTH = 20
  * Created by parsing view dumps using [com.android.layoutinspector.parser.ViewNodeParser].
  */
 // make parent private because it's the same as the getParent method from TreeNode
-data class ViewNode constructor(private val parent: ViewNode?, val name: String, val hash: String) :
+data class ViewNode constructor(
+    private val parent: ViewNode?, val name: String, val hash: String,
+    val namedProperties: Map<String, ViewProperty> = Maps.newHashMap(),
+    val properties: List<ViewProperty> = Lists.newArrayList(),
+    val children: MutableList<ViewNode> = Lists.newArrayList(),
+    var displayInfo: DisplayInfo = DisplayInfo(false, false, 0, 0, 0, 0, 0, 0, false, 0f, 0f, 0f, 0f, null),
+) :
     TreeNode {
     // If the force state is set, the preview tries to render/hide the view
     // (depending on the parent's state)
@@ -40,32 +48,25 @@ data class ViewNode constructor(private val parent: ViewNode?, val name: String,
         INVISIBLE
     }
 
-    val groupedProperties: MutableMap<String, MutableList<ViewProperty>> = Maps.newHashMap()
-    val namedProperties: MutableMap<String, ViewProperty> = Maps.newHashMap()
-    val properties: MutableList<ViewProperty> = Lists.newArrayList()
-    val children: MutableList<ViewNode> = Lists.newArrayList()
     val previewBox: Rectangle = Rectangle()
+    // TODO: make immutable.
+    val groupedProperties: MutableMap<String, MutableList<ViewProperty>>
+
     // default in case properties are not available
     var index: Int = 0
     var id: String? = null
-    // TODO(kelvinhanma) get rid of lateinit by refactoring creation of DisplayInfo
-    var displayInfo: DisplayInfo = DisplayInfo.createEmpty()
-        set(value) {
-            field = value
-            initLocationOnScreen()
-        }
 
     var isParentVisible: Boolean = false
         private set
     var isDrawn: Boolean = false
         private set
     var forcedState: ForcedState = ForcedState.NONE
-    var locationOnScreenX: Int = 0
-        private set
-    var locationOnScreenY: Int = 0
-        private set
 
-    private fun initLocationOnScreen() {
+
+    val locationOnScreenX: Int
+    val locationOnScreenY: Int
+
+    init {
         val xProperty = getProperty("layout:getLocationOnScreen_x()")
         val yProperty = getProperty("layout:getLocationOnScreen_y()")
         if (xProperty != null && yProperty != null) {
@@ -78,16 +79,22 @@ data class ViewNode constructor(private val parent: ViewNode?, val name: String,
             locationOnScreenX = displayInfo.left + displayInfo.translateX.toInt() + parentX
             locationOnScreenY = displayInfo.top + displayInfo.translateY.toInt() + parentY
         }
+
+        groupedProperties = createGroupProperties()
     }
 
-    fun addPropertyToGroup(property: ViewProperty) {
-        val key = getKey(property)
-        val propertiesList = groupedProperties.getOrDefault(
-            key,
-            LinkedList()
-        )
-        propertiesList.add(property)
-        groupedProperties[key] = propertiesList
+    private fun createGroupProperties(): MutableMap<String, MutableList<ViewProperty>> {
+        val groupedPropertiesBuffer: MutableMap<String, MutableList<ViewProperty>> = Maps.newHashMap()
+        properties.map { property ->
+            val key = getKey(property)
+            val propertiesList = groupedPropertiesBuffer.getOrDefault(
+                key,
+                LinkedList()
+            )
+            propertiesList.add(property)
+            groupedPropertiesBuffer[key] = propertiesList
+        }
+        return groupedPropertiesBuffer
     }
 
     private fun getKey(property: ViewProperty): String {
@@ -194,6 +201,38 @@ data class ViewNode constructor(private val parent: ViewNode?, val name: String,
 
     fun getText(): String? {
         return namedProperties["text:mText"]?.value
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ViewNode
+
+        if (name != other.name) return false
+        if (hash != other.hash) return false
+        if (namedProperties != other.namedProperties) return false
+        if (properties != other.properties) return false
+        if (index != other.index) return false
+        if (id != other.id) return false
+        if (isParentVisible != other.isParentVisible) return false
+        if (isDrawn != other.isDrawn) return false
+        if (forcedState != other.forcedState) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + hash.hashCode()
+        result = 31 * result + namedProperties.hashCode()
+        result = 31 * result + properties.hashCode()
+        result = 31 * result + index
+        result = 31 * result + (id?.hashCode() ?: 0)
+        result = 31 * result + isParentVisible.hashCode()
+        result = 31 * result + isDrawn.hashCode()
+        result = 31 * result + forcedState.hashCode()
+        return result
     }
 
     companion object {
