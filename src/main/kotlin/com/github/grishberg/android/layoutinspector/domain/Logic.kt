@@ -1,6 +1,8 @@
 package com.github.grishberg.android.layoutinspector.domain
 
+import com.android.layoutinspector.LayoutInspectorResult
 import com.android.layoutinspector.common.AppLogger
+import com.android.layoutinspector.model.LayoutFileData
 import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchers
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.LayoutInspectorCaptureTask
@@ -9,7 +11,6 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -81,15 +82,15 @@ class Logic(
 
             output.hideLoading()
 
-            if (liResult.data == null) {
+            if (liResult.data == null || liResult.root == null) {
                 output.showError(liResult.error)
             } else {
-                onSuccessCaptured(recordOptions.fileNamePrefix, liResult.data, dpPerPixels)
+                onSuccessCaptured(recordOptions.fileNamePrefix, liResult, dpPerPixels)
             }
         }
     }
 
-    private fun onSuccessCaptured(fileNamePrefix: String, data: ByteArray, dpPerPixels: Double) {
+    private fun onSuccessCaptured(fileNamePrefix: String, liResult: LayoutInspectorResult, dpPerPixels: Double) {
         val sdf = SimpleDateFormat("yyyyMMdd_HH-mm-ss.SSS")
         val formattedTime = sdf.format(Date())
         val liFileName = if (fileNamePrefix.isNotEmpty()) {
@@ -98,16 +99,13 @@ class Logic(
             "layout-$formattedTime.li"
         }
 
-        layoutFileSystem.saveLayoutToFile(liFileName, data)
+        layoutFileSystem.saveLayoutToFile(liFileName, liResult.data!!)
         metaRepository.fileName = liFileName
         metaRepository.dpPerPixels = dpPerPixels
         metaRepository.serialize()
 
-        logger.d("$TAG: Received result, parsing...")
-        val capture = layoutParserInput.parseFromBytes(data)
-        logger.d("$TAG: Parsing is ended.")
-
-        output.showResult(capture)
+        logger.d("$TAG: Received result")
+        output.showResult(LayoutFileData.fromLayoutInspectorResult(liResult))
         isOpenedLayout = true
     }
 

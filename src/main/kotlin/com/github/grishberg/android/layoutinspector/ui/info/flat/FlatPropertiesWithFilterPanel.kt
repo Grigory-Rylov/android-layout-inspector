@@ -1,6 +1,7 @@
 package com.github.grishberg.android.layoutinspector.ui.info.flat
 
 import com.android.layoutinspector.model.ViewNode
+import com.android.layoutinspector.model.ViewProperty
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
@@ -127,18 +128,16 @@ class FlatPropertiesWithFilterPanel(
     }
 
     private fun createSummary(result: MutableMap<String, List<RowInfoImpl>>, node: ViewNode) {
-        val widthProperty = node.getProperty("measurement:mMeasuredWidth")
-        val heightProperty = node.getProperty("measurement:mMeasuredHeight")
-        val xProperty = node.getProperty("layout:getLocationOnScreen_x()")
-        val yProperty = node.getProperty("layout:getLocationOnScreen_y()")
+        val widthProperty =
+            node.getProperty("measurement:mMeasuredWidth") ?: node.getProperty("measurement:measuredWidth")
+        val heightProperty =
+            node.getProperty("measurement:mMeasuredHeight") ?: node.getProperty("measurement:measuredHeight")
+        val xProperty = ViewProperty("x", "x", null, node.locationOnScreenX.toString(), false, node.locationOnScreenX)
+        val yProperty = ViewProperty("y", "y", null, node.locationOnScreenY.toString(), false, node.locationOnScreenY)
 
         val rows = mutableListOf<RowInfoImpl>()
-        xProperty?.let {
-            rows.add(RowInfoImpl(it, sizeInDp, shouldRoundDp, meta.dpPerPixels, "x"))
-        }
-        yProperty?.let {
-            rows.add(RowInfoImpl(it, sizeInDp, shouldRoundDp, meta.dpPerPixels, "y"))
-        }
+        rows.add(RowInfoImpl(xProperty, sizeInDp, shouldRoundDp, meta.dpPerPixels, "x"))
+        rows.add(RowInfoImpl(yProperty, sizeInDp, shouldRoundDp, meta.dpPerPixels, "y"))
         widthProperty?.let {
             rows.add(RowInfoImpl(it, sizeInDp, shouldRoundDp, meta.dpPerPixels, "width"))
         }

@@ -8,7 +8,6 @@ import com.android.layoutinspector.LayoutInspectorResult
 import com.android.layoutinspector.ProtocolVersion
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ClientWindow
-import com.android.tools.idea.flags.StudioFlags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async

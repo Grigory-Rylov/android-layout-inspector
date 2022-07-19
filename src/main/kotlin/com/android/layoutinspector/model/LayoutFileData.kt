@@ -16,6 +16,7 @@
 package com.android.layoutinspector.model
 
 import com.android.layoutinspector.LayoutInspectorCaptureOptions
+import com.android.layoutinspector.LayoutInspectorResult
 import java.awt.image.BufferedImage
 
 /**
@@ -25,4 +26,10 @@ data class LayoutFileData(
     val bufferedImage: BufferedImage?,
     val node: ViewNode?,
     val options: LayoutInspectorCaptureOptions
-)
+) {
+    companion object {
+        fun fromLayoutInspectorResult(result: LayoutInspectorResult): LayoutFileData {
+            return LayoutFileData(result.previewImage, result.root, result.options!!)
+        }
+    }
+}

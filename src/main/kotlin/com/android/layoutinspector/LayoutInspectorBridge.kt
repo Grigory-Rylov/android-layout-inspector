@@ -14,20 +14,24 @@
  * limitations under the License.
  */
 package com.android.layoutinspector
+
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ClientWindow
 import com.android.layoutinspector.model.ViewNode
 import com.android.layoutinspector.parser.ViewNodeParser
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.ObjectOutputStream
 import java.util.concurrent.TimeUnit
+import javax.imageio.ImageIO
 
 private const val TAG = "LayoutInspectorBridge"
 
 object LayoutInspectorBridge {
     @JvmStatic
     val V2_MIN_API = 23
+
     @JvmStatic
     fun captureView(
         logger: AppLogger,
@@ -36,8 +40,7 @@ object LayoutInspectorBridge {
         timeoutInSeconds: Long
     ): LayoutInspectorResult {
         val hierarchy =
-            window.loadWindowData(options, timeoutInSeconds, TimeUnit.SECONDS) ?: return LayoutInspectorResult(
-                null,
+            window.loadWindowData(options, timeoutInSeconds, TimeUnit.SECONDS) ?: return LayoutInspectorResult.createErrorResult(
                 "There was a timeout error capturing the layout data from the device.\n" +
                         "The device may be too slow, the captured view may be too complex, or the view may contain animations.\n\n" +
                         "Please retry with a simplified view and ensure the device is responsive."
@@ -49,13 +52,12 @@ object LayoutInspectorBridge {
             logger.d("$TAG parse hierarchy done. root is $root")
 
         } catch (e: StringIndexOutOfBoundsException) {
-            return LayoutInspectorResult(null, "Unexpected error: $e")
+            return LayoutInspectorResult.createErrorResult("Unexpected error: $e")
         } catch (e: IOException) {
-            return LayoutInspectorResult(null, "Unexpected error: $e")
+            return LayoutInspectorResult.createErrorResult( "Unexpected error: $e")
         }
         if (root == null) {
-            return LayoutInspectorResult(
-                null,
+            return LayoutInspectorResult.createErrorResult(
                 "Unable to parse view hierarchy"
             )
         }
@@ -65,10 +67,7 @@ object LayoutInspectorBridge {
             root,
             timeoutInSeconds,
             TimeUnit.SECONDS
-        ) ?: return LayoutInspectorResult(
-            null,
-            "Unable to obtain preview image"
-        )
+        ) ?: return LayoutInspectorResult.createErrorResult("Unable to obtain preview image")
         logger.d("$TAG preview downloaded")
         val bytes = ByteArrayOutputStream(4096)
         var output: ObjectOutputStream? = null
@@ -80,20 +79,23 @@ object LayoutInspectorBridge {
             output.writeInt(preview.size)
             output.write(preview)
         } catch (e: IOException) {
-            return LayoutInspectorResult(
-                null,
+            return LayoutInspectorResult.createErrorResult(
                 "Unexpected error while saving hierarchy snapshot: $e"
             )
         } finally {
             try {
                 output?.close()
             } catch (e: IOException) {
-                return LayoutInspectorResult(
-                    null,
+                return LayoutInspectorResult.createErrorResult(
                     "Unexpected error while closing hierarchy snapshot: $e"
                 )
             }
         }
-        return LayoutInspectorResult(bytes.toByteArray(), "")
+        return LayoutInspectorResult(
+            root = root,
+            data = bytes.toByteArray(),
+            previewImage = ImageIO.read(ByteArrayInputStream(preview)),
+            options= options,
+            error = "")
     }
 }

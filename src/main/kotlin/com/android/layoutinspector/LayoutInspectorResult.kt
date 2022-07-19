@@ -14,9 +14,30 @@
  * limitations under the License.
  */
 package com.android.layoutinspector
+
+import com.android.layoutinspector.model.ViewNode
+import java.awt.image.BufferedImage
+
+
 /**
  * Represents result of a capture
  * Success: data is not null, and error is the empty string
  * Error: data is null, and error a non empty error message
  */
-class LayoutInspectorResult(val data: ByteArray?, val error: String)
+class LayoutInspectorResult(
+    val root: ViewNode?,
+    val previewImage: BufferedImage?,
+    val data: ByteArray?,
+    val options: LayoutInspectorCaptureOptions?,
+    val error: String
+) {
+    companion object {
+        fun createErrorResult(error: String) = LayoutInspectorResult(
+            root = null,
+            previewImage = null,
+            data = null,
+            options = null,
+            error = error
+        )
+    }
+}
