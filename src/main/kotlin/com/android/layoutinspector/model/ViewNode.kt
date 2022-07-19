@@ -49,12 +49,37 @@ data class ViewNode constructor(private val parent: ViewNode?, val name: String,
     var index: Int = 0
     var id: String? = null
     // TODO(kelvinhanma) get rid of lateinit by refactoring creation of DisplayInfo
-    lateinit var displayInfo: DisplayInfo
+    var displayInfo: DisplayInfo = DisplayInfo.createEmpty()
+        set(value) {
+            field = value
+            initLocationOnScreen()
+        }
+
     var isParentVisible: Boolean = false
         private set
     var isDrawn: Boolean = false
         private set
     var forcedState: ForcedState = ForcedState.NONE
+    var locationOnScreenX: Int = 0
+        private set
+    var locationOnScreenY: Int = 0
+        private set
+
+    private fun initLocationOnScreen() {
+        val xProperty = getProperty("layout:getLocationOnScreen_x()")
+        val yProperty = getProperty("layout:getLocationOnScreen_y()")
+        if (xProperty != null && yProperty != null) {
+            locationOnScreenX = xProperty.intValue
+            locationOnScreenY = yProperty.intValue
+        } else {
+            val parentX = parent?.locationOnScreenX ?: 0
+            val parentY = parent?.locationOnScreenY ?: 0
+
+            locationOnScreenX = displayInfo.left + displayInfo.translateX.toInt() + parentX
+            locationOnScreenY = displayInfo.top + displayInfo.translateY.toInt() + parentY
+        }
+    }
+
     fun addPropertyToGroup(property: ViewProperty) {
         val key = getKey(property)
         val propertiesList = groupedProperties.getOrDefault(

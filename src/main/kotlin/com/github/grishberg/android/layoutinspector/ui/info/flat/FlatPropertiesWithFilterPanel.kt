@@ -129,9 +129,9 @@ class FlatPropertiesWithFilterPanel(
 
     private fun createSummary(result: MutableMap<String, List<RowInfoImpl>>, node: ViewNode) {
         val widthProperty =
-            node.getProperty("measurement:mMeasuredWidth") ?: node.getProperty("measurement:measuredWidth")
+            node.getProperty("measurement:mMeasuredWidth") ?: node.getProperty("measuredWidth")
         val heightProperty =
-            node.getProperty("measurement:mMeasuredHeight") ?: node.getProperty("measurement:measuredHeight")
+            node.getProperty("measurement:mMeasuredHeight") ?: node.getProperty("measuredHeight")
         val xProperty = ViewProperty("x", "x", null, node.locationOnScreenX.toString(), false, node.locationOnScreenX)
         val yProperty = ViewProperty("y", "y", null, node.locationOnScreenY.toString(), false, node.locationOnScreenY)
 

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package com.android.layoutinspector.model
+
 /**
  * Contains information used to draw selection boxes over each [ViewNode] in layout inspector's
  * preview box. Create using [com.android.layoutinspector.parser.DisplayInfoFactory]
@@ -34,7 +35,16 @@ data class DisplayInfo(
     val scaleY: Float,
     val contentDesc: String?
 ) {
-    fun getCopyAtOrigin() : DisplayInfo {
+    fun getCopyAtOrigin(): DisplayInfo {
         return this.copy(left = 0, top = 0)
+    }
+
+    companion object {
+        fun createEmpty(): DisplayInfo {
+            return DisplayInfo(
+                false, false, 0, 0, 0, 0, 0,
+                0, false, 0f, 0f, 0f, 0f, null
+            )
+        }
     }
 }
