@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.github.grishberg.android'
-version '22.07.19.0'
+version '22.07.25.0'
 
 sourceCompatibility = 11
 targetCompatibility = 11
@@ -84,7 +84,7 @@ task(verifySetup) {
 patchPluginXml {
     sinceBuild("211")
     changeNotes """
-      Enable "Select parent view on next click" feature by default.<br>
-      Force use protocol level 2.<br>
+      Fixed updating properties table after changing dimension units(dp/px).<br>
+      Don't filter summary items in properties table.<br>
       """
 }
