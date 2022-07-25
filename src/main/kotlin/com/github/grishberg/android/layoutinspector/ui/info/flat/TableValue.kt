@@ -9,7 +9,7 @@ sealed class TableValue {
         }
     }
 
-    class PropertyName(val property: RowInfoImpl) : TableValue() {
+    class PropertyName(val property: RowInfoImpl, val isSummary: Boolean = false) : TableValue() {
         override fun toString(): String {
             return property.name()
         }

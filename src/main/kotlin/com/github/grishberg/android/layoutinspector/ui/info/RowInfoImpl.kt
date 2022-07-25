@@ -12,7 +12,8 @@ data class RowInfoImpl(
     private val sizeInDp: Boolean,
     private val roundDp: Boolean,
     private val dpPerPixels: Double,
-    private val alterName: String? = null
+    private val alterName: String? = null,
+    val isSummary: Boolean = false,
 ) {
 
     fun name() = alterName ?: property.name

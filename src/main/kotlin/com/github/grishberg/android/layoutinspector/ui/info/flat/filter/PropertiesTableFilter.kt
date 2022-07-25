@@ -22,6 +22,9 @@ class PropertiesTableFilter(
                 return true
             }
             is TableValue.PropertyName -> {
+                if (item.isSummary) {
+                    return true
+                }
                 matcher.reset(item.toString())
                 return matcher.find()
             }

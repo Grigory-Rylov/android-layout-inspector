@@ -136,13 +136,47 @@ class FlatPropertiesWithFilterPanel(
         val yProperty = ViewProperty("y", "y", null, node.locationOnScreenY.toString(), false, node.locationOnScreenY)
 
         val rows = mutableListOf<RowInfoImpl>()
-        rows.add(RowInfoImpl(xProperty, sizeInDp, shouldRoundDp, meta.dpPerPixels, "x"))
-        rows.add(RowInfoImpl(yProperty, sizeInDp, shouldRoundDp, meta.dpPerPixels, "y"))
+        rows.add(
+            RowInfoImpl(
+                property = xProperty,
+                sizeInDp = sizeInDp,
+                roundDp = shouldRoundDp,
+                dpPerPixels = meta.dpPerPixels,
+                alterName = "x",
+                isSummary = true,
+            )
+        )
+        rows.add(
+            RowInfoImpl(
+                property = yProperty,
+                sizeInDp = sizeInDp,
+                roundDp = shouldRoundDp,
+                dpPerPixels = meta.dpPerPixels,
+                alterName = "y",
+                isSummary = true
+            )
+        )
         widthProperty?.let {
-            rows.add(RowInfoImpl(it, sizeInDp, shouldRoundDp, meta.dpPerPixels, "width"))
+            rows.add(
+                RowInfoImpl(
+                    property = it, sizeInDp = sizeInDp,
+                    roundDp = shouldRoundDp,
+                    dpPerPixels = meta.dpPerPixels,
+                    alterName = "width",
+                    isSummary = true,
+                )
+            )
         }
         heightProperty?.let {
-            rows.add(RowInfoImpl(it, sizeInDp, shouldRoundDp, meta.dpPerPixels, "height"))
+            rows.add(
+                RowInfoImpl(
+                    property = it, sizeInDp = sizeInDp,
+                    roundDp = shouldRoundDp,
+                    dpPerPixels = meta.dpPerPixels,
+                    alterName = "height",
+                    isSummary = true,
+                )
+            )
         }
 
         result["Summary"] = rows
@@ -153,7 +187,7 @@ class FlatPropertiesWithFilterPanel(
         sizeInDp = enabled
         if (shouldInvalidate) {
             currentNode?.let {
-                table.model = FlatGroupTableModel(createPropertiesData(it))
+                showProperties(it)
             }
         }
     }

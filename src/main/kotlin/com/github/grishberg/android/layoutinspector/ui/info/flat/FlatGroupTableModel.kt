@@ -52,7 +52,7 @@ class FlatGroupTableModel(
 
             is Row.ValueRow -> {
                 if (column == NAME_COLUMN) {
-                    return TableValue.PropertyName(rowItem.property)
+                    return TableValue.PropertyName(rowItem.property, rowItem.property.isSummary)
                 }
                 return TableValue.PropertyValue(rowItem.property)
             }
