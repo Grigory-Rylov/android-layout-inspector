@@ -324,7 +324,6 @@ class LayoutLogic(
             g.drawImage(it, screenshotOffsetTransform, null)
         }
 
-        g.stroke = BasicStroke(1f)
         for (element in rectangles) {
             val rect = element.rect
             val rectBound = rect.bounds2D
@@ -336,6 +335,7 @@ class LayoutLogic(
                 continue
             }
 
+            g.stroke = BasicStroke(1f)
             g.color = borderColor
             val transformedShape: Shape = at.createTransformedShape(rect)
             val bounds = transformedShape.bounds
@@ -400,7 +400,7 @@ class LayoutLogic(
     }
 
     private fun drawSerifs(g: Graphics2D, bounds: Rectangle) {
-        g.stroke = BasicStroke(2f)
+        g.stroke = BasicStroke(1f)
 
         val serifs = mutableListOf<Shape>()
         serifs.add(
