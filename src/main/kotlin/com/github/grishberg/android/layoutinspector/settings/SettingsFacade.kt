@@ -21,6 +21,10 @@ interface SettingsFacade {
 
     var lastFilter: String
 
+    var showSerifsInTheMiddleOfSelected: Boolean
+
+    var showSerifsInTheMiddleAll: Boolean
+
     fun shouldShowSizeInDp(): Boolean
 
     fun showSizeInDp(state: Boolean)

@@ -367,6 +367,25 @@ class Main(
         val openFind = JMenuItem("Find")
         viewMenu.add(openFind)
         openFind.addActionListener { arg0: ActionEvent? -> showFindDialog() }
+
+        val showSelectedSerifs = JCheckBoxMenuItem("Show selected element serifs")
+        showSelectedSerifs.isSelected = settingsFacade.showSerifsInTheMiddleOfSelected
+        showSelectedSerifs.addActionListener { e ->
+            val aButton = e.source as AbstractButton
+            settingsFacade.showSerifsInTheMiddleOfSelected = aButton.model.isSelected
+            layoutPanel.repaint()
+        }
+        viewMenu.add(showSelectedSerifs)
+
+        val showAllSerifs = JCheckBoxMenuItem("Show all element serifs")
+        showAllSerifs.isSelected = settingsFacade.showSerifsInTheMiddleAll
+        showAllSerifs.addActionListener { e ->
+            val aButton = e.source as AbstractButton
+            settingsFacade.showSerifsInTheMiddleAll = aButton.model.isSelected
+            layoutPanel.repaint()
+        }
+        viewMenu.add(showAllSerifs)
+
         return viewMenu
     }
 

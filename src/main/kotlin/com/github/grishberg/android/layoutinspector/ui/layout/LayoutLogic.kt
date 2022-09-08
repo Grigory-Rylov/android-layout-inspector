@@ -14,6 +14,7 @@ import java.awt.Rectangle
 import java.awt.Shape
 import java.awt.Stroke
 import java.awt.geom.AffineTransform
+import java.awt.geom.Line2D
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
@@ -323,7 +324,6 @@ class LayoutLogic(
             g.drawImage(it, screenshotOffsetTransform, null)
         }
 
-        g.stroke = BasicStroke(1f)
         for (element in rectangles) {
             val rect = element.rect
             val rectBound = rect.bounds2D
@@ -335,11 +335,17 @@ class LayoutLogic(
                 continue
             }
 
+            g.stroke = BasicStroke(1f)
             g.color = borderColor
             val transformedShape: Shape = at.createTransformedShape(rect)
             val bounds = transformedShape.bounds
 
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
+
+            if (settings.showSerifsInTheMiddleAll) {
+                drawSerifs(g, bounds)
+            }
+
         }
         // draw measure lines
         g.stroke = measureLineStroke
@@ -362,6 +368,10 @@ class LayoutLogic(
             g.color = selectedColor
             val bounds = at.createTransformedShape(it).bounds
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
+
+            if (settings.showSerifsInTheMiddleOfSelected) {
+                drawSerifs(g, bounds)
+            }
         }
 
         // draw measure target item
@@ -386,6 +396,42 @@ class LayoutLogic(
             g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height)
             g.color = rulerFillColor
             g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+        }
+    }
+
+    private fun drawSerifs(g: Graphics2D, bounds: Rectangle) {
+        g.stroke = BasicStroke(1f)
+
+        val serifs = mutableListOf<Shape>()
+        serifs.add(
+            Line2D.Double(
+                bounds.x - SERIF_SIZE_IN_PIX, bounds.y + bounds.height / 2.0,
+                bounds.x + SERIF_SIZE_IN_PIX, bounds.y + bounds.height / 2.0
+            )
+        )
+        serifs.add(
+            Line2D.Double(
+                bounds.x + bounds.width - SERIF_SIZE_IN_PIX, bounds.y + bounds.height / 2.0,
+                bounds.x + bounds.width + SERIF_SIZE_IN_PIX, bounds.y + bounds.height / 2.0
+            )
+
+        )
+        serifs.add(
+            Line2D.Double(
+                bounds.x + bounds.width / 2.0, bounds.y - SERIF_SIZE_IN_PIX,
+                bounds.x + bounds.width / 2.0, bounds.y + SERIF_SIZE_IN_PIX
+            )
+        )
+
+        serifs.add(
+            Line2D.Double(
+                bounds.x + bounds.width / 2.0, bounds.y + bounds.height - SERIF_SIZE_IN_PIX,
+                bounds.x + bounds.width / 2.0, bounds.y + bounds.height + SERIF_SIZE_IN_PIX
+            )
+        )
+
+        serifs.forEach {
+            g.draw(it)
         }
     }
 
@@ -495,5 +541,9 @@ class LayoutLogic(
         fun recalculate() {
             calculateDistance(selected, target)
         }
+    }
+
+    private companion object {
+        private const val SERIF_SIZE_IN_PIX = 4.0
     }
 }

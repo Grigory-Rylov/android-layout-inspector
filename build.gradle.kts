@@ -59,9 +59,8 @@ tasks {
         untilBuild.set(properties("pluginUntilBuild"))
 
         changeNotes.set( """
-      Fixed updating properties table after changing dimension units(dp/px).<br>
-      Don't filter summary items in properties table.<br>
-      """
+            Show serifs on middle of each side in layout.<br>
+          """
         )
     }
 

@@ -25,6 +25,10 @@ class PluginState : SettingsFacade {
 
     override var lastFilter: String = ""
 
+    override var showSerifsInTheMiddleOfSelected: Boolean = true
+
+    override var showSerifsInTheMiddleAll: Boolean = false
+
     override fun shouldShowSizeInDp(): Boolean = shouldShowSizeInDp
 
     override fun showSizeInDp(state: Boolean) {
