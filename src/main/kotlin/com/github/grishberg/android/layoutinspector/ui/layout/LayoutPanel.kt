@@ -5,6 +5,7 @@ import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.SimpleComponentListener
+import com.github.grishberg.android.layoutinspector.ui.screenshottest.ScreenshotPainter
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
@@ -13,6 +14,7 @@ import java.awt.event.ComponentEvent
 import java.awt.geom.NoninvertibleTransformException
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
+import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
 private const val DEFAULT_SCALE = 0.25
@@ -26,6 +28,11 @@ class LayoutPanel(
     private val transformedPoint = Point()
     private var screenSize: Dimension = size
     private val screenTransformedRectangle = Rectangle2D.Double()
+
+    val screenshot: BufferedImage?
+        get() = logic.screenshot
+
+    val screenshotPainter: ScreenshotPainter = logic
 
     init {
         zoomAndPanListener.mouseEventsListener = object : ZoomAndPanListener.MouseEventsListener {
