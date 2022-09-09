@@ -312,7 +312,7 @@ class Main(
         val recordInNewWindow = JMenuItem("Record new Layout in new window")
         file.add(recordInNewWindow)
         recordInNewWindow.addActionListener { arg0: ActionEvent? -> startRecording(newWindow = true) }
-        recordInNewWindow.accelerator = createControlShiftAccelerator('n')
+        recordInNewWindow.accelerator = createControlShiftAccelerator('N')
 
         val openLayoutsFolder = JMenuItem("Open layouts folder")
         file.add(openLayoutsFolder)
