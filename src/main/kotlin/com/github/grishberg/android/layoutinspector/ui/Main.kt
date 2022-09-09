@@ -17,6 +17,7 @@ import com.github.grishberg.android.layoutinspector.process.providers.DeviceProv
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.createAccelerator
 import com.github.grishberg.android.layoutinspector.ui.common.createControlAccelerator
+import com.github.grishberg.android.layoutinspector.ui.common.createControlShiftAccelerator
 import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
 import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialogClosedEventListener
@@ -29,6 +30,7 @@ import com.github.grishberg.android.layoutinspector.ui.info.flat.filter.SimpleFi
 import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
+import com.github.grishberg.android.layoutinspector.ui.screenshottest.ScreenshotTestDialog
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeProxy
 import com.github.grishberg.android.layoutinspector.ui.theme.Themes
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
@@ -40,6 +42,7 @@ import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import java.awt.image.BufferedImage
 import java.io.File
 import java.net.URI
 import javax.swing.AbstractAction
@@ -74,7 +77,7 @@ private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
 
 enum class OpenWindowMode {
     DEFAULT,
-    OPEN_FILE
+    OPEN_FILE,
 }
 
 enum class Actions {
@@ -83,6 +86,7 @@ enum class Actions {
 
 // create a class MainWindow extending JFrame
 class Main(
+    private val windowsManager: WindowsManager,
     private val mode: OpenWindowMode,
     private val settingsFacade: SettingsFacade,
     private val logger: AppLogger,
@@ -254,8 +258,9 @@ class Main(
     }
 
     private fun close() {
+        windowsManager.onDestroyed(this)
         isVisible = false
-        dispose();
+        dispose()
     }
 
     private fun createStatusBar(statusLabel: JLabel) {
@@ -282,6 +287,7 @@ class Main(
         val menuBar = JMenuBar()
         menuBar.add(fileMenu)
         menuBar.add(createViewMenu())
+        menuBar.add(createToolsMenu())
         menuBar.add(createSettingsMenu())
         jMenuBar = menuBar
     }
@@ -302,6 +308,11 @@ class Main(
         file.add(newFile)
         newFile.addActionListener { arg0: ActionEvent? -> startRecording() }
         newFile.accelerator = createControlAccelerator('N')
+
+        val recordInNewWindow = JMenuItem("Record new Layout in new window")
+        file.add(recordInNewWindow)
+        recordInNewWindow.addActionListener { arg0: ActionEvent? -> startRecording(newWindow = true) }
+        recordInNewWindow.accelerator = createControlShiftAccelerator('n')
 
         val openLayoutsFolder = JMenuItem("Open layouts folder")
         file.add(openLayoutsFolder)
@@ -389,6 +400,15 @@ class Main(
         return viewMenu
     }
 
+    private fun createToolsMenu(): JMenu {
+        val toolsMenu = JMenu("Tools")
+        val compareScreenShot = JMenuItem("Screenshot test")
+        compareScreenShot.addActionListener { tryToStartScreenshotTest() }
+        compareScreenShot.accelerator = createAccelerator('S')
+        toolsMenu.add(compareScreenShot)
+        return toolsMenu
+    }
+
     private fun createSettingsMenu(): JMenu {
         val settingsMenu = JMenu("Settings")
 
@@ -432,13 +452,40 @@ class Main(
         layoutPanel.setSizeDpMode(enabled)
     }
 
-    private fun startRecording() {
+    private fun startRecording(newWindow: Boolean = false) {
+        if (newWindow) {
+            val main = windowsManager.createWindow(
+                OpenWindowMode.DEFAULT,
+                settingsFacade,
+                deviceProvider,
+                adb,
+                baseDir
+            )
+            main.initUi()
+            return
+        }
         logic.startRecording()
+    }
+
+    private fun tryToStartScreenshotTest() {
+        val result = windowsManager.startScreenshotTest(this)
+        if (!result) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Can't start screenshot test. Do you have two windows with layouts from same device?",
+            )
+        }
     }
 
     fun openExistingFile(newWindow: Boolean = false) {
         if (newWindow) {
-            val main = Main(OpenWindowMode.OPEN_FILE, settingsFacade, logger, deviceProvider, adb, baseDir)
+            val main = windowsManager.createWindow(
+                OpenWindowMode.OPEN_FILE,
+                settingsFacade,
+                deviceProvider,
+                adb,
+                baseDir
+            )
             main.initUi()
             return
         }
@@ -585,5 +632,22 @@ class Main(
             }
         }
         return false
+    }
+
+    fun screenshot(): BufferedImage? {
+        return layoutPanel.screenshot
+    }
+
+    fun screenshotTest(
+        referenceScreenshot: BufferedImage,
+        otherBufferedImage: BufferedImage,
+    ) {
+        val screenshotTestDialog = ScreenshotTestDialog(
+            this, layoutPanel.screenshotPainter
+        )
+        screenshotTestDialog.showDialog(
+            referenceScreenshot,
+            otherBufferedImage,
+        )
     }
 }

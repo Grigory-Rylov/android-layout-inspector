@@ -4,8 +4,8 @@ import com.android.ddmlib.IDevice
 import com.android.layoutinspector.common.AdbFacade
 import com.android.layoutinspector.common.PluginLogger
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
-import com.github.grishberg.android.layoutinspector.ui.Main
 import com.github.grishberg.android.layoutinspector.ui.OpenWindowMode
+import com.github.grishberg.android.layoutinspector.ui.WindowsManager
 import com.github.grishberg.android.layoutinspector.ui.tree.EmptyTreeIcon
 import com.github.grishberg.android.li.ui.NotificationHelperImpl
 import com.github.grishberg.androidstudio.plugins.AdbProvider
@@ -21,6 +21,8 @@ import javax.swing.UIManager
 private const val PLUGIN_DIR = "captures/YALI"
 
 class ShowLayoutInspectorAction : AsAction() {
+    private val windowsManager by lazy { WindowsManager(PluginLogger()) }
+
     override fun actionPerformed(e: AnActionEvent, project: Project) {
         val settings = StorageService.getInstance().state ?: PluginState()
         val adbProvider = object : AdbProvider {
@@ -29,13 +31,12 @@ class ShowLayoutInspectorAction : AsAction() {
             }
         }
         val provider = ConnectedDeviceInfoProvider(adbProvider, NotificationHelperImpl)
-        val log = PluginLogger()
 
         createUi()
-        val main = Main(
+
+        val main = windowsManager.createWindow(
             OpenWindowMode.DEFAULT,
             settings,
-            log,
             DeviceProviderImpl(provider),
             AdbFacadeImpl(provider, project.context().adb),
             prepareBaseDir(project)

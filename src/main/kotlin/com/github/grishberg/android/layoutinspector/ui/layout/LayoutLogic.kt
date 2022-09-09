@@ -4,6 +4,7 @@ import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
+import com.github.grishberg.android.layoutinspector.ui.screenshottest.ScreenshotPainter
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Dimension
@@ -28,13 +29,16 @@ class LayoutLogic(
     private val panel: JPanel,
     private val meta: MetaRepository,
     private val settings: SettingsFacade
-) {
+): ScreenshotPainter {
     private val GFX_CONFIG = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
     private val skippedNodes = mutableMapOf<ViewNode, Boolean>()
 
     var onLayoutSelectedAction: OnLayoutSelectedAction? = null
 
-    private var screenshot: BufferedImage? = null
+    private var screenshotBuffer: BufferedImage? = null
+
+    var screenshot: BufferedImage? = null
+        private set
     val imageSize: Dimension
         get() {
             val image = screenshot
@@ -171,6 +175,7 @@ class LayoutLogic(
 
         layoutData.bufferedImage?.let {
             screenshot = toCompatibleImage(it)
+            screenshotBuffer = copyImage(screenshot)
         }
 
         rectangles.clear()
@@ -181,6 +186,20 @@ class LayoutLogic(
             screenshotOffsetY = node.locationOnScreenY
         }
         addFromViewNode(layoutModelRoots, layoutData.node)
+    }
+
+    private fun copyImage(source: BufferedImage?): BufferedImage? {
+        if (source == null) {
+            return null
+        }
+        val newImage = GFX_CONFIG.createCompatibleImage(source.width, source.height, source.transparency)
+        // get the graphics context of the new image to draw the old image on
+        val g2d = newImage.graphics as Graphics2D
+
+
+        g2d.drawImage(source, 0, 0, null)
+        g2d.dispose()
+        return newImage
     }
 
     private fun toCompatibleImage(image: BufferedImage): BufferedImage {
@@ -317,11 +336,11 @@ class LayoutLogic(
         at: AffineTransform,
         screenTransformedRectangle: Rectangle2D.Double
     ) {
-        screenshot?.let {
+        screenshotBuffer?.let { screenshot ->
             screenshotOffsetTransform.setToIdentity()
             screenshotOffsetTransform.setTransform(at)
             screenshotOffsetTransform.translate(screenshotOffsetX.toDouble(), screenshotOffsetY.toDouble())
-            g.drawImage(it, screenshotOffsetTransform, null)
+            g.drawImage(screenshot, screenshotOffsetTransform, null)
         }
 
         for (element in rectangles) {
@@ -528,6 +547,33 @@ class LayoutLogic(
         hoveredRectangle = null
         recalculateDistanceAction = null
         skippedNodes.clear()
+    }
+
+    override fun paintDifferencePixel(x: Int, y: Int) {
+        screenshotBuffer?.let {
+            val newColor = blend(Color(it.getRGB(x,y)), Color.magenta)
+            it.setRGB(x, y, newColor.rgb)
+        }
+    }
+
+    private fun blend(c0: Color, c1: Color): Color {
+        val totalAlpha = (c0.alpha + c1.alpha).toDouble()
+        val weight0 = c0.alpha / totalAlpha
+        val weight1 = c1.alpha / totalAlpha
+        val r = weight0 * c0.red + weight1 * c1.red
+        val g = weight0 * c0.green + weight1 * c1.green
+        val b = weight0 * c0.blue + weight1 * c1.blue
+        val a = Math.max(c0.alpha, c1.alpha).toDouble()
+        return Color(r.toInt(), g.toInt(), b.toInt(), a.toInt())
+    }
+
+    override fun invalidate() {
+        panel.repaint()
+    }
+
+    override fun clearDifferences() {
+        screenshotBuffer = copyImage(screenshot)
+        panel.repaint()
     }
 
     interface OnLayoutSelectedAction {

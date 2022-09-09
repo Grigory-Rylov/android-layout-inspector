@@ -59,7 +59,7 @@ tasks {
         untilBuild.set(properties("pluginUntilBuild"))
 
         changeNotes.set( """
-            Show serifs on middle of each side in layout.<br>
+            Screenshot test when 2 YALI windows is opened with layouts.<br>
           """
         )
     }
