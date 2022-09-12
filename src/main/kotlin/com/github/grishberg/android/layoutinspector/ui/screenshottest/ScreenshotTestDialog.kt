@@ -63,7 +63,8 @@ class ScreenshotTestDialog(
     }
 
     override fun showHasDifferences(differencesCount: Int) {
-        label.text = "There is some differences: $differencesCount pixels"
+        val pixelText = if (differencesCount > 1) "pixels" else "pixel"
+        label.text = "There are some differences: $differencesCount $pixelText"
         pack()
     }
 }
