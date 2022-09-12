@@ -81,7 +81,7 @@ enum class OpenWindowMode {
 }
 
 enum class Actions {
-    RESET_ZOOM, FIT_TO_SCREEN, HELP
+    RESET_ZOOM, FIT_TO_SCREEN, HELP, REFRESH
 }
 
 // create a class MainWindow extending JFrame

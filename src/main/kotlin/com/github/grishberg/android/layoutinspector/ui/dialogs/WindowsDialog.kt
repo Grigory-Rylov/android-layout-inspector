@@ -29,7 +29,7 @@ class WindowsDialog(
     private val owner: Frame,
     private val settings: SettingsFacade,
     private val logger: AppLogger
-) : JDialog(owner, TITLE, true), WindowsListInput {
+) : CloseByEscapeDialog(owner, TITLE, true), WindowsListInput {
     private val clientWindowList: JList<ClientWindow>
 
     private val clientWindowListModel = DefaultListModel<ClientWindow>()

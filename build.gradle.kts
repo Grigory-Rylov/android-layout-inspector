@@ -60,6 +60,7 @@ tasks {
 
         changeNotes.set( """
             Screenshot test when 2 YALI windows is opened with layouts.<br>
+            Fixed screenshot result dialog message.<br>
           """
         )
     }
