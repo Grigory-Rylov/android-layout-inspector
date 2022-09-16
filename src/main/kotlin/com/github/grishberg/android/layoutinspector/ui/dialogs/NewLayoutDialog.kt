@@ -57,6 +57,7 @@ class NewLayoutDialog(
     private val timeoutField = JNumberField(20)
     private val filePrefixField = JTextField(20)
     private val showAllProcesses: JCheckBox
+    private val secondProtocolVersion: JCheckBox
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
     private val devicesModel = DevicesCompoBoxModel()
@@ -106,6 +107,10 @@ class NewLayoutDialog(
         filePrefixField.toolTipText = "If not empty - will adds prefix to file name."
         filePrefixField.text = settings.fileNamePrefix
 
+        secondProtocolVersion = JCheckBox("protocol ver. 2")
+        secondProtocolVersion.toolTipText = "if not selected, will be used ver. 1, which slower, but has more properties"
+        secondProtocolVersion.isSelected = settings.isSecondProtocolVersionEnabled
+
         startButton = JButton("Start")
         startButton.addActionListener {
             startRecording()
@@ -123,6 +128,7 @@ class NewLayoutDialog(
         panelBuilder.addSingleComponent(showAllProcesses)
         panelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
         panelBuilder.addLabeledComponent("File name prefix: ", filePrefixField)
+        panelBuilder.addSingleComponent(secondProtocolVersion)
         if (deviceProvider.isReconnectionAllowed) {
             panelBuilder.addMainAndSlaveComponent(startButton, resetConnectionButton)
         } else {
@@ -220,7 +226,7 @@ class NewLayoutDialog(
         settings.lastProcessName = client.toString()
         val device = devicesComboBox.selectedItem as DeviceWrapper
         val timeoutInSeconds = timeoutField.text.toInt()
-        result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim())
+        result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim(), secondProtocolVersion.isSelected)
         deviceProvider.deviceChangedActions.remove(deviceChangedAction)
         isVisible = false
     }

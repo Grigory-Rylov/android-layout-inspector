@@ -29,6 +29,8 @@ class PluginState : SettingsFacade {
 
     override var showSerifsInTheMiddleAll: Boolean = false
 
+    override var isSecondProtocolVersionEnabled: Boolean = false
+
     override fun shouldShowSizeInDp(): Boolean = shouldShowSizeInDp
 
     override fun showSizeInDp(state: Boolean) {

@@ -78,7 +78,12 @@ class Logic(
 
             val task = LayoutInspectorCaptureTask(logger)
 
-            val liResult = task.capture(recordOptions.client, window, recordOptions.timeoutInSeconds)
+            val liResult = task.capture(
+                recordOptions.client,
+                window,
+                recordOptions.timeoutInSeconds,
+                recordOptions.v2Enabled
+            )
 
             output.hideLoading()
 
@@ -90,7 +95,11 @@ class Logic(
         }
     }
 
-    private fun onSuccessCaptured(fileNamePrefix: String, liResult: LayoutInspectorResult, dpPerPixels: Double) {
+    private fun onSuccessCaptured(
+        fileNamePrefix: String,
+        liResult: LayoutInspectorResult,
+        dpPerPixels: Double
+    ) {
         val sdf = SimpleDateFormat("yyyyMMdd_HH-mm-ss.SSS")
         val formattedTime = sdf.format(Date())
         val liFileName = if (fileNamePrefix.isNotEmpty()) {
