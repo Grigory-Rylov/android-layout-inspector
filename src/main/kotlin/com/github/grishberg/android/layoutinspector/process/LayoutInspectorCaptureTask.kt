@@ -18,13 +18,13 @@ private const val TAG = "LayoutInspectorCaptureTask"
 class LayoutInspectorCaptureTask(
     private val logger: AppLogger
 ) {
-    suspend fun capture(client: Client, clientWindow: ClientWindow, timeoutInSeconds: Int): LayoutInspectorResult {
+    suspend fun capture(client: Client, clientWindow: ClientWindow, timeoutInSeconds: Int, v2Enabled: Boolean): LayoutInspectorResult {
         val result = GlobalScope.async(Dispatchers.IO) {
             logger.d("$TAG: start capture view timeout = $timeoutInSeconds")
 
             try {
                 val version: ProtocolVersion = determineProtocolVersion(
-                    client.device.version.apiLevel, true
+                    client.device.version.apiLevel, v2Enabled
                 )
                 val options = LayoutInspectorCaptureOptions()
                 options.version = version

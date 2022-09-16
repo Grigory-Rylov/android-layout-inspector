@@ -59,8 +59,7 @@ tasks {
         untilBuild.set(properties("pluginUntilBuild"))
 
         changeNotes.set( """
-            Screenshot test when 2 YALI windows is opened with layouts.<br>
-            Fixed screenshot result dialog message.<br>
+            Allow to switching between first and second version of protocol. ver.2 is faster, but has less propertis<br>
           """
         )
     }

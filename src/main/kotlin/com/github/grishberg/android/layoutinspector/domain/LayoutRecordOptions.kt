@@ -7,5 +7,6 @@ data class LayoutRecordOptions(
     var device: IDevice,
     val client: Client,
     val timeoutInSeconds: Int,
-    val fileNamePrefix: String
+    val fileNamePrefix: String,
+    val v2Enabled: Boolean,
 )

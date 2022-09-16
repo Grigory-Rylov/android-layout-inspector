@@ -25,6 +25,8 @@ interface SettingsFacade {
 
     var showSerifsInTheMiddleAll: Boolean
 
+    var isSecondProtocolVersionEnabled: Boolean
+
     fun shouldShowSizeInDp(): Boolean
 
     fun showSizeInDp(state: Boolean)
