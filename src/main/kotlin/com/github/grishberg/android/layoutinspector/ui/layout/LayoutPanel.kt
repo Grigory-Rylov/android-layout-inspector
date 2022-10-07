@@ -1,5 +1,6 @@
 package com.github.grishberg.android.layoutinspector.ui.layout
 
+import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
@@ -21,9 +22,13 @@ private const val DEFAULT_SCALE = 0.25
 
 class LayoutPanel(
     meta: MetaRepository,
-    settings: SettingsFacade
+    settings: SettingsFacade,
+    layoutsState: LayoutsEnabledState,
+    logger: AppLogger,
 ) : JPanel() {
-    private val logic = LayoutLogic(this, meta, settings)
+    private val imageHelper = ImageHelper()
+    private val clipboardManager = ScreenshotClipboardManager(imageHelper, logger)
+    private val logic = LayoutLogic(this, meta, settings, layoutsState, imageHelper)
     private val zoomAndPanListener = ZoomAndPanListener(this)
     private val transformedPoint = Point()
     private var screenSize: Dimension = size
@@ -173,5 +178,9 @@ class LayoutPanel(
     fun removeSelection() {
         logic.removeSelection()
         repaint()
+    }
+
+    fun copyScreenshotToClipboard() {
+        clipboardManager.copyToClipboard(screenshot)
     }
 }

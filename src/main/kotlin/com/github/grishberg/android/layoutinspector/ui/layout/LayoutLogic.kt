@@ -28,7 +28,9 @@ import kotlin.math.round
 class LayoutLogic(
     private val panel: JPanel,
     private val meta: MetaRepository,
-    private val settings: SettingsFacade
+    private val settings: SettingsFacade,
+    private val latyoutsState: LayoutsEnabledState,
+    private val imgageHelper: ImageHelper
 ): ScreenshotPainter {
     private val GFX_CONFIG = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
     private val skippedNodes = mutableMapOf<ViewNode, Boolean>()
@@ -175,7 +177,7 @@ class LayoutLogic(
 
         layoutData.bufferedImage?.let {
             screenshot = toCompatibleImage(it)
-            screenshotBuffer = copyImage(screenshot)
+            screenshotBuffer = imgageHelper.copyImage(screenshot)
         }
 
         rectangles.clear()
@@ -186,20 +188,6 @@ class LayoutLogic(
             screenshotOffsetY = node.locationOnScreenY
         }
         addFromViewNode(layoutModelRoots, layoutData.node)
-    }
-
-    private fun copyImage(source: BufferedImage?): BufferedImage? {
-        if (source == null) {
-            return null
-        }
-        val newImage = GFX_CONFIG.createCompatibleImage(source.width, source.height, source.transparency)
-        // get the graphics context of the new image to draw the old image on
-        val g2d = newImage.graphics as Graphics2D
-
-
-        g2d.drawImage(source, 0, 0, null)
-        g2d.dispose()
-        return newImage
     }
 
     private fun toCompatibleImage(image: BufferedImage): BufferedImage {
@@ -341,6 +329,10 @@ class LayoutLogic(
             screenshotOffsetTransform.setTransform(at)
             screenshotOffsetTransform.translate(screenshotOffsetX.toDouble(), screenshotOffsetY.toDouble())
             g.drawImage(screenshot, screenshotOffsetTransform, null)
+        }
+
+        if (!latyoutsState.isEnabled) {
+            return
         }
 
         for (element in rectangles) {
@@ -572,7 +564,7 @@ class LayoutLogic(
     }
 
     override fun clearDifferences() {
-        screenshotBuffer = copyImage(screenshot)
+        screenshotBuffer = imgageHelper.copyImage(screenshot)
         panel.repaint()
     }
 

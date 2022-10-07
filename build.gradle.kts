@@ -59,7 +59,9 @@ tasks {
         untilBuild.set(properties("pluginUntilBuild"))
 
         changeNotes.set( """
-            Allow to switching between first and second version of protocol. ver.2 is faster, but has less propertis<br>
+            Toggle showing layouts by menu view -> Toggle showing layouts<br>
+            Copy screenshot to clipboard by menu tools  -> Copy screenshot to clipboard<br>
+            Fixed updating infinite table repainting.<br>
           """
         )
     }
