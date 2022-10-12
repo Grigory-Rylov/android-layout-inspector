@@ -28,16 +28,20 @@ import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
 import com.github.grishberg.android.layoutinspector.ui.info.flat.FlatPropertiesWithFilterPanel
 import com.github.grishberg.android.layoutinspector.ui.info.flat.filter.SimpleFilterTextView
 import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
+import com.github.grishberg.android.layoutinspector.ui.layout.ImageTransferable
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
+import com.github.grishberg.android.layoutinspector.ui.layout.LayoutsEnabledState
 import com.github.grishberg.android.layoutinspector.ui.screenshottest.ScreenshotTestDialog
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeProxy
 import com.github.grishberg.android.layoutinspector.ui.theme.Themes
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.intellij.ui.components.JBScrollPane
+import java.awt.AWTException
 import java.awt.BorderLayout
 import java.awt.Desktop
 import java.awt.Dimension
+import java.awt.Toolkit
 import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter
@@ -120,6 +124,8 @@ class Main(
     private val filter = FileNameExtensionFilter("Layout inspector files", "li")
     private val bookmarks = Bookmarks()
     private val metaRepository = MetaRepository(logger, bookmarks, baseDir)
+    private val layoutsState = LayoutsEnabledState()
+    private val toggleShowingLayouts = JCheckBoxMenuItem("Toggle showing layouts")
 
     // Constructor of MainWindow class
     init {
@@ -137,7 +143,7 @@ class Main(
             }
         })
 
-        layoutPanel = LayoutPanel(metaRepository, settingsFacade)
+        layoutPanel = LayoutPanel(metaRepository, settingsFacade, layoutsState, logger)
         treePanel = TreePanel(this, themeProxy, metaRepository, bookmarks, main = this)
         propertiesPanel = FlatPropertiesWithFilterPanel(
             metaRepository,
@@ -397,6 +403,16 @@ class Main(
         }
         viewMenu.add(showAllSerifs)
 
+
+        toggleShowingLayouts.isSelected = true
+        toggleShowingLayouts.accelerator = createAccelerator('L')
+        toggleShowingLayouts.addActionListener { e ->
+            val aButton = e.source as AbstractButton
+            layoutsState.isEnabled = aButton.model.isSelected
+            layoutPanel.repaint()
+        }
+        viewMenu.add(toggleShowingLayouts)
+
         return viewMenu
     }
 
@@ -406,6 +422,11 @@ class Main(
         compareScreenShot.addActionListener { tryToStartScreenshotTest() }
         compareScreenShot.accelerator = createAccelerator('S')
         toolsMenu.add(compareScreenShot)
+
+        val copyScreenShot = JMenuItem("Copy screenshot to clipboard")
+        copyScreenShot.addActionListener { copyScreenshotToClipboard() }
+        toolsMenu.add(copyScreenShot)
+
         return toolsMenu
     }
 
@@ -649,5 +670,15 @@ class Main(
             referenceScreenshot,
             otherBufferedImage,
         )
+    }
+
+    fun copyScreenshotToClipboard() {
+        layoutPanel.copyScreenshotToClipboard()
+    }
+
+    fun toggleShowingLayouts() {
+        toggleShowingLayouts.model.isSelected = !toggleShowingLayouts.model.isSelected
+        layoutsState.isEnabled = toggleShowingLayouts.model.isSelected
+        layoutPanel.repaint()
     }
 }

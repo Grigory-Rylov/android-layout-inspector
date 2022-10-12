@@ -9,6 +9,8 @@ import com.github.grishberg.android.layoutinspector.ui.info.RowInfoImpl
 import com.github.grishberg.android.layoutinspector.ui.info.flat.filter.FilterView
 import com.github.grishberg.android.layoutinspector.ui.info.flat.filter.PropertiesTableFilter
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Toolkit
@@ -25,6 +27,8 @@ import javax.swing.JTable
 import javax.swing.KeyStroke
 import javax.swing.ListSelectionModel
 import javax.swing.table.TableRowSorter
+
+private const val BORDER_SIZE = 4
 
 class FlatPropertiesWithFilterPanel(
     private val meta: MetaRepository,
@@ -43,13 +47,13 @@ class FlatPropertiesWithFilterPanel(
     init {
         layout = BorderLayout()
 
-        table = JTable(model)
+        table = JBTable(model)
         table.autoResizeMode = JTable.AUTO_RESIZE_LAST_COLUMN
 
         sorter = TableRowSorter(model)
         table.rowSorter = sorter
 
-        val scrollPane = JScrollPane(table)
+        val scrollPane = JBScrollPane(table)
         scrollPane.setHorizontalScrollBarPolicy(
             JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS
         )
@@ -110,7 +114,30 @@ class FlatPropertiesWithFilterPanel(
         if (filterView.filterText.isNotEmpty()) {
             filter(filterView.filterText)
         }
-        table.repaint()
+
+        updateRowsHeight()
+    }
+
+
+    private fun updateRowsHeight() {
+        val itemHeight = ui.getPreferredSize(this)?.height ?: 36
+        for (row in 0 until model.rowCount) {
+            val viewRow = table.convertRowIndexToModel(row)
+            if (viewRow < 0) {
+                continue
+            }
+            val valueAt = table.model.getValueAt(viewRow, 0)
+
+            when (valueAt) {
+                is TableValue.Empty,
+                is TableValue.Header -> {
+                    table.setRowHeight(row, itemHeight + BORDER_SIZE * 2)
+                }
+                else -> {
+                    table.setRowHeight(row, itemHeight)
+                }
+            }
+        }
     }
 
     private fun createPropertiesData(node: ViewNode): Map<String, List<RowInfoImpl>> {

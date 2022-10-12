@@ -31,6 +31,7 @@ class KeyBinder(
         addKeyMapWithCtrl(KeyEvent.VK_N, NewTraceAction())
         addKeyMap(KeyEvent.VK_Z, ResetZoomAction())
         addKeyMap(KeyEvent.VK_F, FitZoomAction())
+        addKeyMap(KeyEvent.VK_L, ToggleLayoutAction())
         addKeyMapWithCtrl(KeyEvent.VK_F, GoToFindAction())
     }
 
@@ -85,6 +86,13 @@ class KeyBinder(
         override fun actionPerformed(e: ActionEvent) {
             if (shouldSkip(e)) return
             layoutPanel.fitZoom()
+        }
+    }
+
+    private inner class ToggleLayoutAction : AbstractAction() {
+        override fun actionPerformed(e: ActionEvent) {
+            if (shouldSkip(e)) return
+            main.toggleShowingLayouts()
         }
     }
 
