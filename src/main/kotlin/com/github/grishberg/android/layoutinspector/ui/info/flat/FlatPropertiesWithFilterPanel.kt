@@ -1,5 +1,6 @@
 package com.github.grishberg.android.layoutinspector.ui.info.flat
 
+import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ViewNode
 import com.android.layoutinspector.model.ViewProperty
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
@@ -35,6 +36,7 @@ class FlatPropertiesWithFilterPanel(
     settings: SettingsFacade,
     themeColors: ThemeColors,
     private val filterView: FilterView,
+    private val logger: AppLogger,
 ) : JPanel(), PropertiesPanel {
     private var currentNode: ViewNode? = null
     private var sorter: TableRowSorter<FlatGroupTableModel>
@@ -121,7 +123,8 @@ class FlatPropertiesWithFilterPanel(
 
     private fun updateRowsHeight() {
         val itemHeight = ui.getPreferredSize(this)?.height ?: 36
-        for (row in 0 until model.rowCount) {
+        val visibleRowsCount = sorter.viewRowCount
+        for (row in 0 until visibleRowsCount) {
             val viewRow = table.convertRowIndexToModel(row)
             if (viewRow < 0) {
                 continue
