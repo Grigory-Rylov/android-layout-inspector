@@ -149,7 +149,8 @@ class Main(
             metaRepository,
             settingsFacade,
             themeProxy,
-            SimpleFilterTextView(settingsFacade)
+            SimpleFilterTextView(settingsFacade),
+            logger
         )
         propertiesPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())
         layoutPanel.setSizeDpMode(settingsFacade.shouldShowSizeInDp())

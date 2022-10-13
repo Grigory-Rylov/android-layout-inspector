@@ -59,9 +59,7 @@ tasks {
         untilBuild.set(properties("pluginUntilBuild"))
 
         changeNotes.set( """
-            Toggle showing layouts by menu view -> Toggle showing layouts<br>
-            Copy screenshot to clipboard by menu tools  -> Copy screenshot to clipboard<br>
-            Fixed updating infinite table repainting.<br>
+            Fixed tree-nodes selection when table info filter is not empty.<br>
           """
         )
     }
