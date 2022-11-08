@@ -1,5 +1,6 @@
 package com.github.grishberg.android.layoutinspector.ui
 
+import com.github.grishberg.android.layoutinspector.domain.Logic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
 import com.github.grishberg.android.layoutinspector.ui.theme.Themes
 import com.github.grishberg.android.layoutinspector.ui.tree.IconsStore
@@ -14,7 +15,8 @@ private const val BUTTON_SIZE = 22
 class ButtonsBuilder(
     private val layoutPanel: LayoutPanel,
     private val main: Main,
-    private val themes: Themes
+    private val themes: Themes,
+    private val logic: Logic,
 ) : ActionListener {
     private val iconStore = IconsStore(BUTTON_SIZE - 8)
 
@@ -32,6 +34,14 @@ class ButtonsBuilder(
             "Fits to screen (f)"
         )
         toolBar.add(fitScreenButton)
+
+        val refreshLayoutButton = makeToolbarButton(
+            "(@)", "refresh",
+            Actions.REFRESH,
+            "Refresh layout (Ctrl/Cmd + R)"
+        )
+        toolBar.add(refreshLayoutButton)
+
 
         val helpButton = makeToolbarButton(
             "?", "help",
@@ -74,6 +84,11 @@ class ButtonsBuilder(
 
         if (e.actionCommand == Actions.HELP.name) {
             main.goToHelp()
+            return
+        }
+
+        if (e.actionCommand == Actions.REFRESH.name) {
+            logic.refreshLayout()
             return
         }
     }

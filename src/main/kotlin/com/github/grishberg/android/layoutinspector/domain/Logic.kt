@@ -2,10 +2,12 @@ package com.github.grishberg.android.layoutinspector.domain
 
 import com.android.layoutinspector.LayoutInspectorResult
 import com.android.layoutinspector.common.AppLogger
+import com.android.layoutinspector.model.ClientWindow
 import com.android.layoutinspector.model.LayoutFileData
 import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchers
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.LayoutInspectorCaptureTask
+import com.github.grishberg.android.layoutinspector.process.RecordingConfig
 import com.github.grishberg.android.layoutinspector.process.providers.ScreenSizeProvider
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -43,55 +45,96 @@ class Logic(
         }
     }
 
+    private var previousRecordingConfig: RecordingConfig? = null
+
+    val canRefresh: Boolean
+        get() = previousRecordingConfig != null
+
     fun startRecording() {
         recordingJob = coroutineScope.launch(errorHandler) {
-            val recordOptions = devicesInput.getLayoutOptions() ?: return@launch
+            recodLayoutFromNewDevice()
+        }
+    }
 
-            output.showLoading()
+    private suspend fun recodLayoutFromNewDevice() {
+        val recordOptions = devicesInput.getLayoutOptions() ?: return
 
-            val windows = coroutineScope.async(dispatchers.worker) {
-                return@async clientWindowsInput.getClientWindows(recordOptions)
-            }
-            val windowList = windows.await()
+        output.showLoading()
 
-            if (windowList.isEmpty()) {
-                throw IllegalStateException("No windows for client")
-            }
+        val windows = coroutineScope.async(dispatchers.worker) {
+            return@async clientWindowsInput.getClientWindows(recordOptions)
+        }
+        val windowList = windows.await()
 
-            val window = if (windowList.size == 1) {
-                windowList[0]
-            } else {
-                output.hideLoading()
-                val selectedWindow = windowsListInput.getSelectedWindow(windowList)
-                output.showLoading()
-                selectedWindow
-            }
+        if (windowList.isEmpty()) {
+            throw IllegalStateException("No windows for client")
+        }
 
-            val density = recordOptions.device.density
-            logger.d("$TAG: density = $density")
-
-            val screenSize = screenSizeProvider.getScreenSize(recordOptions.device)
-            logger.d("$TAG: screen size = $screenSize")
-
-            val dpPerPixels = (density / 160.0)
-            logger.d("$TAG: dp per pixels = $dpPerPixels")
-
-            val task = LayoutInspectorCaptureTask(logger)
-
-            val liResult = task.capture(
-                recordOptions.client,
-                window,
-                recordOptions.timeoutInSeconds,
-                recordOptions.v2Enabled
-            )
-
+        val window = if (windowList.size == 1) {
+            windowList[0]
+        } else {
             output.hideLoading()
+            val selectedWindow = windowsListInput.getSelectedWindow(windowList)
+            output.showLoading()
+            selectedWindow
+        }
 
-            if (liResult.data == null || liResult.root == null) {
-                output.showError(liResult.error)
-            } else {
-                onSuccessCaptured(recordOptions.fileNamePrefix, liResult, dpPerPixels)
+        val density = recordOptions.device.density
+        logger.d("$TAG: density = $density")
+
+        val screenSize = screenSizeProvider.getScreenSize(recordOptions.device)
+        logger.d("$TAG: screen size = $screenSize")
+
+        val dpPerPixels = (density / 160.0)
+        logger.d("$TAG: dp per pixels = $dpPerPixels")
+
+
+        val config = RecordingConfig(
+            recordOptions.client,
+            window,
+            recordOptions.timeoutInSeconds,
+            recordOptions.v2Enabled,
+            dpPerPixels,
+            recordOptions
+        )
+        previousRecordingConfig = config
+
+        captureLayouts(config)
+    }
+
+    fun refreshLayout() {
+        previousRecordingConfig?.let { config ->
+
+            recordingJob = coroutineScope.launch(errorHandler) {
+
+                output.showLoading()
+
+                val windows = coroutineScope.async(dispatchers.worker) {
+                    return@async clientWindowsInput.getClientWindows(config.recordOptions)
+                }
+                val windowList: List<ClientWindow> = windows.await()
+                if (windowList.any { it.displayName == config.clientWindow.displayName }) {
+                    captureLayouts(config)
+                } else {
+                    recodLayoutFromNewDevice()
+                }
             }
+        }
+    }
+
+    private suspend fun captureLayouts(
+        config: RecordingConfig,
+    ) {
+        val task = LayoutInspectorCaptureTask(coroutineScope, logger)
+
+        val liResult = task.capture(config)
+
+        output.hideLoading()
+
+        if (liResult.data == null || liResult.root == null) {
+            output.showError(liResult.error)
+        } else {
+            onSuccessCaptured(config.recordOptions.fileNamePrefix, liResult, config.dpPerPixels)
         }
     }
 

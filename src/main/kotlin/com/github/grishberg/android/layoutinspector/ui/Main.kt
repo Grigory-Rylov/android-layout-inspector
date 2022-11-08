@@ -28,7 +28,6 @@ import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
 import com.github.grishberg.android.layoutinspector.ui.info.flat.FlatPropertiesWithFilterPanel
 import com.github.grishberg.android.layoutinspector.ui.info.flat.filter.SimpleFilterTextView
 import com.github.grishberg.android.layoutinspector.ui.layout.DistanceType
-import com.github.grishberg.android.layoutinspector.ui.layout.ImageTransferable
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutLogic
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutPanel
 import com.github.grishberg.android.layoutinspector.ui.layout.LayoutsEnabledState
@@ -37,11 +36,9 @@ import com.github.grishberg.android.layoutinspector.ui.theme.ThemeProxy
 import com.github.grishberg.android.layoutinspector.ui.theme.Themes
 import com.github.grishberg.android.layoutinspector.ui.tree.TreePanel
 import com.intellij.ui.components.JBScrollPane
-import java.awt.AWTException
 import java.awt.BorderLayout
 import java.awt.Desktop
 import java.awt.Dimension
-import java.awt.Toolkit
 import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter
@@ -126,6 +123,10 @@ class Main(
     private val metaRepository = MetaRepository(logger, bookmarks, baseDir)
     private val layoutsState = LayoutsEnabledState()
     private val toggleShowingLayouts = JCheckBoxMenuItem("Toggle showing layouts")
+    private val refreshLayoutMenuItem = JMenuItem("Refresh layout").apply {
+        isEnabled = false
+        accelerator = createControlAccelerator('R')
+    }
 
     // Constructor of MainWindow class
     init {
@@ -169,7 +170,6 @@ class Main(
 
         val toolbar = JToolBar()
         toolbar.isFloatable = false
-        ButtonsBuilder(layoutPanel, this, themes).addToolbarButtons(toolbar)
 
         mainPanel = JPanel(BorderLayout())
         mainPanel.add(toolbar, BorderLayout.NORTH)
@@ -212,6 +212,7 @@ class Main(
             coroutineScope,
             coroutinesDispatchers
         )
+        ButtonsBuilder(layoutPanel, this, themes, logic).addToolbarButtons(toolbar)
 
         loadingDialog = LoadingDialog(this, object : LoadingDialogClosedEventListener {
             override fun onLoadingDialogClosed() {
@@ -328,6 +329,12 @@ class Main(
         }
 
         file.addSeparator()
+
+        file.add(refreshLayoutMenuItem)
+        refreshLayoutMenuItem.addActionListener { arg: ActionEvent? ->
+            logic.refreshLayout()
+        }
+
         return file
     }
 
@@ -519,6 +526,7 @@ class Main(
         treePanel.showLayoutResult(resultOutput)
         findDialog.updateRootNode(resultOutput.node)
         splitPane1.invalidate()
+        refreshLayoutMenuItem.isEnabled = logic.canRefresh
     }
 
     override fun showError(error: String) {

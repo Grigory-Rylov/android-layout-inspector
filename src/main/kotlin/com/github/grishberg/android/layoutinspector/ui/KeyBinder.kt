@@ -26,6 +26,7 @@ class KeyBinder(
         //addKeyMapWithCtrl(KeyEvent.VK_C, CopySelectedFullClassNameAction())
         //addKeyMap(KeyEvent.VK_ESCAPE, RemoveSelectionAction())
         addKeyMapWithCtrl(KeyEvent.VK_O, OpenFileDialogAction(false))
+        addKeyMapWithCtrl(KeyEvent.VK_R, RefreshLayoutAction())
         addKeyMapWithCtrlShift(KeyEvent.VK_O, OpenFileDialogAction(true))
 
         addKeyMapWithCtrl(KeyEvent.VK_N, NewTraceAction())
@@ -79,6 +80,12 @@ class KeyBinder(
         override fun actionPerformed(e: ActionEvent) {
             if (shouldSkip(e)) return
             logic.startRecording()
+        }
+    }
+    private inner class RefreshLayoutAction : AbstractAction() {
+        override fun actionPerformed(e: ActionEvent) {
+            if (shouldSkip(e)) return
+            logic.refreshLayout()
         }
     }
 
