@@ -75,7 +75,7 @@ import kotlin.math.roundToInt
 
 
 private const val INITIAL_SCREEN_WIDTH = 1024
-private const val INITIAL_SCREEN_HEIGHT = 600
+private const val INITIAL_SCREEN_HEIGHT = 800
 private const val INITIAL_LAYOUTS_WINDOW_WIDTH = 300
 private const val INITIAL_PROPERTIES_WINDOW_WIDTH = 400
 
