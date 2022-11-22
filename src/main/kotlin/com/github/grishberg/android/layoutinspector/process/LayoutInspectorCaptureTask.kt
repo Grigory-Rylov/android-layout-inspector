@@ -1,43 +1,42 @@
 package com.github.grishberg.android.layoutinspector.process
 
-import com.android.ddmlib.Client
 import com.android.layoutinspector.LayoutInspectorBridge
 import com.android.layoutinspector.LayoutInspectorBridge.V2_MIN_API
 import com.android.layoutinspector.LayoutInspectorCaptureOptions
 import com.android.layoutinspector.LayoutInspectorResult
 import com.android.layoutinspector.ProtocolVersion
 import com.android.layoutinspector.common.AppLogger
-import com.android.layoutinspector.model.ClientWindow
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 
 
 private const val TAG = "LayoutInspectorCaptureTask"
 
 class LayoutInspectorCaptureTask(
-    private val logger: AppLogger
+    private val scope: CoroutineScope,
+    private val logger: AppLogger,
 ) {
-    suspend fun capture(client: Client, clientWindow: ClientWindow, timeoutInSeconds: Int, v2Enabled: Boolean): LayoutInspectorResult {
-        val result = GlobalScope.async(Dispatchers.IO) {
-            logger.d("$TAG: start capture view timeout = $timeoutInSeconds")
+    suspend fun capture(recordingConfig: RecordingConfig): LayoutInspectorResult {
+        val result = scope.async(Dispatchers.IO) {
+            logger.d("$TAG: start capture view timeout = ${recordingConfig.timeoutInSeconds}")
 
             try {
                 val version: ProtocolVersion = determineProtocolVersion(
-                    client.device.version.apiLevel, v2Enabled
+                    recordingConfig.client.device.version.apiLevel, recordingConfig.v2Enabled
                 )
                 val options = LayoutInspectorCaptureOptions()
                 options.version = version
 
                 val captureView = LayoutInspectorBridge.captureView(
                     logger,
-                    clientWindow,
+                    recordingConfig.clientWindow,
                     options,
-                    timeoutInSeconds.toLong()
+                    recordingConfig.timeoutInSeconds.toLong()
                 )
                 return@async captureView
             } catch (e: Exception) {
-                logger.e("$TAG", e)
+                logger.e(TAG, e)
                 throw e
             }
         }

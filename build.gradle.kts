@@ -59,7 +59,8 @@ tasks {
         untilBuild.set(properties("pluginUntilBuild"))
 
         changeNotes.set( """
-            Fixed tree-nodes selection when table info filter is not empty.<br>
+            Added refresh event by Ctrl + r.<br>
+            Increased window height.<br>
           """
         )
     }
