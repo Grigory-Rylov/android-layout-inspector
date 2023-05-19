@@ -113,7 +113,8 @@ class ClientWindow(
             return mData.get()
         }
 
-        override fun handleUnknownChunk(
+
+        private fun handleUnknownChunk(
             client: ClientImpl?,
             type: Int,
             data: ByteBuffer?,
@@ -121,11 +122,9 @@ class ClientWindow(
             msgId: Int
         ) {
             if (type == ChunkHandler.CHUNK_FAIL) {
-                val errorCode: Int
-                val msgLen: Int
                 val msg: String
-                errorCode = data!!.int
-                msgLen = data.int
+                val errorCode: Int = data!!.int
+                val msgLen: Int = data.int
                 msg = ByteBufferUtil.getString(data, msgLen)
                 logger.w("ddms: WARNING: failure code=$errorCode msg=$msg")
             } else {

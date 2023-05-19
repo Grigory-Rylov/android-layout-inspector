@@ -6,9 +6,9 @@ plugins {
     // Java support
     id("java")
     // Kotlin support
-    id("org.jetbrains.kotlin.jvm") version "1.6.10"
+    id("org.jetbrains.kotlin.jvm") version "1.8.0"
     // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.7.0"
+    id("org.jetbrains.intellij") version "1.13.3"
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.1"
 }
@@ -34,8 +34,8 @@ intellij {
 
 dependencies {
     implementation(platform("io.projectreactor:reactor-bom:2020.0.20"))
-    implementation("io.rsocket:rsocket-core:1.1.2")
-    implementation("io.rsocket:rsocket-transport-netty:1.1.2")
+    implementation("io.rsocket:rsocket-core:1.1.3")
+    implementation("io.rsocket:rsocket-transport-netty:1.1.3")
     implementation("io.rsocket.broker:rsocket-broker-frames:0.3.0")
 
 
@@ -74,4 +74,8 @@ tasks {
         systemProperty("jb.consents.confirmation.enabled", "false")
     }
 
+    runIde {
+        // To debug with preview use path: "/Applications/Android Studio Preview.app/Contents"
+        ideDir.set(file("/Applications/Android Studio.app/Contents"))
+    }
 }
