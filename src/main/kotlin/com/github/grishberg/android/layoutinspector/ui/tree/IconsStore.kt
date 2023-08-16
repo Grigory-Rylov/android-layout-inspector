@@ -14,7 +14,7 @@ private const val ICON_SIZE = 18
 
 class IconsStore(private val iconSize: Int = ICON_SIZE) {
     fun createImageIcon(path: String, altText: String = ""): ImageIcon {
-        val icon = IconLoader.getIcon(path)
+        val icon = IconLoader.getIcon(path, this.javaClass)
 
         var image: BufferedImage? = ImageUtil.toBufferedImage(IconUtil.toImage(icon))
         image =

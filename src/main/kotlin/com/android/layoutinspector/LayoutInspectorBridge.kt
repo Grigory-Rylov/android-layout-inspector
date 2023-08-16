@@ -33,18 +33,19 @@ object LayoutInspectorBridge {
     val V2_MIN_API = 23
 
     @JvmStatic
-    fun captureView(
+    suspend fun captureView(
         logger: AppLogger,
         window: ClientWindow,
         options: LayoutInspectorCaptureOptions,
         timeoutInSeconds: Long
     ): LayoutInspectorResult {
         val hierarchy =
-            window.loadWindowData(options, timeoutInSeconds, TimeUnit.SECONDS) ?: return LayoutInspectorResult.createErrorResult(
-                "There was a timeout error capturing the layout data from the device.\n" +
-                        "The device may be too slow, the captured view may be too complex, or the view may contain animations.\n\n" +
-                        "Please retry with a simplified view and ensure the device is responsive."
-            )
+            window.loadWindowData(options, timeoutInSeconds, TimeUnit.SECONDS)
+                ?: return LayoutInspectorResult.createErrorResult(
+                    "There was a timeout error capturing the layout data from the device.\n" +
+                            "The device may be too slow, the captured view may be too complex, or the view may contain animations.\n\n" +
+                            "Please retry with a simplified view and ensure the device is responsive."
+                )
         var root: ViewNode?
         try {
             logger.d("$TAG parse hierarchy")
@@ -54,7 +55,7 @@ object LayoutInspectorBridge {
         } catch (e: StringIndexOutOfBoundsException) {
             return LayoutInspectorResult.createErrorResult("Unexpected error: $e")
         } catch (e: IOException) {
-            return LayoutInspectorResult.createErrorResult( "Unexpected error: $e")
+            return LayoutInspectorResult.createErrorResult("Unexpected error: $e")
         }
         if (root == null) {
             return LayoutInspectorResult.createErrorResult(
@@ -95,7 +96,8 @@ object LayoutInspectorBridge {
             root = root,
             data = bytes.toByteArray(),
             previewImage = ImageIO.read(ByteArrayInputStream(preview)),
-            options= options,
-            error = "")
+            options = options,
+            error = ""
+        )
     }
 }

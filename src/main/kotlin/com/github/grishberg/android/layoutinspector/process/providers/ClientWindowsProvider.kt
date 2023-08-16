@@ -10,7 +10,7 @@ class ClientWindowsProvider(
     private val logger: AppLogger
 ) : ClientWindowsInput {
     override suspend fun getClientWindows(options: LayoutRecordOptions): List<ClientWindow> {
-        return ClientWindow.getAll(
+        return ClientWindow.getAllV2(
             logger,
             options.client,
             options.timeoutInSeconds.toLong(),

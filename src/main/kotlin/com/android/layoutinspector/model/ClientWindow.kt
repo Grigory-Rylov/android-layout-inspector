@@ -15,29 +15,26 @@
  */
 package com.android.layoutinspector.model
 
-import com.android.ddmlib.ByteBufferUtil
 import com.android.ddmlib.Client
 import com.android.ddmlib.ClientData
 import com.android.ddmlib.DebugViewDumpHandler
-import com.android.ddmlib.internal.ClientImpl
-import com.android.ddmlib.internal.jdwp.chunkhandler.ChunkHandler
-import com.android.ddmlib.internal.jdwp.chunkhandler.HandleViewDebug
 import com.android.layoutinspector.LayoutInspectorCaptureOptions
 import com.android.layoutinspector.ProtocolVersion
 import com.android.layoutinspector.common.AppLogger
 import com.google.common.annotations.VisibleForTesting
-import com.google.common.collect.Lists
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 
 /** Represents a root window.  */
 class ClientWindow(
     private val logger: AppLogger,
     val title: String,
     private val client: Client,
-    val clientViewInspector: ClientViewInspector = object : ClientViewInspector {}
+    val clientViewInspector: ClientViewInspector = ModernClientViewInspector()
 ) {
     /**
      * Returns the name for the window suitable for displaying on the UI. Returns the class name if
@@ -55,7 +52,7 @@ class ClientWindow(
         }
 
     /** Byte array representing the view hierarchy dump of the window.  */
-    fun loadWindowData(
+    suspend fun loadWindowData(
         options: LayoutInspectorCaptureOptions,
         timeout: Long,
         unit: TimeUnit
@@ -71,70 +68,35 @@ class ClientWindow(
     )
 
     /** Byte array representing image preview of the provided node.  */
-    fun loadViewImage(node: ViewNode, timeout: Long, unit: TimeUnit): ByteArray? =
+    suspend fun loadViewImage(node: ViewNode, timeout: Long, unit: TimeUnit): ByteArray? =
         clientViewInspector.captureView(logger, client, title, node, timeout, unit)
 
-    private class ListViewRootsHandler(
+    private class ListViewRootsHandlerV2(
         private val logger: AppLogger
-    ) : DebugViewDumpHandler(DebugViewDumpHandler.CHUNK_VULW) {
-        private val myViewRoots = Lists.newCopyOnWriteArrayList<String>()
+    ) : DebugViewDumpHandler() {
+
+        private val viewRootsState = MutableStateFlow<List<String>?>(null)
+
         override fun handleViewDebugResult(data: ByteBuffer) {
+            val viewRoots = mutableListOf<String>()
             val nWindows = data.int
-            for (i in 0 until nWindows) {
+            repeat(nWindows) {
                 val len = data.int
-                myViewRoots.add(ByteBufferUtil.getString(data, len))
+                viewRoots.add(getString(data, len))
             }
+            viewRootsState.value = viewRoots
         }
 
-        @Throws(IOException::class)
-        fun getWindows(c: Client, timeout: Long, unit: TimeUnit): List<ClientWindow> {
-            HandleViewDebug.listViewRoots(c, this)
-            waitForResult(timeout, unit)
-            val windows = Lists.newArrayList<ClientWindow>()
-            for (root in myViewRoots) {
-                windows.add(ClientWindow(logger, root, c))
+        suspend fun getWindows(client: Client, timeout: Long, unit: TimeUnit): List<ClientWindow> {
+            //TODO: check timeouts
+            client.listViewRoots(this)
+            val windows = viewRootsState.filterNotNull().first()
+
+            val result = mutableListOf<ClientWindow>()
+            for (root in windows) {
+                result.add(ClientWindow(logger, root, client))
             }
-            return windows
-        }
-    }
-
-    private class CaptureByteArrayHandler(
-        private val logger: AppLogger, type: Int
-    ) : DebugViewDumpHandler(type) {
-        private val mData = AtomicReference<ByteArray>()
-        override fun handleViewDebugResult(data: ByteBuffer) {
-            val b = ByteArray(data.remaining())
-            data.get(b)
-            mData.set(b)
-        }
-
-        fun getData(timeout: Long, unit: TimeUnit): ByteArray? {
-            waitForResult(timeout, unit)
-            return mData.get()
-        }
-
-
-        private fun handleUnknownChunk(
-            client: ClientImpl?,
-            type: Int,
-            data: ByteBuffer?,
-            isReply: Boolean,
-            msgId: Int
-        ) {
-            if (type == ChunkHandler.CHUNK_FAIL) {
-                val msg: String
-                val errorCode: Int = data!!.int
-                val msgLen: Int = data.int
-                msg = ByteBufferUtil.getString(data, msgLen)
-                logger.w("ddms: WARNING: failure code=$errorCode msg=$msg")
-            } else {
-                logger.w(
-                    "ddms: WARNING: received unknown chunk " + chunkName(type)
-                            + ": len=" + data!!.limit() + ", reply=" + isReply
-                            + ", msgId=0x" + Integer.toHexString(msgId)
-                )
-            }
-            logger.w("ddms:        client $client, handler $this")
+            return result
         }
     }
 
@@ -142,13 +104,13 @@ class ClientWindow(
         /** Lists all the active window for the current client.  */
         @Throws(IOException::class)
         @JvmStatic
-        fun getAll(
+        suspend fun getAllV2(
             logger: AppLogger,
             client: Client, timeout: Long, unit: TimeUnit
         ): List<ClientWindow>? {
             val cd = client.clientData
             return if (cd.hasFeature(ClientData.FEATURE_VIEW_HIERARCHY)) {
-                ListViewRootsHandler(logger).getWindows(client, timeout, unit)
+                ListViewRootsHandlerV2(logger).getWindows(client, timeout, unit)
             } else null
         }
 
@@ -167,43 +129,25 @@ class ClientWindow(
 
     @VisibleForTesting
     interface ClientViewInspector {
-        fun dumpViewHierarchy(
+        suspend fun dumpViewHierarchy(
             logger: AppLogger,
             client: Client,
-            title: String,
+            clientWindowTitle: String,
             skipChildren: Boolean,
             includeProperties: Boolean,
             useV2: Boolean,
             timeout: Long,
             timeUnit: TimeUnit
-        ): ByteArray? {
-            val handler = CaptureByteArrayHandler(logger, DebugViewDumpHandler.CHUNK_VURT)
-            HandleViewDebug.dumpViewHierarchy(
-                client, title, skipChildren, includeProperties, useV2, handler
-            )
-            return try {
-                handler.getData(timeout, timeUnit)
-            } catch (e: IOException) {
-                null
-            }
-        }
+        ): ByteArray?
 
-        fun captureView(
+        suspend fun captureView(
             logger: AppLogger,
             client: Client,
-            title: String,
+            clientWindowTitle: String,
             node: ViewNode,
             timeout: Long,
             timeUnit: TimeUnit
-        ): ByteArray? {
-            val handler = CaptureByteArrayHandler(logger, DebugViewDumpHandler.CHUNK_VUOP)
-            HandleViewDebug.captureView(client, title, node.toString(), handler)
-            return try {
-                handler.getData(timeout, timeUnit)
-            } catch (e: IOException) {
-                null
-            }
-        }
+        ): ByteArray?
     }
 
     override fun toString(): String {
