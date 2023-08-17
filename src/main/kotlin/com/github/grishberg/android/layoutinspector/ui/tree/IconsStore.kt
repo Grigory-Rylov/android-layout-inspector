@@ -1,12 +1,10 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.intellij.openapi.util.IconLoader
-import com.intellij.util.IconUtil
-import com.intellij.util.ui.ImageUtil
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.UIUtil
-import org.imgscalr.Scalr
+import java.awt.Graphics2D
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
+import javax.swing.Icon
 import javax.swing.ImageIcon
 
 
@@ -16,13 +14,31 @@ class IconsStore(private val iconSize: Int = ICON_SIZE) {
     fun createImageIcon(path: String, altText: String = ""): ImageIcon {
         val icon = IconLoader.getIcon(path, this.javaClass)
 
-        var image: BufferedImage? = ImageUtil.toBufferedImage(IconUtil.toImage(icon))
-        image =
-            Scalr.resize(image, Scalr.Method.ULTRA_QUALITY, if (UIUtil.isRetina()) iconSize else JBUI.scale(iconSize))
-        return if (image != null) {
-            ImageIcon(image, altText)
-        } else {
-            throw IllegalStateException("Image $path not found")
-        }
+        return resizeIcon(icon, iconSize, iconSize)
+    }
+
+    private fun resizeIcon(icon: Icon, width: Int, height: Int): ImageIcon {
+        val bufferedImage = BufferedImage(
+            icon.iconWidth, icon.iconHeight,
+            BufferedImage.TYPE_4BYTE_ABGR
+        )
+        val bufImageG: Graphics2D = bufferedImage.createGraphics()
+        icon.paintIcon(null, bufImageG, 0, 0)
+        bufImageG.dispose()
+
+        val resizedImg = BufferedImage(
+            width, height,
+            BufferedImage.TYPE_4BYTE_ABGR
+        )
+
+        val g2: Graphics2D = resizedImg.createGraphics()
+        g2.setRenderingHint(
+            RenderingHints.KEY_INTERPOLATION,
+            RenderingHints.VALUE_INTERPOLATION_BILINEAR
+        )
+        g2.drawImage(bufferedImage, 0, 0, width, height, null)
+        g2.dispose()
+
+        return ImageIcon(resizedImg)
     }
 }

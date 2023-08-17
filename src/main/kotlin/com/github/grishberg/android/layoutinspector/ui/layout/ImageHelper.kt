@@ -2,7 +2,6 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 
 import java.awt.Graphics2D
 import java.awt.GraphicsEnvironment
-import java.awt.Image
 import java.awt.Transparency
 import java.awt.image.BufferedImage
 
@@ -29,7 +28,7 @@ class ImageHelper {
     }
 
     fun copyForClipboard(source: BufferedImage): BufferedImage {
-        val original: Image = source
+        val original: BufferedImage = source
         val newImage = BufferedImage(
             original.getWidth(null), original.getHeight(null), BufferedImage.TYPE_INT_RGB
         )
