@@ -303,7 +303,7 @@ class NewLayoutDialog(
 
                 try {
                     val windows =
-                        ClientWindow.getAll(logger, c, settings.clientWindowsTimeout, TimeUnit.SECONDS) ?: emptyList()
+                        ClientWindow.getAllV2(logger, c, settings.clientWindowsTimeout, TimeUnit.SECONDS) ?: emptyList()
 
                     if (windows.isNotEmpty()) {
                         val element = ClientWrapper(c)

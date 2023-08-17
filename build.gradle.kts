@@ -44,7 +44,9 @@ dependencies {
     implementation ("com.google.code.gson:gson:2.8.6")
 
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.3.2")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
 
 
     testImplementation ("junit:junit:4.12")
