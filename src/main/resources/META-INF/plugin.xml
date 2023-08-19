@@ -29,6 +29,9 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.grishberg.android.li.StorageService"/>
+        <notificationGroup id="Support YALI Notification" displayType="STICKY_BALLOON"/>
+        <notificationGroup id="Notification Group" displayType="STICKY_BALLOON"/>
+        <notificationGroup id="Error Notification Group" displayType="BALLOON"/>
     </extensions>
 
     <actions>

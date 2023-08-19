@@ -30,7 +30,8 @@ class ShowLayoutInspectorAction : AsAction() {
                 return AdbWrapperImpl(project)
             }
         }
-        val provider = ConnectedDeviceInfoProvider(adbProvider, NotificationHelperImpl)
+        val notificationHelper = NotificationHelperImpl(project)
+        val provider = ConnectedDeviceInfoProvider(adbProvider, notificationHelper)
 
         createUi()
 
@@ -42,6 +43,12 @@ class ShowLayoutInspectorAction : AsAction() {
             prepareBaseDir(project)
         )
         main.initUi()
+
+        notificationHelper.supportInfo("Support me if you like YALI =)",
+                "BNB,ETH tokens : 0x25Ca16AD3c4e9BD1e6e5FDD77eDB019386B68591\n\n" +
+                "USDT TRC20 : TSo3X6K54nYq3S64wML4M4xFgTNiENkHwC\n\n" +
+                "BTC : bc1qmm5lp389scuk2hghgyzdztddwgjnxqa2awrrue\n\n" +
+                "https://www.tinkoff.ru/cf/4KNjR2SMOAj")
     }
 
     private fun prepareBaseDir(project: Project): File {
