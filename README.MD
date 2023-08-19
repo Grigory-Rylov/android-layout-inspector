@@ -66,7 +66,16 @@ You will see ruler size in current units in status bar
 **z** - reset zoom to 100%
 **f** - fit zoom to layout panel width
 
-<a href="https://www.buymeacoffee.com/grishberg" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+# Support me if you like YALI =)
+**ETH ERC20 tokens** : `0x25Ca16AD3c4e9BD1e6e5FDD77eDB019386B68591`
+
+**BNB BEP20 tokens** : `0x25Ca16AD3c4e9BD1e6e5FDD77eDB019386B68591`
+
+**USDT TRC20** : `TSo3X6K54nYq3S64wML4M4xFgTNiENkHwC`
+
+**BTC** : `bc1qmm5lp389scuk2hghgyzdztddwgjnxqa2awrrue`
+
+https://www.tinkoff.ru/cf/4KNjR2SMOAj
 
 # License
 
