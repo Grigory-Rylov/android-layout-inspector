@@ -34,4 +34,6 @@ interface SettingsFacade {
     fun shouldStopAdbAfterJob(): Boolean
 
     fun setStopAdbAfterJob(selected: Boolean)
+
+    var lastVersion: String
 }
