@@ -31,6 +31,8 @@ class PluginState : SettingsFacade {
 
     override var isSecondProtocolVersionEnabled: Boolean = false
 
+    override var lastVersion: String = ""
+
     override fun shouldShowSizeInDp(): Boolean = shouldShowSizeInDp
 
     override fun showSizeInDp(state: Boolean) {

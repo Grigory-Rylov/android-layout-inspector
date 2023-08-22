@@ -226,6 +226,7 @@ class NewLayoutDialog(
         settings.lastProcessName = client.toString()
         val device = devicesComboBox.selectedItem as DeviceWrapper
         val timeoutInSeconds = timeoutField.text.toInt()
+        settings.isSecondProtocolVersionEnabled = secondProtocolVersion.isSelected
         result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim(), secondProtocolVersion.isSelected)
         deviceProvider.deviceChangedActions.remove(deviceChangedAction)
         isVisible = false
