@@ -27,6 +27,8 @@ interface SettingsFacade {
 
     var isSecondProtocolVersionEnabled: Boolean
 
+    var isDumpViewModeEnabled: Boolean
+
     fun shouldShowSizeInDp(): Boolean
 
     fun showSizeInDp(state: Boolean)

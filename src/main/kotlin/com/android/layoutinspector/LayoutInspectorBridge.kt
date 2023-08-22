@@ -94,6 +94,7 @@ object LayoutInspectorBridge {
         }
         return LayoutInspectorResult(
             root = root,
+            dumpViewRoot = null,
             data = bytes.toByteArray(),
             previewImage = ImageIO.read(ByteArrayInputStream(preview)),
             options = options,

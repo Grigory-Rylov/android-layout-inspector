@@ -15,6 +15,7 @@
  */
 package com.android.layoutinspector.model
 
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.google.common.collect.Lists
 import com.google.common.collect.Maps
 import java.awt.Rectangle
@@ -24,8 +25,6 @@ import java.util.LinkedList
 import javax.swing.tree.TreeNode
 import javax.swing.tree.TreePath
 
-private const val MAX_TEXT_LENGTH = 20
-
 /**
  * Represents an Android View object. Holds properties and a previewBox that contains the display area
  * of the object on screen.
@@ -33,13 +32,14 @@ private const val MAX_TEXT_LENGTH = 20
  */
 // make parent private because it's the same as the getParent method from TreeNode
 data class ViewNode constructor(
-    private val parent: ViewNode?, val name: String, val hash: String,
+    private val parent: ViewNode?,
+    override val name: String,
+    override val hash: String,
     val namedProperties: Map<String, ViewProperty> = Maps.newHashMap(),
     val properties: List<ViewProperty> = Lists.newArrayList(),
-    val children: MutableList<ViewNode> = Lists.newArrayList(),
+    override val children: MutableList<ViewNode> = Lists.newArrayList(),
     var displayInfo: DisplayInfo = DisplayInfo(false, false, 0, 0, 0, 0, 0, 0, false, 0f, 0f, 0f, 0f, null),
-) :
-    TreeNode {
+) : AbstractViewNode {
     // If the force state is set, the preview tries to render/hide the view
     // (depending on the parent's state)
     enum class ForcedState {
@@ -54,7 +54,7 @@ data class ViewNode constructor(
 
     // default in case properties are not available
     var index: Int = 0
-    var id: String? = null
+    override var id: String? = null
 
     var isParentVisible: Boolean = false
         private set
@@ -63,8 +63,21 @@ data class ViewNode constructor(
     var forcedState: ForcedState = ForcedState.NONE
 
 
-    val locationOnScreenX: Int
-    val locationOnScreenY: Int
+    override val locationOnScreenX: Int
+    override val locationOnScreenY: Int
+    override val width: Int
+        get() = displayInfo.width
+    override val height: Int
+        get() = displayInfo.height
+
+    override val isVisible: Boolean
+        get() = displayInfo.isVisible
+
+    override val typeAsString: String
+        get() = calculateTypeAsString()
+
+    override val text: String?
+        get() = namedProperties["text:mText"]?.value
 
     init {
         val xProperty = getProperty("layout:getLocationOnScreen_x()")
@@ -135,25 +148,6 @@ data class ViewNode constructor(
             isDrawn = isDrawn or (child.isDrawn && child.displayInfo.isVisible)
         }
     }
-
-    fun getFormattedName(): String {
-        val idPrefix = if (id != null && id != "NO_ID") id else null
-
-        val text = getText()
-        val typeAsString = typeAsString()
-
-        if (text != null) {
-            if (idPrefix != null) {
-                return "$idPrefix ($typeAsString) - \"$text\""
-            }
-            return "$typeAsString - \"$text\""
-        }
-        if (idPrefix != null) {
-            return "$idPrefix ($typeAsString)"
-        }
-        return typeAsString
-    }
-
     override fun toString() = "$name@$hash"
 
     override fun getChildAt(childIndex: Int): ViewNode {
@@ -176,31 +170,18 @@ data class ViewNode constructor(
         return true
     }
 
-    override fun isLeaf(): Boolean {
-        return childCount == 0
-    }
+    override fun isLeaf(): Boolean = childCount == 0
 
     override fun children(): Enumeration<out TreeNode> {
         return Collections.enumeration(children)
     }
 
-    fun typeAsString(): String {
+    private fun calculateTypeAsString(): String {
         val lastDotPost = name.lastIndexOf(".")
         if (lastDotPost >= 0) {
             return name.substring(lastDotPost + 1)
         }
         return name
-    }
-
-    fun getElliptizedText(text: String): String {
-        if (text.length <= MAX_TEXT_LENGTH) {
-            return text
-        }
-        return text.substring(0, MAX_TEXT_LENGTH) + "…"
-    }
-
-    fun getText(): String? {
-        return namedProperties["text:mText"]?.value
     }
 
     override fun equals(other: Any?): Boolean {
@@ -235,30 +216,4 @@ data class ViewNode constructor(
         return result
     }
 
-    companion object {
-        /** Finds the path from node to the root.  */
-        @JvmStatic
-        fun getPath(node: ViewNode): TreePath {
-            return getPathImpl(node, null)
-        }
-
-        /** Finds the path from node to the parent.  */
-        @JvmStatic
-        fun getPathFromParent(node: ViewNode, root: ViewNode): TreePath {
-            return getPathImpl(node, root)
-        }
-
-        private fun getPathImpl(node: ViewNode, root: ViewNode?): TreePath {
-            var node: ViewNode? = node
-            val nodes = Lists.newArrayList<Any>()
-            do {
-                nodes.add(0, node)
-                node = node?.parent
-            } while (node != null && node !== root)
-            if (root != null && node === root) {
-                nodes.add(0, root)
-            }
-            return TreePath(nodes.toTypedArray())
-        }
-    }
 }

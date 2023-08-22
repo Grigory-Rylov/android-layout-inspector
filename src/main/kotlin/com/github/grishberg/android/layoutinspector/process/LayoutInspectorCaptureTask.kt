@@ -10,13 +10,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 
-
 private const val TAG = "LayoutInspectorCaptureTask"
 
 class LayoutInspectorCaptureTask(
+    private val layoutFileSystem: LayoutFileSystem,
     private val scope: CoroutineScope,
     private val logger: AppLogger,
 ) {
+
     suspend fun capture(recordingConfig: RecordingConfig): LayoutInspectorResult {
         val result = scope.async(Dispatchers.IO) {
             logger.d("$TAG: start capture view timeout = ${recordingConfig.timeoutInSeconds}")
@@ -29,11 +30,18 @@ class LayoutInspectorCaptureTask(
                 options.version = version
 
                 val captureView = LayoutInspectorBridge.captureView(
-                    logger,
-                    recordingConfig.clientWindow,
-                    options,
-                    recordingConfig.timeoutInSeconds.toLong()
+                    logger, recordingConfig.clientWindow, options, recordingConfig.timeoutInSeconds.toLong()
                 )
+                if (recordingConfig.recordOptions.dumpViewModeEnabled) {
+                    val dumper = HierarchyDump(recordingConfig.client.device, layoutFileSystem)
+                    val dumpString = dumper.getHierarchyDump()
+                    dumpString?.let {
+                        val dumpParser = HierarchyDumpParser()
+                        val dumpRootNode = dumpParser.parseDump(dumpString) ?: return@let
+                        return@async LayoutInspectorResult(dumpRootNode, dumpRootNode, captureView.previewImage, captureView.data, captureView.options, captureView.error)
+                    }
+                }
+
                 return@async captureView
             } catch (e: Exception) {
                 logger.e(TAG, e)

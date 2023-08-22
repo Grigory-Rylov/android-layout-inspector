@@ -1,8 +1,9 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
-import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
+import com.intellij.ui.JBColor
 import java.awt.Color
 import java.awt.Component
 import javax.swing.ImageIcon
@@ -10,13 +11,14 @@ import javax.swing.JTree
 import javax.swing.tree.DefaultTreeCellRenderer
 import javax.swing.tree.TreeCellRenderer
 
+private const val MAX_TEXT_LENGTH = 20
 
 class NodeViewTreeCellRenderer(
-    private val foundItems: List<ViewNode>,
+    private val foundItems: List<AbstractViewNode>,
     private val theme: ThemeColors,
     private val bookmarks: Bookmarks
 ) : TreeCellRenderer {
-    var hoveredNode: ViewNode? = null
+    var hoveredNode: AbstractViewNode? = null
 
     private val text1Foreground =
         TextForegroundColor(
@@ -52,12 +54,12 @@ class NodeViewTreeCellRenderer(
         row: Int,
         hasFocus: Boolean
     ): Component {
-        if (value !is ViewNode) {
+        if (value !is AbstractViewNode) {
             return DefaultTreeCellRenderer()
         }
         val hovered = value == hoveredNode
-        val visible = value.displayInfo.isVisible
-        val text = value.getText()
+        val visible = value.isVisible
+        val text = value.text
         val highlighted = foundItems.contains(value)
 
         if (selected) {
@@ -76,8 +78,8 @@ class NodeViewTreeCellRenderer(
         if (text != null) {
             itemRenderer.setIcon(theme.textIcon)
             itemRenderer.prepareTreeItem(
-                value.typeAsString(),
-                value.getElliptizedText(text),
+                value.typeAsString,
+                getElliptizedText(text),
                 selected,
                 expanded,
                 leaf,
@@ -85,7 +87,7 @@ class NodeViewTreeCellRenderer(
             )
         } else {
             itemRenderer.setIcon(iconForNode(value))
-            itemRenderer.prepareTreeItem(value.getFormattedName(), "", selected, expanded, leaf, hovered)
+            itemRenderer.prepareTreeItem(getFormattedName(value.id, text, value.typeAsString, ), "", selected, expanded, leaf, hovered)
         }
 
         return itemRenderer
@@ -96,12 +98,12 @@ class NodeViewTreeCellRenderer(
     private fun titleColor(colorWithoutAlpha: Color): Color {
         val y =
             (299 * colorWithoutAlpha.red + 587 * colorWithoutAlpha.green + 114 * colorWithoutAlpha.blue) / 1000.toDouble()
-        return if (y >= 128) Color.black else Color.white
+        return if (y >= 128) JBColor.black else JBColor.white
     }
 
 
-    private fun iconForNode(node: ViewNode): ImageIcon {
-        val nodeTypeShort = node.typeAsString()
+    private fun iconForNode(node: AbstractViewNode): ImageIcon {
+        val nodeTypeShort = node.typeAsString
 
         if (node.name == "android.view.ViewStub") {
             return theme.viewStubIcon
@@ -183,4 +185,27 @@ class NodeViewTreeCellRenderer(
             (fa * a.blue + fb * b.blue) / (fa + fb) / 255f
         )
     }
+
+    fun getElliptizedText(text: String): String {
+        if (text.length <= MAX_TEXT_LENGTH) {
+            return text
+        }
+        return text.substring(0, MAX_TEXT_LENGTH) + "…"
+    }
+
+    fun getFormattedName(id: String?, text: String?, typeAsString: String): String {
+        val idPrefix = if (id != null && id != "NO_ID") id else null
+
+        if (text != null) {
+            if (idPrefix != null) {
+                return "$idPrefix ($typeAsString) - \"$text\""
+            }
+            return "$typeAsString - \"$text\""
+        }
+        if (idPrefix != null) {
+            return "$idPrefix ($typeAsString)"
+        }
+        return typeAsString
+    }
+
 }

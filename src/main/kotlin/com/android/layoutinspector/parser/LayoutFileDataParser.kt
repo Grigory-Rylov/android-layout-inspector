@@ -61,6 +61,6 @@ object LayoutFileDataParser {
             input.readFully(previewBytes)
         }
         bufferedImage = ImageIO.read(ByteArrayInputStream(previewBytes))
-        return LayoutFileData(bufferedImage, node, options)
+        return LayoutFileData(bufferedImage, node, dumpNode = null, options)
     }
 }

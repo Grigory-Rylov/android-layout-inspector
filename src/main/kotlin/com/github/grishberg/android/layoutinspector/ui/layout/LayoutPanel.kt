@@ -2,7 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.layout
 
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.LayoutFileData
-import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.SimpleComponentListener
@@ -104,12 +104,12 @@ class LayoutPanel(
         invalidate()
     }
 
-    fun selectNode(viewNode: ViewNode) {
+    fun selectNode(viewNode: AbstractViewNode) {
         logic.selectNode(viewNode)
         repaint()
     }
 
-    fun hoverNode(viewNode: ViewNode) {
+    fun hoverNode(viewNode: AbstractViewNode) {
         logic.hoverNode(viewNode)
         repaint()
     }
@@ -120,7 +120,7 @@ class LayoutPanel(
         }
     }
 
-    fun calculateDistanceBetweenTwoViewNodes(startViewNode: ViewNode, endViewNode: ViewNode) {
+    fun calculateDistanceBetweenTwoViewNodes(startViewNode: AbstractViewNode, endViewNode: AbstractViewNode) {
         logic.calculateDistanceBetweenTwoViewNodes(startViewNode, endViewNode)
     }
 

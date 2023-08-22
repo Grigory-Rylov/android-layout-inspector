@@ -3,6 +3,7 @@ package com.github.grishberg.android.layoutinspector.ui.info.flat
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ViewNode
 import com.android.layoutinspector.model.ViewProperty
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
@@ -38,13 +39,13 @@ class FlatPropertiesWithFilterPanel(
     private val filterView: FilterView,
     private val logger: AppLogger,
 ) : JPanel(), PropertiesPanel {
-    private var currentNode: ViewNode? = null
+
+    private var currentNode: AbstractViewNode? = null
     private var sorter: TableRowSorter<FlatGroupTableModel>
     private val table: JTable
     private var sizeInDp = false
     private var shouldRoundDp = settings.roundDimensions
     private val model = FlatGroupTableModel(emptyMap())
-
 
     init {
         layout = BorderLayout()
@@ -75,9 +76,7 @@ class FlatPropertiesWithFilterPanel(
         table.isVisible = true
 
         val copyStroke = KeyStroke.getKeyStroke(
-            KeyEvent.VK_C,
-            Toolkit.getDefaultToolkit().menuShortcutKeyMask,
-            false
+            KeyEvent.VK_C, Toolkit.getDefaultToolkit().menuShortcutKeyMask, false
         )
         table.registerKeyboardAction(CopyAction(), "Copy", copyStroke, JComponent.WHEN_FOCUSED)
 
@@ -89,8 +88,7 @@ class FlatPropertiesWithFilterPanel(
         }
 
         this.preferredSize = Dimension(
-            table.preferredSize.width,
-            table.preferredSize.height + 85
+            table.preferredSize.width, table.preferredSize.height + 85
         )
     }
 
@@ -109,7 +107,7 @@ class FlatPropertiesWithFilterPanel(
 
     override fun getComponent(): JComponent = this
 
-    override fun showProperties(node: ViewNode) {
+    override fun showProperties(node: AbstractViewNode) {
         currentNode = node
         val createPropertiesData = createPropertiesData(node)
         model.updateData(createPropertiesData)
@@ -119,7 +117,6 @@ class FlatPropertiesWithFilterPanel(
 
         updateRowsHeight()
     }
-
 
     private fun updateRowsHeight() {
         val itemHeight = ui.getPreferredSize(this)?.height ?: 36
@@ -132,10 +129,10 @@ class FlatPropertiesWithFilterPanel(
             val valueAt = table.model.getValueAt(viewRow, 0)
 
             when (valueAt) {
-                is TableValue.Empty,
-                is TableValue.Header -> {
+                is TableValue.Empty, is TableValue.Header -> {
                     table.setRowHeight(row, itemHeight + BORDER_SIZE * 2)
                 }
+
                 else -> {
                     table.setRowHeight(row, itemHeight)
                 }
@@ -143,27 +140,51 @@ class FlatPropertiesWithFilterPanel(
         }
     }
 
-    private fun createPropertiesData(node: ViewNode): Map<String, List<RowInfoImpl>> {
+    private fun createPropertiesData(node: AbstractViewNode): Map<String, List<RowInfoImpl>> {
         val result = mutableMapOf<String, List<RowInfoImpl>>()
         createSummary(result, node)
-        for (entry in node.groupedProperties) {
-
-            val rows = mutableListOf<RowInfoImpl>()
-            for (property in entry.value) {
-                rows.add(RowInfoImpl(property, sizeInDp, shouldRoundDp, meta.dpPerPixels))
+        if (node is ViewNode) {
+            for (entry in node.groupedProperties) {
+                val rows = mutableListOf<RowInfoImpl>()
+                for (property in entry.value) {
+                    rows.add(RowInfoImpl(property, sizeInDp, shouldRoundDp, meta.dpPerPixels))
+                }
+                result[entry.key] = rows
             }
-            result[entry.key] = rows
+        } else {
+            //TODO: calculate properties for dump view
         }
         return result
     }
 
-    private fun createSummary(result: MutableMap<String, List<RowInfoImpl>>, node: ViewNode) {
-        val widthProperty =
-            node.getProperty("measurement:mMeasuredWidth") ?: node.getProperty("measuredWidth")
-        val heightProperty =
-            node.getProperty("measurement:mMeasuredHeight") ?: node.getProperty("measuredHeight")
-        val xProperty = ViewProperty("x", "x", null, node.locationOnScreenX.toString(), false, node.locationOnScreenX)
-        val yProperty = ViewProperty("y", "y", null, node.locationOnScreenY.toString(), false, node.locationOnScreenY)
+    private fun createSummary(result: MutableMap<String, List<RowInfoImpl>>, node: AbstractViewNode) {
+        var widthProperty: ViewProperty?
+        var heightProperty: ViewProperty?
+        if (node is ViewNode) {
+            widthProperty = node.getProperty("measurement:mMeasuredWidth") ?: node.getProperty("measuredWidth")
+            heightProperty = node.getProperty("measurement:mMeasuredHeight") ?: node.getProperty("measuredHeight")
+
+        } else {
+            widthProperty = ViewProperty(
+                "width",
+                "width",
+                category = null,
+                node.width.toString(),
+                isSizeProperty = true,
+                node.width
+            )
+            heightProperty = ViewProperty(
+                "height",
+                "height",
+                category = null,
+                node.height.toString(),
+                isSizeProperty = true,
+                node.height
+            )
+
+        }
+        val xProperty = ViewProperty("x", "x", category = null, node.locationOnScreenX.toString(), isSizeProperty = false, node.locationOnScreenX)
+        val yProperty = ViewProperty("y", "y", category = null, node.locationOnScreenY.toString(), isSizeProperty = false, node.locationOnScreenY)
 
         val rows = mutableListOf<RowInfoImpl>()
         rows.add(
@@ -233,6 +254,7 @@ class FlatPropertiesWithFilterPanel(
     }
 
     private inner class CopyAction : ActionListener {
+
         override fun actionPerformed(e: ActionEvent) {
             if (e.actionCommand.compareTo("Copy") != 0) {
                 return
@@ -243,8 +265,7 @@ class FlatPropertiesWithFilterPanel(
 
             if (numrows < 1) {
                 JOptionPane.showMessageDialog(
-                    null, "Invalid Copy Selection",
-                    "Invalid Copy Selection", JOptionPane.ERROR_MESSAGE
+                    null, "Invalid Copy Selection", "Invalid Copy Selection", JOptionPane.ERROR_MESSAGE
                 )
                 return
             }

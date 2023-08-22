@@ -9,4 +9,5 @@ data class LayoutRecordOptions(
     val timeoutInSeconds: Int,
     val fileNamePrefix: String,
     val v2Enabled: Boolean,
+    val dumpViewModeEnabled: Boolean,
 )

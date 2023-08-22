@@ -41,7 +41,7 @@ dependencies {
 
     implementation ("org.jooq:joor-java-8:0.9.7")
     implementation ("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation ("com.google.code.gson:gson:2.8.6")
+    implementation ("com.google.code.gson:gson:2.8.9")
 
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.3.2")
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
@@ -61,8 +61,8 @@ tasks {
         untilBuild.set(properties("pluginUntilBuild"))
 
         changeNotes.set( """
-            Added refresh event by Ctrl + r.<br>
-            Increased window height.<br>
+            Fixed storing v2 protocol enable state<br>
+            Added uiautomator dump mode for getting layouts from dumps. Allows to see compose borders.<br>
           """
         )
     }

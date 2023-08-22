@@ -1,12 +1,13 @@
 package com.github.grishberg.android.layoutinspector.ui.info
 
-import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import javax.swing.JComponent
 
 interface PropertiesPanel {
+
     fun getComponent(): JComponent
 
-    fun showProperties(node: ViewNode)
+    fun showProperties(node: AbstractViewNode)
 
     fun setSizeDpMode(enabled: Boolean)
 

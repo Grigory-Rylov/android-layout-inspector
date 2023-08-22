@@ -1,7 +1,8 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.android.layoutinspector.model.LayoutFileData
-import com.android.layoutinspector.model.ViewNode
+import com.android.layoutinspector.model.TreePathUtils
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.ui.Main
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
@@ -48,7 +49,7 @@ class TreePanel(
     private val copyIdStroke =
         KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().menuShortcutKeyMask, false)
 
-    private val foundItems = mutableListOf<ViewNode>()
+    private val foundItems = mutableListOf<AbstractViewNode>()
     private var viewNodeRenderer = NodeViewTreeCellRenderer(foundItems, theme, bookmarks)
 
     init {
@@ -76,7 +77,7 @@ class TreePanel(
             }
             val path = it.path
             val selectedNode = path.lastPathComponent
-            if (selectedNode is ViewNode) {
+            if (selectedNode is AbstractViewNode) {
                 nodeSelectedAction?.onViewNodeSelected(selectedNode)
                 repaint()
             }
@@ -121,17 +122,17 @@ class TreePanel(
         }
     }
 
-    private fun calculateDistance(targetNode: ViewNode) {
+    private fun calculateDistance(targetNode: AbstractViewNode) {
         if (selectionPath == null) {
             return
         }
 
-        val selectedValue = selectionPath.lastPathComponent as ViewNode
+        val selectedValue = selectionPath.lastPathComponent as AbstractViewNode
 
         main.calculateDistance(selectedValue, targetNode)
     }
 
-    private fun showContextMenu(nodeByPoint: ViewNode, point: Point) {
+    private fun showContextMenu(nodeByPoint: AbstractViewNode, point: Point) {
         val calculateDistanceDelegate: CalculateDistanceDelegate? = if (selectionPath == null) null
         else {
             { calculateDistance(nodeByPoint) }
@@ -147,13 +148,13 @@ class TreePanel(
         return viewNodeRenderer
     }
 
-    private fun nodeByPoint(point: Point): ViewNode? {
+    private fun nodeByPoint(point: Point): AbstractViewNode? {
         val selRow = getRowForLocation(point.x, point.y)
         val r = getCellRenderer()
         if (selRow != -1 && r != null) {
             val path = getPathForRow(selRow)
             val selectedNode = path.lastPathComponent
-            if (selectedNode is ViewNode) {
+            if (selectedNode is AbstractViewNode) {
                 return selectedNode
             }
         }
@@ -178,14 +179,14 @@ class TreePanel(
         }
     }
 
-    fun onNodeHovered(node: ViewNode) {
+    fun onNodeHovered(node: AbstractViewNode) {
         viewNodeRenderer.hoveredNode = node
         repaint()
     }
 
-    fun onNodeSelected(node: ViewNode) {
+    fun onNodeSelected(node: AbstractViewNode) {
         selectedFromLayoutClick = true
-        val path = ViewNode.getPath(node)
+        val path = TreePathUtils.getPath(node)
         selectionPath = path
         scrollPathToVisible(path)
     }
@@ -195,7 +196,7 @@ class TreePanel(
         repaint()
     }
 
-    fun highlightFoundItems(items: List<ViewNode>) {
+    fun highlightFoundItems(items: List<AbstractViewNode>) {
         foundItems.clear()
         foundItems.addAll(items)
         repaint()
@@ -207,12 +208,12 @@ class TreePanel(
     }
 
     fun copyShortNameToClipboard() {
-        val selectedValue = selectionPath.lastPathComponent as ViewNode
-        copyToClipboard(selectedValue.typeAsString())
+        val selectedValue = selectionPath.lastPathComponent as AbstractViewNode
+        copyToClipboard(selectedValue.typeAsString)
     }
 
     fun copyIdToClipboard() {
-        val selectedValue = selectionPath.lastPathComponent as ViewNode
+        val selectedValue = selectionPath.lastPathComponent as AbstractViewNode
         val id: String = selectedValue.id ?: return
 
         val rawId = if (id.startsWith("id/")) {
@@ -245,7 +246,7 @@ class TreePanel(
                 return
             }
 
-            val selectedValue = selectionPath.lastPathComponent as ViewNode
+            val selectedValue = selectionPath.lastPathComponent as AbstractViewNode
             copyToClipboard(selectedValue.name)
         }
     }
@@ -270,8 +271,8 @@ class TreePanel(
     }
 
     interface OnNodeSelectedAction {
-        fun onViewNodeSelected(node: ViewNode)
-        fun onViewNodeHovered(node: ViewNode)
+        fun onViewNodeSelected(node: AbstractViewNode)
+        fun onViewNodeHovered(node: AbstractViewNode)
         fun onViewNodeNotHovered()
     }
 }

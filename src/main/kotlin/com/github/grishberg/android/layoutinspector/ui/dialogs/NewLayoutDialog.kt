@@ -58,6 +58,7 @@ class NewLayoutDialog(
     private val filePrefixField = JTextField(20)
     private val showAllProcesses: JCheckBox
     private val secondProtocolVersion: JCheckBox
+    private val dumpViewMode: JCheckBox
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
     private val devicesModel = DevicesCompoBoxModel()
@@ -111,6 +112,10 @@ class NewLayoutDialog(
         secondProtocolVersion.toolTipText = "if not selected, will be used ver. 1, which slower, but has more properties"
         secondProtocolVersion.isSelected = settings.isSecondProtocolVersionEnabled
 
+        dumpViewMode = JCheckBox("uiautomator dump")
+        dumpViewMode.toolTipText = "if selected, will be used layouts from uiautomator dump."
+        dumpViewMode.isSelected = settings.isDumpViewModeEnabled
+
         startButton = JButton("Start")
         startButton.addActionListener {
             startRecording()
@@ -129,6 +134,7 @@ class NewLayoutDialog(
         panelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
         panelBuilder.addLabeledComponent("File name prefix: ", filePrefixField)
         panelBuilder.addSingleComponent(secondProtocolVersion)
+        panelBuilder.addSingleComponent(dumpViewMode)
         if (deviceProvider.isReconnectionAllowed) {
             panelBuilder.addMainAndSlaveComponent(startButton, resetConnectionButton)
         } else {
@@ -226,12 +232,12 @@ class NewLayoutDialog(
         settings.lastProcessName = client.toString()
         val device = devicesComboBox.selectedItem as DeviceWrapper
         val timeoutInSeconds = timeoutField.text.toInt()
+        settings.isDumpViewModeEnabled = dumpViewMode.isSelected
         settings.isSecondProtocolVersionEnabled = secondProtocolVersion.isSelected
-        result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim(), secondProtocolVersion.isSelected)
+        result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim(), secondProtocolVersion.isSelected, dumpViewMode.isSelected)
         deviceProvider.deviceChangedActions.remove(deviceChangedAction)
         isVisible = false
     }
-
 
     override suspend fun getLayoutOptions(): LayoutRecordOptions? {
         showDialog()

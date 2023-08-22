@@ -1,7 +1,9 @@
 package com.github.grishberg.android.layoutinspector.ui.dialogs
 
 import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import java.awt.FlowLayout
+import java.util.Locale
 import javax.swing.*
 
 private const val TOP_OFFSET = 16
@@ -18,11 +20,11 @@ class FindDialog(
     private val checkboxOnlyInId: JCheckBox
     private var onlyId = false
     private var onlyName = false
-    private val results = mutableListOf<ViewNode>()
+    private val results = mutableListOf<AbstractViewNode>()
     private var currentIndex = 0
     private var searchText = ""
 
-    private var rootNode: ViewNode? = null
+    private var rootNode: AbstractViewNode? = null
     var foundAction: OnFoundAction? = null
 
     init {
@@ -68,7 +70,7 @@ class FindDialog(
         if (text.isEmpty()) {
             return
         }
-        searchText = text.toLowerCase()
+        searchText = text.lowercase(Locale.getDefault())
         results.clear()
         resultLabel.text = FIND_LABEL_DEFAULT_TEXT
         currentIndex = 0
@@ -112,18 +114,18 @@ class FindDialog(
         }
     }
 
-    private fun processChildren(node: ViewNode) {
+    private fun processChildren(node: AbstractViewNode) {
         if (isSuitable(node)) {
             results.add(node)
         }
 
         val count = node.childCount
         for (i in 0 until count) {
-            processChildren(node.getChildAt(i))
+            processChildren(node.getChildAt(i) as AbstractViewNode)
         }
     }
 
-    private fun isSuitable(node: ViewNode): Boolean {
+    private fun isSuitable(node: AbstractViewNode): Boolean {
         if (onlyId) {
             if (node.id != null) {
                 return node.id!!.contains(searchText, true)
@@ -141,7 +143,7 @@ class FindDialog(
         return false
     }
 
-    fun updateRootNode(root: ViewNode?) {
+    fun updateRootNode(root: AbstractViewNode?) {
         rootNode = root
         resultLabel.text = FIND_LABEL_DEFAULT_TEXT
         results.clear()
@@ -156,8 +158,8 @@ class FindDialog(
     }
 
     interface OnFoundAction {
-        fun onFound(foundItems: List<ViewNode>)
-        fun onSelectedFoundItem(node: ViewNode)
+        fun onFound(foundItems: List<AbstractViewNode>)
+        fun onSelectedFoundItem(node: AbstractViewNode)
         fun onFoundDialogClosed()
     }
 }
