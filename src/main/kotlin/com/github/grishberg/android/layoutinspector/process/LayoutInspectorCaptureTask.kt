@@ -31,46 +31,49 @@ class LayoutInspectorCaptureTask(
                 val options = LayoutInspectorCaptureOptions()
                 options.version = version
 
-                val captureView = LayoutInspectorBridge.captureView(
+                return@async LayoutInspectorBridge.captureView(
                     logger, recordingConfig.clientWindow, options, recordingConfig.timeoutInSeconds.toLong()
                 )
-
-                return@async captureView
             } catch (e: Exception) {
                 logger.e(TAG, e)
                 throw e
             }
         }
-        val viewDumpsAsync = scope.async(Dispatchers.IO) {
-            return@async getViewDumps(recordingConfig)
+        val dumpNodeAsyncResult: AbstractViewNode? = if (recordingConfig.recordOptions.dumpViewModeEnabled) {
+            val viewDumpsAsync = scope.async(Dispatchers.IO) {
+                return@async getViewDumps(recordingConfig)
+            }
+            viewDumpsAsync.await()
+        } else {
+            null
         }
-
         val layoutAsyncResult = layoutResultAsync.await()
-        val dumpNodeAsyncResult = viewDumpsAsync.await()
 
         val result =
-        if (recordingConfig.recordOptions.dumpViewModeEnabled && dumpNodeAsyncResult != null) {
-            LayoutInspectorResult(dumpNodeAsyncResult, dumpNodeAsyncResult, layoutAsyncResult.previewImage, layoutAsyncResult.data, layoutAsyncResult.options, layoutAsyncResult.error)
-        } else {
-            layoutAsyncResult
-        }
+            if (recordingConfig.recordOptions.dumpViewModeEnabled && dumpNodeAsyncResult != null) {
+                LayoutInspectorResult(
+                    dumpNodeAsyncResult,
+                    dumpNodeAsyncResult,
+                    layoutAsyncResult.previewImage,
+                    layoutAsyncResult.data,
+                    layoutAsyncResult.options,
+                    layoutAsyncResult.error
+                )
+            } else {
+                layoutAsyncResult
+            }
 
         logger.d("$TAG: capturing is done, error: ${result.error}")
         return result
     }
 
     private fun getViewDumps(recordingConfig: RecordingConfig): AbstractViewNode? {
-        if (!recordingConfig.recordOptions.dumpViewModeEnabled) {
-            return null
-        }
         logger.d("$TAG: start capture view dumps")
         val dumper = HierarchyDump(recordingConfig.client.device, layoutFileSystem)
         val dumpString = dumper.getHierarchyDump() ?: return null
 
         val dumpParser = HierarchyDumpParser()
-        val dumpRootNode = dumpParser.parseDump(dumpString)
-        return dumpRootNode
-
+        return dumpParser.parseDump(dumpString)
     }
 
     private fun determineProtocolVersion(apiVersion: Int, v2Enabled: Boolean): ProtocolVersion {
