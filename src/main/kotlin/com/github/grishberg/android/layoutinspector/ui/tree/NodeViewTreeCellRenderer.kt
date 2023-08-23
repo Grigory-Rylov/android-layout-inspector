@@ -75,7 +75,7 @@ class NodeViewTreeCellRenderer(
         itemRenderer.setForeground(foreground1, foreground2)
 
 
-        if (text != null) {
+        if (!text.isNullOrEmpty()) {
             itemRenderer.setIcon(theme.textIcon)
             itemRenderer.prepareTreeItem(
                 value.typeAsString,
@@ -141,6 +141,10 @@ class NodeViewTreeCellRenderer(
 
         if (nodeTypeShort == "NestedScrollView") {
             return theme.nestedScrollViewIcon
+        }
+
+        if (nodeTypeShort == "ComposeView") {
+            return theme.composeIcon
         }
 
         if (nodeTypeShort.contains("RecyclerView")) {

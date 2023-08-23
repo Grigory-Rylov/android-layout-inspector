@@ -59,5 +59,5 @@ class MaterialLiteColors : ThemeColors {
     override val viewSwitcherIcon = iconsStore.createImageIcon("/icons/light/viewSwitcher.png")
     override val viewPagerIcon = iconsStore.createImageIcon("/icons/light/viewPager.png")
     override val viewIcon = iconsStore.createImageIcon("/icons/light/view.png")
-
+    override val composeIcon = iconsStore.createImageIcon("/icons/light/node_type_compose.svg")
 }

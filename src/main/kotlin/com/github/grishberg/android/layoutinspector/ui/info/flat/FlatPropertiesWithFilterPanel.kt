@@ -21,13 +21,7 @@ import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.awt.event.KeyEvent
 import java.util.regex.PatternSyntaxException
-import javax.swing.JComponent
-import javax.swing.JOptionPane
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.JTable
-import javax.swing.KeyStroke
-import javax.swing.ListSelectionModel
+import javax.swing.*
 import javax.swing.table.TableRowSorter
 
 private const val BORDER_SIZE = 4
@@ -57,12 +51,8 @@ class FlatPropertiesWithFilterPanel(
         table.rowSorter = sorter
 
         val scrollPane = JBScrollPane(table)
-        scrollPane.setHorizontalScrollBarPolicy(
-            JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS
-        )
-        scrollPane.setVerticalScrollBarPolicy(
-            JScrollPane.VERTICAL_SCROLLBAR_ALWAYS
-        )
+        scrollPane.horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS
+        scrollPane.verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_ALWAYS
 
         table.setDefaultRenderer(String::class.java, BoardTableCellRenderer(themeColors))
         table.isFocusable = true
@@ -126,9 +116,8 @@ class FlatPropertiesWithFilterPanel(
             if (viewRow < 0) {
                 continue
             }
-            val valueAt = table.model.getValueAt(viewRow, 0)
 
-            when (valueAt) {
+            when (table.model.getValueAt(viewRow, 0)) {
                 is TableValue.Empty, is TableValue.Header -> {
                     table.setRowHeight(row, itemHeight + BORDER_SIZE * 2)
                 }
@@ -152,14 +141,43 @@ class FlatPropertiesWithFilterPanel(
                 result[entry.key] = rows
             }
         } else {
-            //TODO: calculate properties for dump view
+            val rows = mutableListOf<RowInfoImpl>()
+            rows.add(
+                RowInfoImpl(
+                    ViewProperty("Name", "Name", category = null, node.name),
+                    sizeInDp, shouldRoundDp, meta.dpPerPixels
+                )
+            )
+            rows.add(
+                RowInfoImpl(
+                    ViewProperty("Type", "Type", category = null, node.typeAsString),
+                    sizeInDp, shouldRoundDp, meta.dpPerPixels
+                )
+            )
+            if (!node.id.isNullOrEmpty()) {
+                rows.add(
+                    RowInfoImpl(
+                        ViewProperty("ID", "ID", category = null, node.id!!),
+                        sizeInDp, shouldRoundDp, meta.dpPerPixels
+                    )
+                )
+            }
+            if (!node.text.isNullOrEmpty()) {
+                rows.add(
+                    RowInfoImpl(
+                        ViewProperty("Text", "Text", category = null, node.text!!),
+                        sizeInDp, shouldRoundDp, meta.dpPerPixels
+                    )
+                )
+            }
+            result["Attributes"] = rows
         }
         return result
     }
 
     private fun createSummary(result: MutableMap<String, List<RowInfoImpl>>, node: AbstractViewNode) {
-        var widthProperty: ViewProperty?
-        var heightProperty: ViewProperty?
+        val widthProperty: ViewProperty?
+        val heightProperty: ViewProperty?
         if (node is ViewNode) {
             widthProperty = node.getProperty("measurement:mMeasuredWidth") ?: node.getProperty("measuredWidth")
             heightProperty = node.getProperty("measurement:mMeasuredHeight") ?: node.getProperty("measuredHeight")
@@ -183,8 +201,22 @@ class FlatPropertiesWithFilterPanel(
             )
 
         }
-        val xProperty = ViewProperty("x", "x", category = null, node.locationOnScreenX.toString(), isSizeProperty = false, node.locationOnScreenX)
-        val yProperty = ViewProperty("y", "y", category = null, node.locationOnScreenY.toString(), isSizeProperty = false, node.locationOnScreenY)
+        val xProperty = ViewProperty(
+            "x",
+            "x",
+            category = null,
+            node.locationOnScreenX.toString(),
+            isSizeProperty = false,
+            node.locationOnScreenX
+        )
+        val yProperty = ViewProperty(
+            "y",
+            "y",
+            category = null,
+            node.locationOnScreenY.toString(),
+            isSizeProperty = false,
+            node.locationOnScreenY
+        )
 
         val rows = mutableListOf<RowInfoImpl>()
         rows.add(

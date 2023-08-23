@@ -48,6 +48,7 @@ interface ThemeColors {
     val viewSwitcherIcon: ImageIcon
     val viewPagerIcon: ImageIcon
     val viewIcon: ImageIcon
+    val composeIcon: ImageIcon
 
     fun addColorChangedAction(action: () -> Unit) = Unit
     fun removeColorChangedAction(action: () -> Unit) = Unit

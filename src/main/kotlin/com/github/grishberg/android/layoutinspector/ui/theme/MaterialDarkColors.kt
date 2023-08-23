@@ -54,4 +54,5 @@ class MaterialDarkColors : ThemeColors {
     override val viewSwitcherIcon = iconsStore.createImageIcon("/icons/dark/viewSwitcher.png")
     override val viewPagerIcon = iconsStore.createImageIcon("/icons/dark/viewPager.png")
     override val viewIcon = iconsStore.createImageIcon("/icons/dark/view.png")
+    override val composeIcon = iconsStore.createImageIcon("/icons/dark/node_type_compose.svg")
 }
