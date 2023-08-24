@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package com.android.layoutinspector.parser
+
 import com.android.layoutinspector.LayoutInspectorCaptureOptions
 import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
@@ -24,23 +25,25 @@ import java.io.IOException
 import java.io.ObjectInputStream
 import java.nio.file.Files
 import javax.imageio.ImageIO
+
 object LayoutFileDataParser {
+
     /**
      * List of [ViewProperty] to be skipped since the framework won't correctly report their data.
      * See ag/64673340
      */
-    @JvmStatic
-    val SKIPPED_PROPERTIES = listOf("bg_", "fg_")
+    @JvmStatic val SKIPPED_PROPERTIES = listOf("bg_", "fg_")
+
     @Throws(IOException::class)
     @JvmStatic
     fun parseFromFile(file: File): LayoutFileData {
         return parseFromBytes(Files.readAllBytes(file.toPath()))
     }
+
     @Throws(IOException::class)
     @JvmStatic
     fun parseFromBytes(
-        bytes: ByteArray,
-        skippedProperties: Collection<String> = SKIPPED_PROPERTIES
+        bytes: ByteArray, skippedProperties: Collection<String> = SKIPPED_PROPERTIES
     ): LayoutFileData {
         val bufferedImage: BufferedImage?
         var node: ViewNode? = null
@@ -61,6 +64,6 @@ object LayoutFileDataParser {
             input.readFully(previewBytes)
         }
         bufferedImage = ImageIO.read(ByteArrayInputStream(previewBytes))
-        return LayoutFileData(bufferedImage, node, dumpNode = null, options)
+        return LayoutFileData(bufferedImage, node, options)
     }
 }

@@ -113,7 +113,7 @@ class NewLayoutDialog(
         secondProtocolVersion.isSelected = settings.isSecondProtocolVersionEnabled
 
         dumpViewMode = JCheckBox("uiautomator dump")
-        dumpViewMode.toolTipText = "if selected, will be used layouts from uiautomator dump."
+        dumpViewMode.toolTipText = "if selected, will be used layouts from uiautomator dump for ComposeView children"
         dumpViewMode.isSelected = settings.isDumpViewModeEnabled
 
         startButton = JButton("Start")

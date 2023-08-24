@@ -37,7 +37,7 @@ data class ViewNode constructor(
     override val hash: String,
     val namedProperties: Map<String, ViewProperty> = Maps.newHashMap(),
     val properties: List<ViewProperty> = Lists.newArrayList(),
-    override val children: MutableList<ViewNode> = Lists.newArrayList(),
+    override val children: MutableList<AbstractViewNode> = Lists.newArrayList(),
     var displayInfo: DisplayInfo = DisplayInfo(false, false, 0, 0, 0, 0, 0, 0, false, 0f, 0f, 0f, 0f, null),
 ) : AbstractViewNode {
     // If the force state is set, the preview tries to render/hide the view
@@ -144,13 +144,15 @@ data class ViewNode constructor(
             parentVisible = isDrawn
         }
         for (child in children) {
-            child.updateNodeDrawn(parentVisible)
-            isDrawn = isDrawn or (child.isDrawn && child.displayInfo.isVisible)
+            if (child is ViewNode) {
+                child.updateNodeDrawn(parentVisible)
+                isDrawn = isDrawn or (child.isDrawn && child.displayInfo.isVisible)
+            }
         }
     }
     override fun toString() = "$name@$hash"
 
-    override fun getChildAt(childIndex: Int): ViewNode {
+    override fun getChildAt(childIndex: Int): AbstractViewNode {
         return children[childIndex]
     }
 
@@ -182,6 +184,15 @@ data class ViewNode constructor(
             return name.substring(lastDotPost + 1)
         }
         return name
+    }
+
+    fun replaceChildren(newChildren: List<AbstractViewNode>) {
+        children.clear()
+        children.addAll(newChildren.map { child -> child.cloneWithNewParent(this) })
+    }
+
+    override fun cloneWithNewParent(newParent: AbstractViewNode): AbstractViewNode {
+        throw IllegalStateException("I was not ready for this operation =(")
     }
 
     override fun equals(other: Any?): Boolean {

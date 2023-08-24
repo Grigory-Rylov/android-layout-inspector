@@ -6,7 +6,7 @@ import com.android.layoutinspector.LayoutInspectorCaptureOptions
 import com.android.layoutinspector.LayoutInspectorResult
 import com.android.layoutinspector.ProtocolVersion
 import com.android.layoutinspector.common.AppLogger
-import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
+import com.github.grishberg.android.layoutinspector.domain.DumpViewNode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -39,7 +39,7 @@ class LayoutInspectorCaptureTask(
                 throw e
             }
         }
-        val dumpNodeAsyncResult: AbstractViewNode? = if (recordingConfig.recordOptions.dumpViewModeEnabled) {
+        val dumpNodeAsyncResult: DumpViewNode? = if (recordingConfig.recordOptions.dumpViewModeEnabled) {
             val viewDumpsAsync = scope.async(Dispatchers.IO) {
                 return@async getViewDumps(recordingConfig)
             }
@@ -49,11 +49,14 @@ class LayoutInspectorCaptureTask(
         }
         val layoutAsyncResult = layoutResultAsync.await()
 
+        val layoutRootNode = layoutAsyncResult.root
         val result =
-            if (recordingConfig.recordOptions.dumpViewModeEnabled && dumpNodeAsyncResult != null) {
+            if (recordingConfig.recordOptions.dumpViewModeEnabled && dumpNodeAsyncResult != null && layoutRootNode != null) {
+
+                val treeMerger = TreeMerger()
+
                 LayoutInspectorResult(
-                    dumpNodeAsyncResult,
-                    dumpNodeAsyncResult,
+                    treeMerger.mergeNodes(layoutRootNode, dumpNodeAsyncResult),
                     layoutAsyncResult.previewImage,
                     layoutAsyncResult.data,
                     layoutAsyncResult.options,
@@ -67,7 +70,7 @@ class LayoutInspectorCaptureTask(
         return result
     }
 
-    private fun getViewDumps(recordingConfig: RecordingConfig): AbstractViewNode? {
+    private fun getViewDumps(recordingConfig: RecordingConfig): DumpViewNode? {
         logger.d("$TAG: start capture view dumps")
         val dumper = HierarchyDump(recordingConfig.client.device, layoutFileSystem)
         val dumpString = dumper.getHierarchyDump() ?: return null

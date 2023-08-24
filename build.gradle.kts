@@ -1,7 +1,3 @@
-import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-
 plugins {
     // Java support
     id("java")
@@ -39,17 +35,17 @@ dependencies {
     implementation("io.rsocket.broker:rsocket-broker-frames:0.3.0")
 
 
-    implementation ("org.jooq:joor-java-8:0.9.7")
-    implementation ("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation ("com.google.code.gson:gson:2.8.9")
+    implementation("org.jooq:joor-java-8:0.9.7")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("com.google.code.gson:gson:2.8.9")
 
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.3.2")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.3.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
 
 
-    testImplementation ("junit:junit:4.12")
+    testImplementation("junit:junit:4.12")
 }
 
 
@@ -60,9 +56,10 @@ tasks {
         sinceBuild.set(properties("pluginSinceBuild"))
         untilBuild.set(properties("pluginUntilBuild"))
 
-        changeNotes.set( """
+        changeNotes.set(
+            """
             Fixed storing v2 protocol enable state<br>
-            Added uiautomator dump mode for getting layouts from dumps. Allows to see compose borders.<br>
+            Added uiautomator dump mode for getting ComposeView's children layouts from dumps. Allows to see compose borders.<br>
           """
         )
     }

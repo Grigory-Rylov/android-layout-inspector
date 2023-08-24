@@ -5,7 +5,7 @@ import java.util.Enumeration
 import javax.swing.tree.TreeNode
 
 data class DumpViewNode(
-    val parent: DumpViewNode?,
+    val parent: AbstractViewNode?,
     val pkg: String,
     override val name: String,
     override val id: String?,
@@ -36,7 +36,7 @@ data class DumpViewNode(
         }
     }
 
-    fun addChild(child: DumpViewNode) {
+    fun addChild(child: AbstractViewNode) {
         children.add(child)
     }
 
@@ -53,4 +53,14 @@ data class DumpViewNode(
     override fun isLeaf(): Boolean = childCount == 0
 
     override fun children(): Enumeration<out TreeNode> = Collections.enumeration(children)
+
+    override fun cloneWithNewParent(newParent: AbstractViewNode): AbstractViewNode {
+        val cloned =  DumpViewNode(newParent, pkg, name, id, globalLeft, globalTop, globalRight, globalBottom, text)
+
+        for(child in children) {
+            cloned.addChild(child.cloneWithNewParent(cloned))
+        }
+
+        return cloned
+    }
 }

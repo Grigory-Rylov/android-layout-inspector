@@ -29,24 +29,18 @@ import javax.imageio.ImageIO
 private const val TAG = "LayoutInspectorBridge"
 
 object LayoutInspectorBridge {
-    @JvmStatic
-    val V2_MIN_API = 23
+
+    @JvmStatic val V2_MIN_API = 23
 
     @JvmStatic
     suspend fun captureView(
-        logger: AppLogger,
-        window: ClientWindow,
-        options: LayoutInspectorCaptureOptions,
-        timeoutInSeconds: Long
+        logger: AppLogger, window: ClientWindow, options: LayoutInspectorCaptureOptions, timeoutInSeconds: Long
     ): LayoutInspectorResult {
-        val hierarchy =
-            window.loadWindowData(options, timeoutInSeconds, TimeUnit.SECONDS)
-                ?: return LayoutInspectorResult.createErrorResult(
-                    "There was a timeout error capturing the layout data from the device.\n" +
-                            "The device may be too slow, the captured view may be too complex, or the view may contain animations.\n\n" +
-                            "Please retry with a simplified view and ensure the device is responsive."
-                )
-        var root: ViewNode?
+        val hierarchy = window.loadWindowData(options, timeoutInSeconds, TimeUnit.SECONDS)
+            ?: return LayoutInspectorResult.createErrorResult(
+                "There was a timeout error capturing the layout data from the device.\n" + "The device may be too slow, the captured view may be too complex, or the view may contain animations.\n\n" + "Please retry with a simplified view and ensure the device is responsive."
+            )
+        val root: ViewNode?
         try {
             logger.d("$TAG parse hierarchy")
             root = ViewNodeParser.parse(hierarchy, options.version)
@@ -65,9 +59,7 @@ object LayoutInspectorBridge {
         //  Get the preview of the root node
         logger.d("$TAG Get the preview of the root node")
         val preview = window.loadViewImage(
-            root,
-            timeoutInSeconds,
-            TimeUnit.SECONDS
+            root, timeoutInSeconds, TimeUnit.SECONDS
         ) ?: return LayoutInspectorResult.createErrorResult("Unable to obtain preview image")
         logger.d("$TAG preview downloaded")
         val bytes = ByteArrayOutputStream(4096)
@@ -94,7 +86,6 @@ object LayoutInspectorBridge {
         }
         return LayoutInspectorResult(
             root = root,
-            dumpViewRoot = null,
             data = bytes.toByteArray(),
             previewImage = ImageIO.read(ByteArrayInputStream(preview)),
             options = options,

@@ -3,7 +3,8 @@ package com.github.grishberg.android.layoutinspector.domain
 import javax.swing.tree.TreeNode
 
 interface AbstractViewNode : TreeNode {
-    val children : List<AbstractViewNode>
+
+    val children: List<AbstractViewNode>
     val id: String?
     val name: String
     val locationOnScreenX: Int
@@ -14,4 +15,6 @@ interface AbstractViewNode : TreeNode {
     val hash: String
     val typeAsString: String
     val text: String?
+
+    fun cloneWithNewParent(newParent: AbstractViewNode): AbstractViewNode
 }

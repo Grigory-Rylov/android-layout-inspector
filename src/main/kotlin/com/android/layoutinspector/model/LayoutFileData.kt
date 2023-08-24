@@ -26,12 +26,11 @@ import java.awt.image.BufferedImage
 data class LayoutFileData(
     val bufferedImage: BufferedImage?,
     val node: AbstractViewNode?,
-    val dumpNode: AbstractViewNode?,
     val options: LayoutInspectorCaptureOptions
 ) {
     companion object {
         fun fromLayoutInspectorResult(result: LayoutInspectorResult): LayoutFileData {
-            return LayoutFileData(result.previewImage, result.root, result.dumpViewRoot, result.options!!)
+            return LayoutFileData(result.previewImage, result.root, result.options!!)
         }
     }
 }

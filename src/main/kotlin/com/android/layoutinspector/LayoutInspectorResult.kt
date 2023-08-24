@@ -15,11 +15,8 @@
  */
 package com.android.layoutinspector
 
-import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
-import com.github.grishberg.android.layoutinspector.domain.DumpViewNode
 import java.awt.image.BufferedImage
-
 
 /**
  * Represents result of a capture
@@ -28,20 +25,16 @@ import java.awt.image.BufferedImage
  */
 class LayoutInspectorResult(
     val root: AbstractViewNode?,
-    var dumpViewRoot: AbstractViewNode?,
     val previewImage: BufferedImage?,
     val data: ByteArray?,
     val options: LayoutInspectorCaptureOptions?,
     val error: String,
 ) {
+
     companion object {
+
         fun createErrorResult(error: String) = LayoutInspectorResult(
-            root = null,
-            dumpViewRoot = null,
-            previewImage = null,
-            data = null,
-            options = null,
-            error = error
+            root = null, previewImage = null, data = null, options = null, error = error
         )
     }
 }

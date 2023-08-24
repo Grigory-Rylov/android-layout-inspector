@@ -1,19 +1,19 @@
 package com.github.grishberg.android.layoutinspector.process
 
-import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.domain.DumpViewNode
-import org.xml.sax.Attributes
-import org.xml.sax.helpers.DefaultHandler
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import javax.xml.parsers.SAXParser
 import javax.xml.parsers.SAXParserFactory
+import org.xml.sax.Attributes
+import org.xml.sax.helpers.DefaultHandler
 
 class HierarchyDumpParser {
 
     private val BOUNDS_PATTERN = "\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]".toRegex()
-    fun parseDump(viewDump: String): AbstractViewNode? {
+
+    fun parseDump(viewDump: String): DumpViewNode? {
         val factory = SAXParserFactory.newInstance()
         val saxParser: SAXParser = factory.newSAXParser()
         val handler = ViewDumpHandler()
@@ -24,6 +24,7 @@ class HierarchyDumpParser {
     }
 
     private inner class ViewDumpHandler : DefaultHandler() {
+
         var state: State? = null
 
         var rootNode: DumpViewNode? = null
@@ -51,6 +52,9 @@ class HierarchyDumpParser {
 
             if (qName == "node") {
                 rootNode?.parent?.let {
+                    if (it !is DumpViewNode) {
+                        throw IllegalStateException()
+                    }
                     rootNode = it
                 }
             }
@@ -62,6 +66,7 @@ class HierarchyDumpParser {
     }
 
     private interface State {
+
         fun processAttributes(attributes: Attributes)
 
         fun characters(ch: CharArray, start: Int, length: Int)
@@ -90,8 +95,15 @@ class HierarchyDumpParser {
             val globalBounds = attributes.getValue("bounds")
             val rectBounds = parseBounds(globalBounds)
             newNode = DumpViewNode(
-                parent = parentNode, pkg = pkg, name = className, id = parseId(id),
-                rectBounds.left, rectBounds.top, rectBounds.right, rectBounds.bottom, attributes.getValue("text")
+                parent = parentNode,
+                pkg = pkg,
+                name = className,
+                id = parseId(id),
+                rectBounds.left,
+                rectBounds.top,
+                rectBounds.right,
+                rectBounds.bottom,
+                attributes.getValue("text")
             )
             parentNode?.addChild(newNode)
         }
@@ -118,13 +130,9 @@ class HierarchyDumpParser {
             )
         }
 
-        override fun characters(ch: CharArray, start: Int, length: Int) {
-            println(ch)
-        }
+        override fun characters(ch: CharArray, start: Int, length: Int) = Unit
 
-        override fun endElement(uri: String, localName: String, qName: String) {
-            println(qName)
-        }
+        override fun endElement(uri: String, localName: String, qName: String) = Unit
 
         fun createNode(): DumpViewNode {
             return newNode
