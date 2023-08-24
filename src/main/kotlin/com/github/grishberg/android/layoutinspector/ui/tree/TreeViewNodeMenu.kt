@@ -1,6 +1,6 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
-import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.ui.common.createControlAccelerator
 import com.github.grishberg.android.layoutinspector.ui.common.createControlAltAccelerator
@@ -15,7 +15,7 @@ typealias CalculateDistanceDelegate = () -> Unit
 class TreeViewNodeMenu(
     val owner: JFrame,
     val treePanel: TreePanel,
-    val selectedViewNode: ViewNode,
+    val selectedViewNode: AbstractViewNode,
     val meta: MetaRepository,
     val bookmarks: Bookmarks,
     val calculateDistanceDelegate: CalculateDistanceDelegate?

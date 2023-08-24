@@ -1,7 +1,6 @@
 package com.github.grishberg.android.layoutinspector.domain
 
 import com.android.layoutinspector.common.AppLogger
-import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.ui.common.colorToHex
 import com.github.grishberg.android.layoutinspector.ui.common.hexToColor
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.BookmarkInfo
@@ -32,24 +31,24 @@ class MetaRepository(
 
     private val bookmarksChangedAction = { serialize() }
 
-    private val _hiddenViews = mutableListOf<ViewNode>()
-    val hiddenViews: List<ViewNode> = _hiddenViews
+    private val _hiddenViews = mutableListOf<AbstractViewNode>()
+    val hiddenViews: List<AbstractViewNode> = _hiddenViews
 
     init {
         bookmarks.listeners.add(bookmarksChangedAction)
         hiddenChangedAction.add { serialize() }
     }
 
-    fun shouldHideInLayout(viewNode: ViewNode): Boolean {
+    fun shouldHideInLayout(viewNode: AbstractViewNode): Boolean {
         return _hiddenViews.contains(viewNode)
     }
 
-    fun addToHiddenViews(viewNode: ViewNode) {
+    fun addToHiddenViews(viewNode: AbstractViewNode) {
         _hiddenViews.add(viewNode)
         hiddenChangedAction.forEach { it.invoke() }
     }
 
-    fun removeFromHiddenViews(viewNode: ViewNode) {
+    fun removeFromHiddenViews(viewNode: AbstractViewNode) {
         _hiddenViews.remove(viewNode)
         hiddenChangedAction.forEach { it.invoke() }
     }
@@ -107,7 +106,7 @@ class MetaRepository(
     /**
      * call from worker thread.
      */
-    fun restoreForFile(fn: String, rootNode: ViewNode?) {
+    fun restoreForFile(fn: String, rootNode: AbstractViewNode?) {
         fileName = fn
         val metaType: Type = object : TypeToken<MetaModel>() {}.type
         try {
@@ -118,7 +117,7 @@ class MetaRepository(
             val loadedMeta: MetaModel = gson.fromJson(reader, metaType)
 
             val bookmarkList = mutableListOf<BookmarkInfo>()
-            val allNodesMap = mutableMapOf<String, ViewNode>()
+            val allNodesMap = mutableMapOf<String, AbstractViewNode>()
             readAllNodes(allNodesMap, rootNode)
 
             for (bookmark in loadedMeta.bookmarks) {
@@ -144,7 +143,7 @@ class MetaRepository(
         }
     }
 
-    private fun readAllNodes(map: MutableMap<String, ViewNode>, parent: ViewNode?) {
+    private fun readAllNodes(map: MutableMap<String, AbstractViewNode>, parent: AbstractViewNode?) {
         if (parent == null) {
             return
         }

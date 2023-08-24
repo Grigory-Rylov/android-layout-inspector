@@ -10,12 +10,15 @@ import java.io.FileOutputStream
 
 private const val TAG = "FileSystem"
 const val LAYOUTS_DIR = "layouts"
+const val DUMPS_DIR = "dumps"
 
 class LayoutFileSystem(
     private val logger: AppLogger,
     baseDir: File
 ) {
     val layoutDir = File(baseDir, LAYOUTS_DIR)
+
+    val dumpsDir = File(baseDir, DUMPS_DIR)
 
     init {
         if (!layoutDir.exists()) {

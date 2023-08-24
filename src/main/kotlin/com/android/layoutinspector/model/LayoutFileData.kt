@@ -17,6 +17,7 @@ package com.android.layoutinspector.model
 
 import com.android.layoutinspector.LayoutInspectorCaptureOptions
 import com.android.layoutinspector.LayoutInspectorResult
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import java.awt.image.BufferedImage
 
 /**
@@ -24,7 +25,7 @@ import java.awt.image.BufferedImage
  */
 data class LayoutFileData(
     val bufferedImage: BufferedImage?,
-    val node: ViewNode?,
+    val node: AbstractViewNode?,
     val options: LayoutInspectorCaptureOptions
 ) {
     companion object {

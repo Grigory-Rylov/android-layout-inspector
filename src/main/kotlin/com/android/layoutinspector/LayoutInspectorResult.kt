@@ -15,9 +15,8 @@
  */
 package com.android.layoutinspector
 
-import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import java.awt.image.BufferedImage
-
 
 /**
  * Represents result of a capture
@@ -25,19 +24,17 @@ import java.awt.image.BufferedImage
  * Error: data is null, and error a non empty error message
  */
 class LayoutInspectorResult(
-    val root: ViewNode?,
+    val root: AbstractViewNode?,
     val previewImage: BufferedImage?,
     val data: ByteArray?,
     val options: LayoutInspectorCaptureOptions?,
-    val error: String
+    val error: String,
 ) {
+
     companion object {
+
         fun createErrorResult(error: String) = LayoutInspectorResult(
-            root = null,
-            previewImage = null,
-            data = null,
-            options = null,
-            error = error
+            root = null, previewImage = null, data = null, options = null, error = error
         )
     }
 }

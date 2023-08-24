@@ -1,6 +1,6 @@
 package com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks
 
-import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import java.awt.Color
 
 typealias BookmarksChangedListener = () -> Unit
@@ -38,7 +38,7 @@ class Bookmarks {
         return null
     }
 
-    fun getForegroundForItem(value: ViewNode, defaultTextForeground: Color): Color {
+    fun getForegroundForItem(value: AbstractViewNode, defaultTextForeground: Color): Color {
         var color = defaultTextForeground
         for (bookmarkInfo in _items) {
             if (bookmarkInfo.node != value) {
@@ -52,7 +52,7 @@ class Bookmarks {
         return color
     }
 
-    fun getBookmarkInfoForNode(selectedViewNode: ViewNode): BookmarkInfo? {
+    fun getBookmarkInfoForNode(selectedViewNode: AbstractViewNode): BookmarkInfo? {
         for (bookmarkInfo in _items) {
             if (bookmarkInfo.node == selectedViewNode) {
                 return bookmarkInfo

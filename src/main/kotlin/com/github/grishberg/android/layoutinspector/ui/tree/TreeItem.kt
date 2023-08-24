@@ -1,5 +1,6 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
+import com.intellij.ui.JBColor
 import java.awt.Color
 import javax.swing.ImageIcon
 

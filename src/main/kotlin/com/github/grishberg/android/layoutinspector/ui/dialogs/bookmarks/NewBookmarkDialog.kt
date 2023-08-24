@@ -1,6 +1,6 @@
 package com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks
 
-import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.ui.dialogs.CloseByEscapeDialog
 import java.awt.BorderLayout
 import java.awt.Color
@@ -12,7 +12,7 @@ import javax.swing.border.EmptyBorder
 
 class NewBookmarkDialog(
     private val owner: JFrame,
-    private val selectedViewNode: ViewNode
+    private val selectedViewNode: AbstractViewNode
 ) : CloseByEscapeDialog(owner, "New bookmark", true) {
     var result: BookmarkInfo? = null
         private set

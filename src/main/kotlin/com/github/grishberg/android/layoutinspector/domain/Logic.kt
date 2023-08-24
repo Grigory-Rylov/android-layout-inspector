@@ -125,7 +125,7 @@ class Logic(
     private suspend fun captureLayouts(
         config: RecordingConfig,
     ) {
-        val task = LayoutInspectorCaptureTask(coroutineScope, logger)
+        val task = LayoutInspectorCaptureTask(layoutFileSystem, coroutineScope, logger)
 
         val liResult = task.capture(config)
 

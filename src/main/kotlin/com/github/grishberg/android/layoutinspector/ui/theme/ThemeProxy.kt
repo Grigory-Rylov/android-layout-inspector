@@ -109,6 +109,9 @@ class ThemeProxy : ThemeColors {
     override val viewIcon: ImageIcon
         get() = currentTheme.nestedScrollViewIcon
 
+    override val composeIcon: ImageIcon
+        get() = currentTheme.composeIcon
+
     override val groupForeground: Color
         get() = currentTheme.groupForeground
 

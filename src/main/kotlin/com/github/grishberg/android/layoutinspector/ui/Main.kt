@@ -3,9 +3,9 @@ package com.github.grishberg.android.layoutinspector.ui
 import com.android.layoutinspector.common.AdbFacade
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.LayoutFileData
-import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchersImpl
 import com.github.grishberg.android.layoutinspector.common.MainScope
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.domain.DialogsInput
 import com.github.grishberg.android.layoutinspector.domain.LayoutResultOutput
 import com.github.grishberg.android.layoutinspector.domain.Logic
@@ -366,11 +366,11 @@ class Main(
             pixelsMode.isSelected = true
         }
 
-        pixelsMode.addActionListener { e: ActionEvent ->
+        pixelsMode.addActionListener {
             setSizeDpMode(false)
             settingsFacade.showSizeInDp(false)
         }
-        dpMode.addActionListener { e: ActionEvent ->
+        dpMode.addActionListener {
             setSizeDpMode(true)
             settingsFacade.showSizeInDp(true)
         }
@@ -535,14 +535,14 @@ class Main(
 
     private inner class TreeNodeSelectedAction : TreePanel.OnNodeSelectedAction, LayoutLogic.OnLayoutSelectedAction,
         FindDialog.OnFoundAction {
-        override fun onViewNodeSelected(node: ViewNode) {
+        override fun onViewNodeSelected(node: AbstractViewNode) {
             layoutPanel.selectNode(node)
             propertiesPanel.showProperties(node)
             splitPane2.revalidate()
             splitPane2.repaint()
         }
 
-        override fun onViewNodeHovered(node: ViewNode) {
+        override fun onViewNodeHovered(node: AbstractViewNode) {
             layoutPanel.hoverNode(node)
         }
 
@@ -550,11 +550,11 @@ class Main(
             layoutPanel.removeNodeHover()
         }
 
-        override fun onNodeHovered(node: ViewNode) {
+        override fun onNodeHovered(node: AbstractViewNode) {
             treePanel.onNodeHovered(node)
         }
 
-        override fun onNodeSelected(node: ViewNode) {
+        override fun onNodeSelected(node: AbstractViewNode) {
             treePanel.onNodeSelected(node)
             propertiesPanel.showProperties(node)
             splitPane2.revalidate()
@@ -566,11 +566,11 @@ class Main(
             treePanel.removeHovered()
         }
 
-        override fun onFound(foundItems: List<ViewNode>) {
+        override fun onFound(foundItems: List<AbstractViewNode>) {
             treePanel.highlightFoundItems(foundItems)
         }
 
-        override fun onSelectedFoundItem(node: ViewNode) {
+        override fun onSelectedFoundItem(node: AbstractViewNode) {
             onNodeSelected(node)
         }
 
@@ -643,7 +643,7 @@ class Main(
         return null
     }
 
-    fun calculateDistance(selectedValue: ViewNode, targetNode: ViewNode) {
+    fun calculateDistance(selectedValue: AbstractViewNode, targetNode: AbstractViewNode) {
         layoutPanel.calculateDistanceBetweenTwoViewNodes(selectedValue, targetNode)
     }
 

@@ -2,6 +2,7 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 
 
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
+import com.intellij.ui.JBColor
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.FontMetrics
@@ -31,8 +32,8 @@ class ItemViewRenderer(
     private var icon: ImageIcon = ImageIcon()
     private var selectionBackground: Color = theme.selectionBackground
 
-    private var foreground1 = Color.BLACK
-    private var foreground2 = Color.BLACK
+    private var foreground1: Color = JBColor.BLACK
+    private var foreground2: Color = JBColor.BLACK
 
     private var text1: String = ""
     private var text2: String = ""

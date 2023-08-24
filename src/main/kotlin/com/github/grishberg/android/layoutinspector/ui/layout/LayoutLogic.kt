@@ -1,10 +1,11 @@
 package com.github.grishberg.android.layoutinspector.ui.layout
 
 import com.android.layoutinspector.model.LayoutFileData
-import com.android.layoutinspector.model.ViewNode
+import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.screenshottest.ScreenshotPainter
+import com.intellij.ui.JBColor
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Dimension
@@ -33,7 +34,7 @@ class LayoutLogic(
     private val imgageHelper: ImageHelper
 ): ScreenshotPainter {
     private val GFX_CONFIG = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
-    private val skippedNodes = mutableMapOf<ViewNode, Boolean>()
+    private val skippedNodes = mutableMapOf<AbstractViewNode, Boolean>()
 
     var onLayoutSelectedAction: OnLayoutSelectedAction? = null
 
@@ -49,11 +50,11 @@ class LayoutLogic(
             }
             return Dimension(0, 0)
         }
-    private var root: ViewNode? = null
+    private var root: AbstractViewNode? = null
     private val layoutModelRoots = mutableListOf<LayoutModel>()
     private val rectangles = mutableListOf<LayoutModel>()
-    private val allRectangles = mutableMapOf<ViewNode, Shape>()
-    private val borderColor = Color.GRAY
+    private val allRectangles = mutableMapOf<AbstractViewNode, Shape>()
+    private val borderColor:Color = JBColor.GRAY
 
     private var selectedRectangle: Shape? = null
     private var measureRectangle: Shape? = null
@@ -145,7 +146,7 @@ class LayoutLogic(
         calculateDistance(selected, measureRectangle)
     }
 
-    fun calculateDistanceBetweenTwoViewNodes(startViewNode: ViewNode, endViewNode: ViewNode) {
+    fun calculateDistanceBetweenTwoViewNodes(startViewNode: AbstractViewNode, endViewNode: AbstractViewNode) {
         val node1 = allRectangles[startViewNode]
         val node2 = allRectangles[endViewNode]
         if (node1 != null && node2 != null) {
@@ -214,7 +215,7 @@ class LayoutLogic(
 
     private fun addFromViewNode(
         parentsChildren: MutableList<LayoutModel>,
-        node: ViewNode?,
+        node: AbstractViewNode?,
     ) {
         if (node == null) {
             return
@@ -223,7 +224,7 @@ class LayoutLogic(
         val left = node.locationOnScreenX
         val top = node.locationOnScreenY
         val children = mutableListOf<LayoutModel>()
-        val rect = Rectangle(left, top, node.displayInfo.width, node.displayInfo.height)
+        val rect = Rectangle(left, top, node.width, node.height)
         val newLayoutModel = LayoutModel(rect, node, children)
         parentsChildren.add(newLayoutModel)
         if (isNodeVisible(node, false)) {
@@ -236,12 +237,12 @@ class LayoutLogic(
 
         val count = node.childCount
         for (i in 0 until count) {
-            addFromViewNode(children, node.getChildAt(i))
+            addFromViewNode(children, node.getChildAt(i) as AbstractViewNode)
         }
     }
 
     private fun isNodeVisible(
-        node: ViewNode,
+        node: AbstractViewNode,
         shouldSkipViews: Boolean
     ): Boolean {
         if (shouldSkipViews) {
@@ -254,10 +255,10 @@ class LayoutLogic(
         if (meta.shouldHideInLayout(node)) {
             return false
         }
-        return node.displayInfo.isVisible
+        return node.isVisible
     }
 
-    private fun shouldSkipNode(node: ViewNode): Boolean {
+    private fun shouldSkipNode(node: AbstractViewNode): Boolean {
         return skippedNodes.contains(node)
     }
 
@@ -313,7 +314,7 @@ class LayoutLogic(
         return Dimension(screenshot!!.width, screenshot!!.height)
     }
 
-    private fun markSkippedAsTouched(element: ViewNode) {
+    private fun markSkippedAsTouched(element: AbstractViewNode) {
         if (skippedNodes[element] != null) {
             skippedNodes[element] = true
         }
@@ -446,12 +447,12 @@ class LayoutLogic(
         }
     }
 
-    fun selectNode(viewNode: ViewNode) {
+    fun selectNode(viewNode: AbstractViewNode) {
         selectedRectangle = allRectangles[viewNode]
         recalculateDistanceAction = null
     }
 
-    fun hoverNode(viewNode: ViewNode) {
+    fun hoverNode(viewNode: AbstractViewNode) {
         hoveredRectangle = allRectangles[viewNode]
     }
 
@@ -569,8 +570,8 @@ class LayoutLogic(
     }
 
     interface OnLayoutSelectedAction {
-        fun onNodeHovered(node: ViewNode)
-        fun onNodeSelected(node: ViewNode)
+        fun onNodeHovered(node: AbstractViewNode)
+        fun onNodeSelected(node: AbstractViewNode)
         fun onMouseExited()
         fun onDistanceCalculated(dimensions: Map<DistanceType, Double>)
     }
