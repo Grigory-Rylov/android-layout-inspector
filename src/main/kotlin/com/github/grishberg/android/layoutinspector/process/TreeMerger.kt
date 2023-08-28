@@ -20,7 +20,7 @@ class TreeMerger {
         }
 
         for (path in layoutPath) {
-            val suitableNodePath =  dumpPath.firstOrNull() { it == path } ?: continue
+            val suitableNodePath = dumpPath.firstOrNull() { it == path } ?: continue
             val layoutComposeNode = path.targetNode
             if (layoutComposeNode is ViewNode) {
                 layoutComposeNode.replaceChildren(suitableNodePath.targetNode.children)
@@ -57,10 +57,10 @@ class TreeMerger {
             if (targetNode.name != other.targetNode.name) {
                 return false
             }
-            if (targetNode.id != other.targetNode.id) {
+            if (!isIdSame(targetNode.id, other.targetNode.id)) {
                 return false
             }
-            if (targetNode.locationOnScreenX != other.targetNode.locationOnScreenX || targetNode.locationOnScreenY != other.targetNode.locationOnScreenY || targetNode.width != other.targetNode.width || targetNode.height != other.targetNode.height) {
+            if (targetNode.locationOnScreenX != other.targetNode.locationOnScreenX || targetNode.locationOnScreenY != other.targetNode.locationOnScreenY /*|| targetNode.width != other.targetNode.width || targetNode.height != other.targetNode.height*/) {
                 return false
             }
             if (other.path.size != path.size) {
@@ -70,15 +70,19 @@ class TreeMerger {
             for (i in path.indices) {
                 val thisId = path[i].id
                 val otherId = other.path[i].id
-                if ((thisId == null || thisId == "" || thisId == "NO_ID") && (otherId == null || otherId == "" || otherId == "NO_ID")) {
-                    continue
-                }
-                if (thisId != otherId) {
+                if (!isIdSame(thisId, otherId)) {
                     return false
                 }
             }
 
             return true
+        }
+
+        private fun isIdSame(thisId: String?, otherId: String?): Boolean {
+            if ((thisId == null || thisId == "" || thisId == "NO_ID") && (otherId == null || otherId == "" || otherId == "NO_ID")) {
+                return true
+            }
+            return thisId == otherId
         }
 
         override fun hashCode(): Int {
