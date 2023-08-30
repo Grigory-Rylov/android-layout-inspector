@@ -37,17 +37,12 @@
     <actions>
         <group id="YALI.TopMenu"
                text="_YALI"
-               description="YALI Toolbar Menu">
+               description="YALI toolbar menu">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <action id="ShowLayoutInspectorAction"
                     class="com.github.grishberg.android.li.ShowLayoutInspectorAction"
                     text="_Launch YALI"
-                    description="Launch Yet Another Layout Inspector for Android"/>
+                    description="Launch yet another layout inspector for android"/>
         </group>
     </actions>
-    <project-components>
-        <component>
-            <implementation-class>com.github.grishberg.android.li.PluginContext</implementation-class>
-        </component>
-    </project-components>
 </idea-plugin>

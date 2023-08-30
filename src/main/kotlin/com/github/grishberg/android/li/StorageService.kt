@@ -1,5 +1,6 @@
 package com.github.grishberg.android.li
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
@@ -21,7 +22,7 @@ class StorageService : PersistentStateComponent<PluginState> {
     companion object {
         @JvmStatic
         fun getInstance(): PersistentStateComponent<PluginState> {
-            return ServiceManager.getService(StorageService::class.java)
+            return ApplicationManager.getApplication().getService(StorageService::class.java)
         }
     }
 }
