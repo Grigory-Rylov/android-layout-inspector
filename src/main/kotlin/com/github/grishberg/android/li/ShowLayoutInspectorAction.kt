@@ -38,7 +38,7 @@ class ShowLayoutInspectorAction : AsAction() {
             OpenWindowMode.DEFAULT,
             settings,
             DeviceProviderImpl(provider),
-            AdbFacadeImpl(provider, project.context().adb),
+            AdbFacadeImpl(provider, adbProvider.getAdb()),
             prepareBaseDir(project)
         )
         main.initUi()

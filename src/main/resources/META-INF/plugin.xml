@@ -45,9 +45,4 @@
                     description="Launch Yet Another Layout Inspector for Android"/>
         </group>
     </actions>
-    <project-components>
-        <component>
-            <implementation-class>com.github.grishberg.android.li.PluginContext</implementation-class>
-        </component>
-    </project-components>
 </idea-plugin>
