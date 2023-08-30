@@ -58,8 +58,7 @@ tasks {
 
         changeNotes.set(
             """
-            Fixed storing v2 protocol enable state<br>
-            Added uiautomator dump mode for getting ComposeView's children layouts from dumps. Allows to see compose borders.<br>
+            Fixed uiautomator dump mode for getting ComposeView's children layouts from dumps.<br>
           """
         )
     }

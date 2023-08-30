@@ -12,7 +12,7 @@ class HierarchyDump(
     private val layoutFileSystem: LayoutFileSystem,
 ) {
 
-    private val PATTERN = "[^ ]+.xml".toRegex()
+    private val PATTERN = "UI\\shierchary\\sdumped\\sto:\\s([^ ]+.xml)".toRegex()
 
 
     fun getHierarchyDump(): String? {
@@ -21,7 +21,7 @@ class HierarchyDump(
         receiver.awaitCompletion(60L, TimeUnit.SECONDS)
         val output = receiver.output ?: return null
         val matchResult = PATTERN.find(output)?: return null
-        val localFile =  uploadDumpFile(matchResult.value)
+        val localFile =  uploadDumpFile(matchResult.groupValues[1])
 
         return readStringFile(localFile)
     }
