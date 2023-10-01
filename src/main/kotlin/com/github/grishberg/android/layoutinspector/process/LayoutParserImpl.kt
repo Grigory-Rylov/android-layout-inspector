@@ -7,6 +7,5 @@ import java.io.File
 class LayoutParserImpl : LayoutParserInput {
     override fun parseFromBytes(bytes: ByteArray) = LayoutFileDataParser.parseFromBytes(bytes)
 
-
     override fun parseFromFile(file: File) = LayoutFileDataParser.parseFromFile(file)
 }

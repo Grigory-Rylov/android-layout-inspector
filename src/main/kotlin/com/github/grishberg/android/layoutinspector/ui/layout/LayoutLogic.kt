@@ -6,15 +6,7 @@ import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.screenshottest.ScreenshotPainter
 import com.intellij.ui.JBColor
-import java.awt.BasicStroke
-import java.awt.Color
-import java.awt.Dimension
-import java.awt.Graphics2D
-import java.awt.GraphicsEnvironment
-import java.awt.Point
-import java.awt.Rectangle
-import java.awt.Shape
-import java.awt.Stroke
+import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Line2D
 import java.awt.geom.Point2D
@@ -32,9 +24,10 @@ class LayoutLogic(
     private val settings: SettingsFacade,
     private val latyoutsState: LayoutsEnabledState,
     private val imgageHelper: ImageHelper
-): ScreenshotPainter {
+) : ScreenshotPainter {
     private val GFX_CONFIG = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
     private val skippedNodes = mutableMapOf<AbstractViewNode, Boolean>()
+    private var firstSkippedNode: AbstractViewNode? = null
 
     var onLayoutSelectedAction: OnLayoutSelectedAction? = null
 
@@ -54,7 +47,7 @@ class LayoutLogic(
     private val layoutModelRoots = mutableListOf<LayoutModel>()
     private val rectangles = mutableListOf<LayoutModel>()
     private val allRectangles = mutableMapOf<AbstractViewNode, Shape>()
-    private val borderColor:Color = JBColor.GRAY
+    private val borderColor: Color = JBColor.GRAY
 
     private var selectedRectangle: Shape? = null
     private var measureRectangle: Shape? = null
@@ -99,19 +92,44 @@ class LayoutLogic(
         panel.requestFocus()
         clearSkippedTouches()
 
+        if (settings.ignoreLastClickedView) {
+            firstSkippedNode?.let {
+                if (!it.contains(point.x, point.y)) {
+                    resetSkippedNodes()
+                }
+            }
+        }
+
         val foundNode = getChildAtPoint(point, settings.ignoreLastClickedView)
 
         removeSkippedNodesThatWasNotClicked()
 
-        if (foundNode != null) {
-            recalculateDistanceAction = null
-            selectedRectangle = foundNode.rect
-            onLayoutSelectedAction?.onNodeSelected(foundNode.node)
+        if (foundNode == null) {
+            return
+        }
 
-            if (settings.ignoreLastClickedView) {
-                skippedNodes[foundNode.node] = true
+        recalculateDistanceAction = null
+        selectedRectangle = foundNode.rect
+        onLayoutSelectedAction?.onNodeSelected(foundNode.node)
+
+        if (settings.ignoreLastClickedView) {
+            skippedNodes[foundNode.node] = true
+            if (firstSkippedNode == null) {
+                firstSkippedNode = foundNode.node
             }
         }
+    }
+
+    private fun resetSkippedNodes() {
+        firstSkippedNode = null
+        skippedNodes.clear()
+    }
+
+    private fun AbstractViewNode.contains(x: Int, y: Int): Boolean {
+        return x >= this.locationOnScreenX &&
+                x < (this.locationOnScreenX + this.width) &&
+                y >= this.locationOnScreenY &&
+                y < (this.locationOnScreenY + this.height)
     }
 
     private fun clearSkippedTouches() {
@@ -308,10 +326,8 @@ class LayoutLogic(
     }
 
     fun getPreferredSize(): Dimension {
-        if (screenshot == null) {
-            return Dimension(400, 640)
-        }
-        return Dimension(screenshot!!.width, screenshot!!.height)
+        val scr = screenshot ?: return Dimension(400, 640)
+        return Dimension(scr.width, scr.height)
     }
 
     private fun markSkippedAsTouched(element: AbstractViewNode) {
@@ -363,8 +379,7 @@ class LayoutLogic(
         g.stroke = measureLineStroke
         for (line in measureLines) {
             g.color = measureLineColor
-            val line = at.createTransformedShape(line)
-            g.draw(line)
+            g.draw(at.createTransformedShape(line))
         }
 
         hoveredRectangle?.let {
@@ -539,12 +554,12 @@ class LayoutLogic(
         rulerPointer = null
         hoveredRectangle = null
         recalculateDistanceAction = null
-        skippedNodes.clear()
+        resetSkippedNodes()
     }
 
     override fun paintDifferencePixel(x: Int, y: Int) {
         screenshotBuffer?.let {
-            val newColor = blend(Color(it.getRGB(x,y)), Color.magenta)
+            val newColor = blend(Color(it.getRGB(x, y)), Color.magenta)
             it.setRGB(x, y, newColor.rgb)
         }
     }

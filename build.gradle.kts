@@ -54,11 +54,10 @@ tasks {
     patchPluginXml {
         version.set(properties("pluginVersion"))
         sinceBuild.set(properties("pluginSinceBuild"))
-        untilBuild.set(properties("pluginUntilBuild"))
 
         changeNotes.set(
             """
-            Fixed uiautomator dump mode for getting ComposeView's children layouts from dumps.<br>
+            Reset view selection when clicked another view rect.<br>
           """
         )
     }
