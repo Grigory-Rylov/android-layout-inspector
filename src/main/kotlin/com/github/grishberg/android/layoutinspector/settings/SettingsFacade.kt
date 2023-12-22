@@ -27,7 +27,7 @@ interface SettingsFacade {
 
     var isSecondProtocolVersionEnabled: Boolean
 
-    var isDumpViewModeEnabled: Boolean
+    var recordingMode: Int
 
     fun shouldShowSizeInDp(): Boolean
 

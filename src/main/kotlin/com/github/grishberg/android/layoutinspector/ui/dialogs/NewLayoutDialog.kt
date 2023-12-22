@@ -5,19 +5,15 @@ import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ClientWindow
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptions
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptionsInput
+import com.github.grishberg.android.layoutinspector.domain.RecordingMode
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.JNumberField
 import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.CollectionComboBoxModel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.swing.Swing
 import java.awt.Component
 import java.awt.Container
 import java.awt.Dimension
@@ -43,7 +39,12 @@ import javax.swing.JTextField
 import javax.swing.KeyStroke
 import javax.swing.ListSelectionModel
 import javax.swing.UIManager
-
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.swing.Swing
 
 private const val TAG = "NewLayoutDialog"
 private const val TITLE = "Select Layout recording parameters"
@@ -54,15 +55,16 @@ class NewLayoutDialog(
     private val logger: AppLogger,
     private val settings: SettingsFacade
 ) : CloseByEscapeDialog(owner, TITLE, true), LayoutRecordOptionsInput {
+
     private val timeoutField = JNumberField(20)
     private val filePrefixField = JTextField(20)
     private val showAllProcesses: JCheckBox
     private val secondProtocolVersion: JCheckBox
-    private val dumpViewMode: JCheckBox
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
     private val devicesModel = DevicesCompoBoxModel()
     private val devicesComboBox: ComboBox<DeviceWrapper>
+    private val modesList: ComboBox<RecordingMode>
     private val startButton: JButton
     private val resetConnectionButton: JButton
     private val clientsList: JBList<ClientWrapper>
@@ -80,6 +82,14 @@ class NewLayoutDialog(
         devicesComboBox.model = devicesModel
         devicesComboBox.toolTipText = "Device selector"
         devicesComboBox.prototypeDisplayValue = EmptyDeviceWrapper("XXXXXXXXXXXXXXX")
+
+        modesList = ComboBox()
+        modesList.model = CollectionComboBoxModel(listOf(
+            RecordingMode.Layouts, RecordingMode.LayoutsAndComposeDump, RecordingMode.LayoutsAndDump, RecordingMode.Dump
+        ))
+        modesList.toolTipText =  "if selected, will be used layouts from uiautomator dump for ComposeView children"
+        devicesComboBox.prototypeDisplayValue = EmptyDeviceWrapper("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+
 
         devicesComboBox.addItemListener {
             if (it.stateChange != ItemEvent.SELECTED) {
@@ -109,12 +119,9 @@ class NewLayoutDialog(
         filePrefixField.text = settings.fileNamePrefix
 
         secondProtocolVersion = JCheckBox("protocol ver. 2")
-        secondProtocolVersion.toolTipText = "if not selected, will be used ver. 1, which slower, but has more properties"
+        secondProtocolVersion.toolTipText =
+            "if not selected, will be used ver. 1, which slower, but has more properties"
         secondProtocolVersion.isSelected = settings.isSecondProtocolVersionEnabled
-
-        dumpViewMode = JCheckBox("uiautomator dump")
-        dumpViewMode.toolTipText = "if selected, will be used layouts from uiautomator dump for ComposeView children"
-        dumpViewMode.isSelected = settings.isDumpViewModeEnabled
 
         startButton = JButton("Start")
         startButton.addActionListener {
@@ -134,7 +141,7 @@ class NewLayoutDialog(
         panelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
         panelBuilder.addLabeledComponent("File name prefix: ", filePrefixField)
         panelBuilder.addSingleComponent(secondProtocolVersion)
-        panelBuilder.addSingleComponent(dumpViewMode)
+        panelBuilder.addLabeledComponent("recording mode: ", modesList)
         if (deviceProvider.isReconnectionAllowed) {
             panelBuilder.addMainAndSlaveComponent(startButton, resetConnectionButton)
         } else {
@@ -217,8 +224,7 @@ class NewLayoutDialog(
                 currentClientIndex = 0
             } else {
                 JOptionPane.showMessageDialog(
-                    this, "Select application before starting", "Select application",
-                    JOptionPane.ERROR_MESSAGE
+                    this, "Select application before starting", "Select application", JOptionPane.ERROR_MESSAGE
                 )
                 return
             }
@@ -231,10 +237,18 @@ class NewLayoutDialog(
         val client = clientListModel[currentClientIndex]
         settings.lastProcessName = client.toString()
         val device = devicesComboBox.selectedItem as DeviceWrapper
+        val recordingMode = modesList.selectedItem as RecordingMode
         val timeoutInSeconds = timeoutField.text.toInt()
-        settings.isDumpViewModeEnabled = dumpViewMode.isSelected
+        settings.recordingMode = modesList.selectedIndex
         settings.isSecondProtocolVersionEnabled = secondProtocolVersion.isSelected
-        result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim(), secondProtocolVersion.isSelected, dumpViewMode.isSelected)
+        result = LayoutRecordOptions(
+            device.device,
+            client.client,
+            timeoutInSeconds,
+            filePrefixField.text.trim(),
+            secondProtocolVersion.isSelected,
+            recordingMode
+        )
         deviceProvider.deviceChangedActions.remove(deviceChangedAction)
         isVisible = false
     }
@@ -326,8 +340,8 @@ class NewLayoutDialog(
         return async.await()
     }
 
-
     private inner class DeviceChangedActions : DeviceProvider.DeviceChangedAction {
+
         override fun deviceConnected(device: IDevice) {
             if (!devicesModel.contains(device)) {
                 devicesComboBox.addItem(RealDeviceWrapper(device))
@@ -350,6 +364,7 @@ class NewLayoutDialog(
     }
 
     private inner class FocusPolicy : FocusTraversalPolicy() {
+
         override fun getComponentAfter(aContainer: Container, aComponent: Component): Component {
             return when (aComponent) {
                 devicesComboBox -> clientsList
@@ -390,6 +405,7 @@ class NewLayoutDialog(
 }
 
 class EmptyDeviceWrapper(private val name: String) : DeviceWrapper {
+
     override val device: IDevice
         get() = throw IllegalStateException("Stub")
 

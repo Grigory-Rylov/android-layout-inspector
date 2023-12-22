@@ -33,7 +33,7 @@ class PluginState : SettingsFacade {
 
     override var lastVersion: String = ""
 
-    override var isDumpViewModeEnabled: Boolean = false
+    override var recordingMode: Int = 0
 
     override fun shouldShowSizeInDp(): Boolean = shouldShowSizeInDp
 

@@ -9,5 +9,15 @@ data class LayoutRecordOptions(
     val timeoutInSeconds: Int,
     val fileNamePrefix: String,
     val v2Enabled: Boolean,
-    val dumpViewModeEnabled: Boolean,
+    val recordingMode: RecordingMode,
 )
+
+fun RecordingMode.hasLayouts(): Boolean {
+    return this == RecordingMode.Layouts || this == RecordingMode.LayoutsAndDump ||
+        this == RecordingMode.LayoutsAndComposeDump
+}
+
+fun RecordingMode.hasHierarchyDump(): Boolean {
+    return this == RecordingMode.Dump || this == RecordingMode.LayoutsAndDump ||
+        this == RecordingMode.LayoutsAndComposeDump
+}
