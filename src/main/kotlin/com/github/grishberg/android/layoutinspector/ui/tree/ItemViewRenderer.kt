@@ -1,10 +1,10 @@
 package com.github.grishberg.android.layoutinspector.ui.tree
 
-
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import com.intellij.ui.JBColor
 import java.awt.Color
 import java.awt.Dimension
+import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics
 import javax.swing.Icon
@@ -39,11 +39,19 @@ class ItemViewRenderer(
     private var text2: String = ""
     private val iconGap = 4
     private val textRightPadding = 4
-    private val fontMetrics: FontMetrics = getFontMetrics(font)
+    private val fontMetrics: FontMetrics
     private var selected: Boolean = false
 
     var nodeVisible: Boolean = true
     private var hovered = false
+
+    init {
+        val fontName = "Arial"
+        val fontSize: Int = 12
+        val font = Font(fontName, Font.PLAIN, fontSize)
+        this.font = font
+        fontMetrics = getFontMetrics(font)
+    }
 
     /**
      * Set to true after the constructor has run.
@@ -64,7 +72,8 @@ class ItemViewRenderer(
     }
 
     override fun prepareTreeItem(
-        type: String, description: String,
+        type: String,
+        description: String,
         sel: Boolean,
         expanded: Boolean,
         leaf: Boolean,
@@ -99,8 +108,8 @@ class ItemViewRenderer(
     }
 
     private fun calculateDimension(t1: String, t2: String): Dimension {
-        var w = iconGap + icon.iconWidth + iconGap + fontMetrics.stringWidth(t1) +
-                fontMetrics.stringWidth(t2) + textRightPadding
+        var w =
+            iconGap + icon.iconWidth + iconGap + fontMetrics.stringWidth(t1) + fontMetrics.stringWidth(t2) + textRightPadding
         if (leafWidth > 0) {
             w += leafWidth + iconGap
         }

@@ -165,7 +165,7 @@ data class ViewNode constructor(
     }
 
     override fun getIndex(node: TreeNode): Int {
-        return children.indexOf(node as ViewNode)
+        return children.indexOf(node as AbstractViewNode)
     }
 
     override fun getAllowsChildren(): Boolean {
