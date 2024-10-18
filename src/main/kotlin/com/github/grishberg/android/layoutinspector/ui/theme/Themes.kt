@@ -1,19 +1,18 @@
 package com.github.grishberg.android.layoutinspector.ui.theme
 
 import com.android.layoutinspector.common.AppLogger
-import com.intellij.util.ui.UIUtil
+import com.intellij.ui.JBColor
+
 import java.awt.Frame
 import javax.swing.SwingUtilities
 import javax.swing.UnsupportedLookAndFeelException
 
-
 class Themes(
-    private val owner: Frame,
-    private val themeProxy: ThemeProxy,
-    logger: AppLogger
+    private val owner: Frame, private val themeProxy: ThemeProxy, logger: AppLogger
 ) {
+
     val isDark: Boolean
-        get() = UIUtil.isUnderDarcula()
+        get() = !JBColor.isBright()
 
     init {
         try {
