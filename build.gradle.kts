@@ -58,7 +58,9 @@ tasks {
 
         changeNotes.set(
             """
-            Reset view selection when clicked another view rect.<br>
+            Support Android Studio Ladybug.<br>
+            Improved tree renderer.<br>
+            Fixed uiautomator dump.<br>
           """
         )
     }
