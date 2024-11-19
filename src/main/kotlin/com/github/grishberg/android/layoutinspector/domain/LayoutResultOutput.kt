@@ -6,7 +6,7 @@ interface LayoutResultOutput {
     /**
      * Show hierarchy and screenshot
      */
-    fun showResult(resultOutput: LayoutFileData)
+    fun showResult(resultOutput: LayoutFileData, label: String? = null)
 
     fun showError(error: String)
 

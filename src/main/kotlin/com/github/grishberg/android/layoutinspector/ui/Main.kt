@@ -5,11 +5,7 @@ import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.LayoutFileData
 import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchersImpl
 import com.github.grishberg.android.layoutinspector.common.MainScope
-import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
-import com.github.grishberg.android.layoutinspector.domain.DialogsInput
-import com.github.grishberg.android.layoutinspector.domain.LayoutResultOutput
-import com.github.grishberg.android.layoutinspector.domain.Logic
-import com.github.grishberg.android.layoutinspector.domain.MetaRepository
+import com.github.grishberg.android.layoutinspector.domain.*
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.LayoutParserImpl
 import com.github.grishberg.android.layoutinspector.process.providers.ClientWindowsProvider
@@ -18,11 +14,7 @@ import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.createAccelerator
 import com.github.grishberg.android.layoutinspector.ui.common.createControlAccelerator
 import com.github.grishberg.android.layoutinspector.ui.common.createControlShiftAccelerator
-import com.github.grishberg.android.layoutinspector.ui.dialogs.FindDialog
-import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialog
-import com.github.grishberg.android.layoutinspector.ui.dialogs.LoadingDialogClosedEventListener
-import com.github.grishberg.android.layoutinspector.ui.dialogs.NewLayoutDialog
-import com.github.grishberg.android.layoutinspector.ui.dialogs.WindowsDialog
+import com.github.grishberg.android.layoutinspector.ui.dialogs.*
 import com.github.grishberg.android.layoutinspector.ui.dialogs.bookmarks.Bookmarks
 import com.github.grishberg.android.layoutinspector.ui.info.PropertiesPanel
 import com.github.grishberg.android.layoutinspector.ui.info.flat.FlatPropertiesWithFilterPanel
@@ -46,26 +38,7 @@ import java.awt.event.WindowEvent
 import java.awt.image.BufferedImage
 import java.io.File
 import java.net.URI
-import javax.swing.AbstractAction
-import javax.swing.AbstractButton
-import javax.swing.BoxLayout
-import javax.swing.ButtonGroup
-import javax.swing.JCheckBoxMenuItem
-import javax.swing.JComponent
-import javax.swing.JFileChooser
-import javax.swing.JFrame
-import javax.swing.JLabel
-import javax.swing.JMenu
-import javax.swing.JMenuBar
-import javax.swing.JMenuItem
-import javax.swing.JOptionPane
-import javax.swing.JPanel
-import javax.swing.JRadioButtonMenuItem
-import javax.swing.JScrollPane
-import javax.swing.JSplitPane
-import javax.swing.JToolBar
-import javax.swing.KeyStroke
-import javax.swing.SwingConstants
+import javax.swing.*
 import javax.swing.border.BevelBorder
 import javax.swing.filechooser.FileNameExtensionFilter
 import kotlin.math.roundToInt
@@ -94,7 +67,7 @@ class Main(
     private val deviceProvider: DeviceProvider,
     private val adb: AdbFacade,
     private val baseDir: File
-) : JFrame("Yet Another Android Layout Inspector."),
+) : JFrame(TITLE),
     LayoutResultOutput, DialogsInput {
 
     // Declaration of objects of the
@@ -521,7 +494,14 @@ class Main(
         logic.openFile()
     }
 
-    override fun showResult(resultOutput: LayoutFileData) {
+    override fun showResult(resultOutput: LayoutFileData, label: String?) {
+        val trimmedLabel = label?.trim()
+        if (!trimmedLabel.isNullOrEmpty()) {
+            this.title = trimmedLabel
+        } else {
+            this.title = TITLE
+        }
+
         layoutPanel.showLayoutResult(resultOutput)
         treePanel.showLayoutResult(resultOutput)
         findDialog.updateRootNode(resultOutput.node)
@@ -689,5 +669,9 @@ class Main(
         toggleShowingLayouts.model.isSelected = !toggleShowingLayouts.model.isSelected
         layoutsState.isEnabled = toggleShowingLayouts.model.isSelected
         layoutPanel.repaint()
+    }
+
+    private companion object {
+        private const val TITLE = "Yet Another Android Layout Inspector."
     }
 }

@@ -1,21 +1,24 @@
 package com.github.grishberg.android.layoutinspector.process
 
+import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.domain.DumpViewNode
 
 private const val COMPOSE_FULL_NAME = "androidx.compose.ui.platform.ComposeView"
 
-class TreeMerger {
+class TreeMerger(private val logger: AppLogger) {
 
     fun mergeNodes(layoutRootNode: AbstractViewNode, dumpViewNode: DumpViewNode): AbstractViewNode {
+        logger.d("YALI TreeMerger: try to merge")
         val layoutPath = mutableListOf<NodePath>()
-        walk(layoutRootNode, layoutPath)
+        extractAllComposeNodes(layoutRootNode, layoutPath)
 
         val dumpPath = mutableListOf<NodePath>()
-        walk(dumpViewNode, dumpPath)
+        extractAllComposeNodes(dumpViewNode, dumpPath)
 
         if (layoutPath.isEmpty() || dumpPath.isEmpty()) {
+            logger.w("YALI TreeMerger: ComposeView is not found")
             return layoutRootNode
         }
 
@@ -23,6 +26,7 @@ class TreeMerger {
             val suitableNodePath = dumpPath.firstOrNull() { it == path } ?: continue
             val layoutComposeNode = path.targetNode
             if (layoutComposeNode is ViewNode) {
+                logger.w("YALI TreeMerger: ComposeView is found and replaced size=${suitableNodePath.targetNode.width} x ${suitableNodePath.targetNode.height}")
                 layoutComposeNode.replaceChildren(suitableNodePath.targetNode.children)
             }
         }
@@ -30,13 +34,13 @@ class TreeMerger {
         return layoutRootNode
     }
 
-    private fun walk(root: AbstractViewNode, paths: MutableList<NodePath>) {
+    private fun extractAllComposeNodes(root: AbstractViewNode, paths: MutableList<NodePath>) {
         if (root.name == COMPOSE_FULL_NAME) {
             paths.add(NodePath(root))
             return
         }
         for (child in root.children) {
-            walk(child, paths)
+            extractAllComposeNodes(child, paths)
         }
     }
 
