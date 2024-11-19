@@ -2,17 +2,14 @@ package com.github.grishberg.android.layoutinspector.ui.tree
 
 import com.github.grishberg.android.layoutinspector.ui.theme.ThemeColors
 import com.intellij.ui.JBColor
-import java.awt.Color
-import java.awt.Dimension
-import java.awt.Font
-import java.awt.FontMetrics
-import java.awt.Graphics
+import java.awt.*
 import javax.swing.Icon
 import javax.swing.ImageIcon
 import javax.swing.JPanel
 import javax.swing.UIManager
 import javax.swing.plaf.UIResource
 import kotlin.math.max
+
 
 /**
  * Renderer for TextView item with text component.
@@ -47,7 +44,7 @@ class ItemViewRenderer(
 
     init {
         val fontName = "Arial"
-        val fontSize: Int = 12
+        val fontSize: Int = 14
         val font = Font(fontName, Font.PLAIN, fontSize)
         this.font = font
         fontMetrics = getFontMetrics(font)
@@ -117,6 +114,14 @@ class ItemViewRenderer(
     }
 
     override fun paintComponent(g: Graphics) {
+        // Включение сглаживания шрифта
+        val g2d = g as Graphics2D
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+
+        // Дополнительно можно включить другие улучшения рендеринга
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+        g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
+
         var left = iconGap
         val currentNodeIcon = treeNodeIcon
         if (currentNodeIcon != null) {

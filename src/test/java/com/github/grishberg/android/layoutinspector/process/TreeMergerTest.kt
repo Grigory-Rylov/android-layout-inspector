@@ -1,5 +1,6 @@
 package com.github.grishberg.android.layoutinspector.process
 
+import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.DumpViewNode
 import junit.framework.TestCase.assertEquals
@@ -14,7 +15,7 @@ private const val TARGET_CHILD_NAME = "TargetChild1"
 
 class TreeMergerTest {
 
-    private val underTest = TreeMerger()
+    private val underTest = TreeMerger(LoggerStub())
 
     @Test
     fun mergeSeveralCompose() {
@@ -131,6 +132,17 @@ class TreeMergerTest {
         val child = DumpViewNode(root, "pkg", className, id, 0, 0, 0, 0, null)
         root.addChild(child)
         return child
+    }
+
+    private class LoggerStub : AppLogger {
+
+        override fun d(msg: String) = Unit
+
+        override fun e(msg: String) = Unit
+
+        override fun e(msg: String, t: Throwable) = Unit
+
+        override fun w(msg: String) = Unit
     }
 
 }

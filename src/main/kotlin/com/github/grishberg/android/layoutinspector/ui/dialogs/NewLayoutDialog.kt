@@ -12,37 +12,15 @@ import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import java.awt.Component
 import java.awt.Container
 import java.awt.Dimension
 import java.awt.FocusTraversalPolicy
-import java.awt.event.ActionEvent
-import java.awt.event.ComponentEvent
-import java.awt.event.ComponentListener
-import java.awt.event.FocusEvent
-import java.awt.event.FocusListener
-import java.awt.event.ItemEvent
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
+import java.awt.event.*
 import java.util.concurrent.TimeUnit
-import javax.swing.AbstractAction
-import javax.swing.BorderFactory
-import javax.swing.DefaultListModel
-import javax.swing.JButton
-import javax.swing.JCheckBox
-import javax.swing.JFrame
-import javax.swing.JLabel
-import javax.swing.JOptionPane
-import javax.swing.JTextField
-import javax.swing.KeyStroke
-import javax.swing.ListSelectionModel
-import javax.swing.UIManager
+import javax.swing.*
 
 
 private const val TAG = "NewLayoutDialog"
@@ -73,6 +51,10 @@ class NewLayoutDialog(
     init {
         timeoutField.value = settings.captureLayoutTimeout.toInt()
         timeoutField.addActionListener {
+            startRecording()
+        }
+
+        filePrefixField.addActionListener {
             startRecording()
         }
 
@@ -109,7 +91,8 @@ class NewLayoutDialog(
         filePrefixField.text = settings.fileNamePrefix
 
         secondProtocolVersion = JCheckBox("protocol ver. 2")
-        secondProtocolVersion.toolTipText = "if not selected, will be used ver. 1, which slower, but has more properties"
+        secondProtocolVersion.toolTipText =
+            "if not selected, will be used ver. 1, which slower, but has more properties"
         secondProtocolVersion.isSelected = settings.isSecondProtocolVersionEnabled
 
         dumpViewMode = JCheckBox("uiautomator dump")
@@ -234,7 +217,15 @@ class NewLayoutDialog(
         val timeoutInSeconds = timeoutField.text.toInt()
         settings.isDumpViewModeEnabled = dumpViewMode.isSelected
         settings.isSecondProtocolVersionEnabled = secondProtocolVersion.isSelected
-        result = LayoutRecordOptions(device.device, client.client, timeoutInSeconds, filePrefixField.text.trim(), secondProtocolVersion.isSelected, dumpViewMode.isSelected)
+        result = LayoutRecordOptions(
+            device = device.device,
+            client = client.client,
+            timeoutInSeconds = timeoutInSeconds,
+            fileNamePrefix = filePrefixField.text.trim(),
+            v2Enabled = secondProtocolVersion.isSelected,
+            dumpViewModeEnabled = dumpViewMode.isSelected,
+            label = filePrefixField.text
+        )
         deviceProvider.deviceChangedActions.remove(deviceChangedAction)
         isVisible = false
     }

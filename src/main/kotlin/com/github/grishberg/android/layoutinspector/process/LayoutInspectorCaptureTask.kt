@@ -39,6 +39,8 @@ class LayoutInspectorCaptureTask(
                 throw e
             }
         }
+        val layoutAsyncResult = layoutResultAsync.await()
+
         val dumpNodeAsyncResult: DumpViewNode? = if (recordingConfig.recordOptions.dumpViewModeEnabled) {
             val viewDumpsAsync = scope.async(Dispatchers.IO) {
                 return@async getViewDumps(recordingConfig)
@@ -47,13 +49,14 @@ class LayoutInspectorCaptureTask(
         } else {
             null
         }
-        val layoutAsyncResult = layoutResultAsync.await()
 
         val layoutRootNode = layoutAsyncResult.root
+        logger.d("$TAG: prepare capture : dumpViewModeEnabled = ${recordingConfig.recordOptions.dumpViewModeEnabled}, dumpResult != null : ${dumpNodeAsyncResult != null}, layoutRootNode != null: ${layoutRootNode != null}")
         val result =
             if (recordingConfig.recordOptions.dumpViewModeEnabled && dumpNodeAsyncResult != null && layoutRootNode != null) {
+                logger.w("$TAG: found dump and layouts, try to merge")
 
-                val treeMerger = TreeMerger()
+                val treeMerger = TreeMerger(logger)
 
                 LayoutInspectorResult(
                     treeMerger.mergeNodes(layoutRootNode, dumpNodeAsyncResult),
@@ -71,9 +74,11 @@ class LayoutInspectorCaptureTask(
     }
 
     private fun getViewDumps(recordingConfig: RecordingConfig): DumpViewNode? {
-        logger.d("$TAG: start capture view dumps")
-        val dumper = HierarchyDump(recordingConfig.client.device, layoutFileSystem)
-        val dumpString = dumper.getHierarchyDump() ?: return null
+        logger.d("$TAG: getViewDumps()")
+        val dumper = HierarchyDump(recordingConfig.client.device, layoutFileSystem, logger)
+        val hierarchyDump = dumper.getHierarchyDump()
+        logger.d("$TAG: getViewDumps() : hierarchyDump received ${hierarchyDump != null}")
+        val dumpString = hierarchyDump ?: return null
 
         val dumpParser = HierarchyDumpParser()
         return dumpParser.parseDump(dumpString)

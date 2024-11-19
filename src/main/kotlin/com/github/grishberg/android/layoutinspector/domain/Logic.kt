@@ -134,15 +134,16 @@ class Logic(
         if (liResult.data == null || liResult.root == null) {
             output.showError(liResult.error)
         } else {
-            onSuccessCaptured(config.recordOptions.fileNamePrefix, liResult, config.dpPerPixels)
+            onSuccessCaptured(config, liResult)
         }
     }
 
     private fun onSuccessCaptured(
-        fileNamePrefix: String,
+        config: RecordingConfig,
         liResult: LayoutInspectorResult,
-        dpPerPixels: Double
     ) {
+        val dpPerPixels = config.dpPerPixels
+        val fileNamePrefix = config.recordOptions.fileNamePrefix
         val sdf = SimpleDateFormat("yyyyMMdd_HH-mm-ss.SSS")
         val formattedTime = sdf.format(Date())
         val liFileName = if (fileNamePrefix.isNotEmpty()) {
@@ -157,7 +158,7 @@ class Logic(
         metaRepository.serialize()
 
         logger.d("$TAG: Received result")
-        output.showResult(LayoutFileData.fromLayoutInspectorResult(liResult))
+        output.showResult(LayoutFileData.fromLayoutInspectorResult(liResult), config.recordOptions.label)
         isOpenedLayout = true
     }
 
