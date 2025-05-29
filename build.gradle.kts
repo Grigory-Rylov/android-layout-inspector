@@ -1,12 +1,16 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     // Java support
     id("java")
     // Kotlin support
-    id("org.jetbrains.kotlin.jvm") version "1.8.0"
-    // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.13.3"
+    id("org.jetbrains.kotlin.jvm") version "2.1.0"
+    // Gradle IntelliJ Platform Plugin
+    id("org.jetbrains.intellij.platform") version "2.6.0"
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.1"
+    // Protobuf support
+    id("com.google.protobuf") version "0.9.4"
 }
 
 fun properties(key: String) = project.findProperty(key).toString()
@@ -14,68 +18,89 @@ fun properties(key: String) = project.findProperty(key).toString()
 group = properties("pluginGroup")
 version = properties("pluginVersion")
 
+// Configure Java compatibility
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
 // Configure project's dependencies
 repositories {
     mavenCentral()
-}
-
-intellij {
-    pluginName.set(properties("pluginName"))
-    version.set(properties("platformVersion"))
-    type.set(properties("platformType"))
-
-    // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
-    plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+    intellijPlatform { defaultRepositories() }
 }
 
 dependencies {
-    implementation(platform("io.projectreactor:reactor-bom:2020.0.20"))
+    intellijPlatform {
+        androidStudio(properties("platformVersion"))
+        bundledPlugin("org.jetbrains.android")
+    }
+    implementation(platform("io.projectreactor:reactor-bom:2024.0.0"))
+    implementation("io.projectreactor.netty:reactor-netty-http:1.1.13")
+    implementation("io.projectreactor.netty:reactor-netty-core:1.1.13")
     implementation("io.rsocket:rsocket-core:1.1.3")
     implementation("io.rsocket:rsocket-transport-netty:1.1.3")
     implementation("io.rsocket.broker:rsocket-broker-frames:0.3.0")
-
-
     implementation("org.jooq:joor-java-8:0.9.7")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("com.google.code.gson:gson:2.8.9")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.3.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
-
-
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("com.squareup.okio:okio:3.4.0")
     testImplementation("junit:junit:4.12")
 }
 
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.1"
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                named("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir("proto")
+        }
+    }
+}
 
 tasks {
-
     patchPluginXml {
-        version.set(properties("pluginVersion"))
-        sinceBuild.set(properties("pluginSinceBuild"))
-        untilBuild.set(properties("pluginUntilBuild"))
-
-        changeNotes.set(
-            """
+        version = properties("pluginVersion")
+        sinceBuild = properties("pluginSinceBuild")
+        untilBuild = properties("pluginUntilBuild")
+        changeNotes = """
             Support Android Studio Ladybug.<br>
             Improved tree renderer.<br>
             Fixed uiautomator dump.<br>
-          """
-        )
-    }
-
-    // Configure UI tests plugin
-    // Read more: https://github.com/JetBrains/intellij-ui-test-robot
-    runIdeForUiTests {
-        systemProperty("robot-server.port", "8082")
-        systemProperty("ide.mac.message.dialogs.as.sheets", "false")
-        systemProperty("jb.privacy.policy.text", "<!--999.999-->")
-        systemProperty("jb.consents.confirmation.enabled", "false")
+        """
     }
 
     runIde {
-        // To debug with preview use path: "/Applications/Android Studio Preview.app/Contents"
-        ideDir.set(file("/Applications/Android Studio.app/Contents"))
+        jvmArgs = listOf(
+            "-Dide.mac.message.dialogs.as.sheets=false",
+            "-Djb.privacy.policy.text=<!--999.999-->",
+            "-Djb.consents.confirmation.enabled=false"
+        )
+    }
+
+    withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
     }
 }

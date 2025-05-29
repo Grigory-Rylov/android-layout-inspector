@@ -1,2 +1,9 @@
-rootProject.name = 'android-layout-inspector-plugin'
+pluginManagement {
+    repositories {
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
 
+rootProject.name = 'android-layout-inspector-plugin'
