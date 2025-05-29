@@ -7,8 +7,8 @@ import com.android.layoutinspector.LayoutInspectorResult
 import com.android.layoutinspector.ProtocolVersion
 import com.android.layoutinspector.common.AppLogger
 import com.github.grishberg.android.layoutinspector.domain.DumpViewNode
+import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchers
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 
 private const val TAG = "LayoutInspectorCaptureTask"
@@ -17,11 +17,12 @@ class LayoutInspectorCaptureTask(
     private val layoutFileSystem: LayoutFileSystem,
     private val scope: CoroutineScope,
     private val logger: AppLogger,
+    private val dispatchers: CoroutinesDispatchers,
 ) {
 
     suspend fun capture(recordingConfig: RecordingConfig): LayoutInspectorResult {
 
-        val layoutResultAsync = scope.async(Dispatchers.IO) {
+        val layoutResultAsync = scope.async(dispatchers.worker) {
             logger.d("$TAG: start capture view timeout = ${recordingConfig.timeoutInSeconds}")
 
             try {
@@ -42,7 +43,7 @@ class LayoutInspectorCaptureTask(
         val layoutAsyncResult = layoutResultAsync.await()
 
         val dumpNodeAsyncResult: DumpViewNode? = if (recordingConfig.recordOptions.dumpViewModeEnabled) {
-            val viewDumpsAsync = scope.async(Dispatchers.IO) {
+            val viewDumpsAsync = scope.async(dispatchers.worker) {
                 return@async getViewDumps(recordingConfig)
             }
             viewDumpsAsync.await()
@@ -73,9 +74,9 @@ class LayoutInspectorCaptureTask(
         return result
     }
 
-    private fun getViewDumps(recordingConfig: RecordingConfig): DumpViewNode? {
+    private suspend fun getViewDumps(recordingConfig: RecordingConfig): DumpViewNode? {
         logger.d("$TAG: getViewDumps()")
-        val dumper = HierarchyDump(recordingConfig.client.device, layoutFileSystem, logger)
+        val dumper = HierarchyDump(recordingConfig.client.device, layoutFileSystem, logger, dispatchers)
         val hierarchyDump = dumper.getHierarchyDump()
         logger.d("$TAG: getViewDumps() : hierarchyDump received ${hierarchyDump != null}")
         val dumpString = hierarchyDump ?: return null
