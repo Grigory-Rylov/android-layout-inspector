@@ -3,9 +3,11 @@ package com.github.grishberg.android.layoutinspector.process
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
+import com.github.grishberg.android.layoutinspector.domain.ComposeViewNode
 import com.github.grishberg.android.layoutinspector.domain.DumpViewNode
 
 private const val COMPOSE_FULL_NAME = "androidx.compose.ui.platform.ComposeView"
+private const val TAG = "TreeMerger"
 
 class TreeMerger(private val logger: AppLogger) {
 
@@ -42,6 +44,47 @@ class TreeMerger(private val logger: AppLogger) {
         for (child in root.children) {
             extractAllComposeNodes(child, paths)
         }
+    }
+
+    fun mergeComposeNodes(layoutNode: ViewNode, composeNodes: List<ComposeViewNode>): ViewNode {
+        logger.d("$TAG: mergeComposeNodes() layoutNode = $layoutNode, composeNodes size = ${composeNodes.size}")
+        val result = layoutNode.clone()
+        val layoutNodeChildren = layoutNode.children
+
+        if (composeNodes.isEmpty() || layoutNodeChildren.isEmpty()) {
+            return result
+        }
+
+        // Создаем карту для быстрого поиска Compose узлов по их ID
+        val composeNodeMap = composeNodes.associateBy { it.drawId }
+
+        for (i in layoutNodeChildren.indices) {
+            val layoutChild = layoutNodeChildren[i]
+            val composeChild = composeNodeMap[layoutChild.id]
+            if (composeChild != null) {
+                // Если нашли соответствующий Compose узел, заменяем обычный узел на Compose
+                result.children[i] = composeChild
+                // Рекурсивно обрабатываем дочерние узлы
+                if (layoutChild.children.isNotEmpty() && composeChild.children.isNotEmpty()) {
+                    val mergedChild = mergeComposeNodes(layoutChild, composeChild.children.toList())
+                    result.children[i] = mergedChild
+                }
+            }
+        }
+        return result
+    }
+
+    private fun findDumpChild(layoutChild: ViewNode, dumpChildren: List<DumpViewNode>): DumpViewNode? {
+        for (dumpChild in dumpChildren) {
+            if (isSameNode(layoutChild, dumpChild)) {
+                return dumpChild
+            }
+        }
+        return null
+    }
+
+    private fun isSameNode(layoutChild: ViewNode, dumpChild: DumpViewNode): Boolean {
+        return layoutChild.id == dumpChild.id
     }
 
     private class NodePath(

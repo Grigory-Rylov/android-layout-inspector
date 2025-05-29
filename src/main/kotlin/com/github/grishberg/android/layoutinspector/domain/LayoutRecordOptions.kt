@@ -9,6 +9,11 @@ data class LayoutRecordOptions(
     val timeoutInSeconds: Int,
     val fileNamePrefix: String,
     val v2Enabled: Boolean,
-    val dumpViewModeEnabled: Boolean,
+    val dumpViewModeEnabled: Boolean = false,
+    val composeEnabled: Boolean = true,
+    val hideSystemNodes: Boolean = true,
+    val showRecompositions: Boolean = true,
+    val highlightRecompositions: Boolean = true,
+    val ignoreRecompositionsInFramework: Boolean = true,
     val label: String? = null,
 )

@@ -1,0 +1,11 @@
+package com.github.grishberg.android.layoutinspector.domain
+
+enum class Capability {
+    SUPPORTS_CONTINUOUS_MODE,
+    SUPPORTS_SYSTEM_NODES,
+    SUPPORTS_SKP,
+    SUPPORTS_COMPOSE,
+    SUPPORTS_SEMANTICS,
+    SUPPORTS_COMPOSE_RECOMPOSITION_COUNTS,
+    HAS_LINE_NUMBER_INFORMATION
+} 
