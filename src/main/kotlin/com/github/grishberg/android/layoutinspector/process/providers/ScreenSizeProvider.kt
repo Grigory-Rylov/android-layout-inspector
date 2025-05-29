@@ -5,11 +5,13 @@ import java.awt.Dimension
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import kotlinx.coroutines.withContext
+import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchers
 
 private const val SHELL_COMMAND_FOR_SCREEN_SIZE = "dumpsys window"
 
-class ScreenSizeProvider {
-    fun getScreenSize(device: IDevice): Dimension {
+class ScreenSizeProvider(private val dispatchers: CoroutinesDispatchers) {
+    suspend fun getScreenSize(device: IDevice): Dimension {
         val screenSize: String =
             executeShellCommandAndReturnOutput(device, SHELL_COMMAND_FOR_SCREEN_SIZE)
         val size = parseScreenSize(screenSize)
@@ -31,10 +33,11 @@ class ScreenSizeProvider {
         return intArrayOf(width, height)
     }
 
-    private fun executeShellCommandAndReturnOutput(device: IDevice, command: String): String {
-        val receiver = CollectingOutputReceiver()
-        device.executeShellCommand(command, receiver, 60, TimeUnit.SECONDS)
-
-        return receiver.output
+    private suspend fun executeShellCommandAndReturnOutput(device: IDevice, command: String): String {
+        return withContext(dispatchers.worker) {
+            val receiver = CollectingOutputReceiver()
+            device.executeShellCommand(command, receiver, 60, TimeUnit.SECONDS)
+            receiver.output
+        }
     }
 }

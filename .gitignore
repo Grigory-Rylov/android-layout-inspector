@@ -33,5 +33,7 @@ hs_err_pid*
 .DS_Store
 
 /.idea
+/.intellijPlatform
+/.kotlin
 log.txt
 android-layout-inspector-settings.json

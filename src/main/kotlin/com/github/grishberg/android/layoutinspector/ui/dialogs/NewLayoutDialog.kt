@@ -9,11 +9,11 @@ import com.github.grishberg.android.layoutinspector.process.providers.DeviceProv
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.JNumberField
 import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import kotlinx.coroutines.*
-import kotlinx.coroutines.swing.Swing
 import java.awt.Component
 import java.awt.Container
 import java.awt.Dimension
@@ -245,7 +245,7 @@ class NewLayoutDialog(
     }
 
     private fun populateWithDevices() {
-        GlobalScope.launch(Dispatchers.Swing) {
+        GlobalScope.launch(Dispatchers.EDT) {
             val devices = deviceProvider.requestDevices()
             logger.d("$TAG: received ${devices.size} devices")
             devicesComboBox.removeAllItems()
@@ -263,7 +263,7 @@ class NewLayoutDialog(
     }
 
     private fun populateWithClients(device: IDevice) {
-        GlobalScope.launch(Dispatchers.Swing) {
+        GlobalScope.launch(Dispatchers.EDT) {
             val clients = getClientsWithWindow(device, showAllProcesses.isSelected)
             clientListModel.clear()
             var selectedIndex = 0

@@ -33,7 +33,7 @@ class Logic(
     private val coroutineScope: CoroutineScope,
     private val dispatchers: CoroutinesDispatchers
 ) {
-    private val screenSizeProvider = ScreenSizeProvider()
+    private val screenSizeProvider = ScreenSizeProvider(dispatchers)
     private var recordingJob: Job? = null
     private var isOpenedLayout = false
 
@@ -80,10 +80,10 @@ class Logic(
         }
 
         val density = recordOptions.device.density
-        logger.d("$TAG: density = $density")
+        logger.d("[0;36m$TAG: density = $density[0m")
 
         val screenSize = screenSizeProvider.getScreenSize(recordOptions.device)
-        logger.d("$TAG: screen size = $screenSize")
+        logger.d("[0;36m$TAG: screen size = $screenSize[0m")
 
         val dpPerPixels = (density / 160.0)
         logger.d("$TAG: dp per pixels = $dpPerPixels")
@@ -125,7 +125,7 @@ class Logic(
     private suspend fun captureLayouts(
         config: RecordingConfig,
     ) {
-        val task = LayoutInspectorCaptureTask(layoutFileSystem, coroutineScope, logger)
+        val task = LayoutInspectorCaptureTask(layoutFileSystem, coroutineScope, logger, dispatchers)
 
         val liResult = task.capture(config)
 
