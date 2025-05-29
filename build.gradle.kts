@@ -56,18 +56,9 @@ intellijPlatform {
 
 dependencies {
     implementation(platform("io.projectreactor:reactor-bom:2024.0.0"))
-    implementation("io.rsocket:rsocket-core:1.1.3") {
-        exclude(module = "jackson-core")
-        exclude(module = "jackson-databind")
-    }
-    implementation("io.rsocket:rsocket-transport-netty:1.1.3") {
-        exclude(module = "jackson-core")
-        exclude(module = "jackson-databind")
-    }
-    implementation("io.rsocket.broker:rsocket-broker-frames:0.3.0") {
-        exclude(module = "jackson-core")
-        exclude(module = "jackson-databind")
-    }
+    implementation("io.rsocket:rsocket-core:1.1.3")
+    implementation("io.rsocket:rsocket-transport-netty:1.1.3")
+    implementation("io.rsocket.broker:rsocket-broker-frames:0.3.0")
 
     implementation("org.jooq:joor-java-8:0.9.7")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
