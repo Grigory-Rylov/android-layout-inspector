@@ -36,6 +36,7 @@ kotlin {
 // Configure project's dependencies
 repositories {
     mavenCentral()
+    google()
     intellijPlatform { defaultRepositories() }
 }
 
@@ -44,6 +45,8 @@ dependencies {
         androidStudio(properties("platformVersion"))
         bundledPlugin("org.jetbrains.android")
     }
+    // https://mvnrepository.com/artifact/com.android.tools.ddms/ddmlib
+    implementation("com.android.tools.ddms:ddmlib:31.10.1")
     implementation(platform("io.projectreactor:reactor-bom:2024.0.0"))
     implementation("io.projectreactor.netty:reactor-netty-http:1.1.13")
     implementation("io.projectreactor.netty:reactor-netty-core:1.1.13")
