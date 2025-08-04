@@ -5,12 +5,10 @@ plugins {
     id("java")
     // Kotlin support
     id("org.jetbrains.kotlin.jvm") version "2.1.0"
-    // Gradle IntelliJ Platform Plugin
+    // https://github.com/JetBrains/intellij-platform-gradle-plugin
     id("org.jetbrains.intellij.platform") version "2.6.0"
-    // Gradle Changelog Plugin
-    id("org.jetbrains.changelog") version "1.3.1"
-    // Protobuf support
-    id("com.google.protobuf") version "0.9.4"
+    // https://github.com/JetBrains/gradle-changelog-plugin
+    id("org.jetbrains.changelog") version "2.2.1"
 }
 
 fun properties(key: String) = project.findProperty(key).toString()
@@ -21,28 +19,45 @@ version = properties("pluginVersion")
 // Configure Java compatibility
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 kotlin {
     jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
 // Configure project's dependencies
 repositories {
     mavenCentral()
+    google()
     intellijPlatform { defaultRepositories() }
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        name = properties("pluginName")
+        group = properties("pluginGroup")
+        changeNotes.set("Updated android studio compatibility to 2024.3.1.7")
+        ideaVersion.sinceBuild.set(project.property("sinceBuild").toString())
+        ideaVersion.untilBuild.set(provider { null })
+    }
+    buildSearchableOptions.set(false)
+    instrumentCode = true
 }
 
 dependencies {
     intellijPlatform {
-        androidStudio(properties("platformVersion"))
         bundledPlugin("org.jetbrains.android")
+        if (project.hasProperty("localASVersion")) {
+            local(property("localASVersion").toString())
+        } else {
+            androidStudio(property("platformVersion").toString())
+        }
     }
     implementation(platform("io.projectreactor:reactor-bom:2024.0.0"))
     implementation("io.projectreactor.netty:reactor-netty-http:1.1.13")
@@ -57,41 +72,7 @@ dependencies {
     testImplementation("junit:junit:4.12")
 }
 
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:3.25.1"
-    }
-    generateProtoTasks {
-        all().forEach { task ->
-            task.builtins {
-                named("java") {
-                    option("lite")
-                }
-            }
-        }
-    }
-}
-
-sourceSets {
-    main {
-        proto {
-            srcDir("proto")
-        }
-    }
-}
-
 tasks {
-    patchPluginXml {
-        version = properties("pluginVersion")
-        sinceBuild = properties("pluginSinceBuild")
-        untilBuild = properties("pluginUntilBuild")
-        changeNotes = """
-            Support Android Studio Ladybug.<br>
-            Improved tree renderer.<br>
-            Fixed uiautomator dump.<br>
-        """
-    }
-
     runIde {
         jvmArgs = listOf(
             "-Dide.mac.message.dialogs.as.sheets=false",
@@ -102,7 +83,7 @@ tasks {
 
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
+            jvmTarget.set(JvmTarget.JVM_21)
         }
     }
 }

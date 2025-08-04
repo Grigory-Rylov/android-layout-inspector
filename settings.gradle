@@ -6,4 +6,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'android-layout-inspector-plugin'
+rootProject.name = 'YALI'
