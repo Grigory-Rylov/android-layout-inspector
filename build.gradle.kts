@@ -9,8 +9,6 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.6.0"
     // https://github.com/JetBrains/gradle-changelog-plugin
     id("org.jetbrains.changelog") version "2.2.1"
-    // Protobuf support
-    id("com.google.protobuf") version "0.9.4"
 }
 
 fun properties(key: String) = project.findProperty(key).toString()
