@@ -8,6 +8,8 @@ on:
 jobs:
   build-artifact:
     runs-on: ubuntu-latest
+    outputs:
+      plugin_version: ${{ steps.get_version.outputs.plugin_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,36 +27,53 @@ jobs:
         id: get_version
         run: |
           version=$(grep '^pluginVersion=' gradle.properties | cut -d'=' -f2)
-          echo "PLUGIN_VERSION=$version" >> $GITHUB_ENV
+          echo "$version" > plugin-version.txt
+          echo "plugin_version=$version" >> $GITHUB_OUTPUT
 
       - name: Build plugin
         run: ./gradlew buildPlugin
 
       - name: Rename plugin artifact
         run: |
-          mv build/distributions/*.zip YALI_${{ env.PLUGIN_VERSION }}.zip
+          mv build/distributions/*.zip YALI_${{ steps.get_version.outputs.plugin_version }}.zip
 
-      - name: Upload artifact
+      - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
         with:
-          name: YALI_${{ env.PLUGIN_VERSION }}
-          path: YALI_${{ env.PLUGIN_VERSION }}.zip
+          name: YALI_${{ steps.get_version.outputs.plugin_version }}
+          path: YALI_${{ steps.get_version.outputs.plugin_version }}.zip
+
+      - name: Upload plugin version file
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-version
+          path: plugin-version.txt
 
   release:
     if: github.ref == 'refs/heads/master'
     needs: build-artifact
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifact
+      - name: Download plugin version file
         uses: actions/download-artifact@v4
         with:
-          name: YALI_${{ env.PLUGIN_VERSION }}
+          name: plugin-version
+      - name: Read plugin version
+        id: read_version
+        run: |
+          version=$(cat plugin-version.txt)
+          echo "plugin_version=$version" >> $GITHUB_OUTPUT
+
+      - name: Download plugin artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: YALI_${{ steps.read_version.outputs.plugin_version }}
 
       - name: Create Release and Upload Artifact
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ env.PLUGIN_VERSION }}
-          name: Release v${{ env.PLUGIN_VERSION }}
-          files: YALI_${{ env.PLUGIN_VERSION }}.zip
+          tag_name: v${{ steps.read_version.outputs.plugin_version }}
+          name: Release v${{ steps.read_version.outputs.plugin_version }}
+          files: YALI_${{ steps.read_version.outputs.plugin_version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
