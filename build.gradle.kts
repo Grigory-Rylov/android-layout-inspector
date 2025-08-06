@@ -69,7 +69,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.8.9")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("com.squareup.okio:okio:3.4.0")
-    testImplementation("junit:junit:4.12")
+    testImplementation("junit:junit:4.13.1")
 }
 
 tasks {

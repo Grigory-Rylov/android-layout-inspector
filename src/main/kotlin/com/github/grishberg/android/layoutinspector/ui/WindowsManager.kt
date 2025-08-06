@@ -30,6 +30,16 @@ class WindowsManager(
         windows.remove(window)
     }
 
+    fun getLayoutsPreviewConfiguration(currentWindow: Main): LayoutsPreviewConfiguration? {
+        if (windows.size != 2) {
+            logger.d("getLayoutsPreviewConfiguration: there is ${windows.size} windows")
+            return null
+        }
+
+        val referenceWindow = windows.first { it != currentWindow }
+        return referenceWindow.getLayoutsPreviewConfiguration()
+    }
+
     fun startScreenshotTest(comparableWindow: Main): Boolean {
         if (windows.size != 2) {
             logger.d("startScreenshotTest: there is ${windows.size} windows")

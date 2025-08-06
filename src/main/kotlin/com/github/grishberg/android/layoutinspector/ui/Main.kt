@@ -408,6 +408,10 @@ class Main(
         copyScreenShot.addActionListener { copyScreenshotToClipboard() }
         toolsMenu.add(copyScreenShot)
 
+        val syncLayoutsScaleMenuItem = JMenuItem("Sync scale from other layouts panel")
+        syncLayoutsScaleMenuItem.addActionListener { copyLayoutsConfiguration() }
+        toolsMenu.add(syncLayoutsScaleMenuItem)
+
         return toolsMenu
     }
 
@@ -494,7 +498,7 @@ class Main(
         logic.openFile()
     }
 
-    override fun showResult(resultOutput: LayoutFileData, label: String?) {
+    override fun showResult(resultOutput: LayoutFileData, label: String?, isRefresh: Boolean) {
         val trimmedLabel = label?.trim()
         if (!trimmedLabel.isNullOrEmpty()) {
             this.title = trimmedLabel
@@ -502,7 +506,7 @@ class Main(
             this.title = TITLE
         }
 
-        layoutPanel.showLayoutResult(resultOutput)
+        layoutPanel.showLayoutResult(resultOutput, isRefresh)
         treePanel.showLayoutResult(resultOutput)
         findDialog.updateRootNode(resultOutput.node)
         splitPane1.invalidate()
@@ -669,6 +673,17 @@ class Main(
         toggleShowingLayouts.model.isSelected = !toggleShowingLayouts.model.isSelected
         layoutsState.isEnabled = toggleShowingLayouts.model.isSelected
         layoutPanel.repaint()
+    }
+
+    fun copyLayoutsConfiguration() {
+        windowsManager.getLayoutsPreviewConfiguration(this)?.let {
+            layoutPanel.setLayoutsConfigurationIfNeeded(it)
+            layoutPanel.repaint()
+        }
+    }
+
+    fun getLayoutsPreviewConfiguration(): LayoutsPreviewConfiguration {
+        return layoutPanel.getLayoutsPreviewConfiguration()
     }
 
     private companion object {

@@ -9,14 +9,14 @@ import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.LayoutInspectorCaptureTask
 import com.github.grishberg.android.layoutinspector.process.RecordingConfig
 import com.github.grishberg.android.layoutinspector.process.providers.ScreenSizeProvider
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.Date
 
 private const val TAG = "Logic"
 
@@ -33,6 +33,7 @@ class Logic(
     private val coroutineScope: CoroutineScope,
     private val dispatchers: CoroutinesDispatchers
 ) {
+
     private val screenSizeProvider = ScreenSizeProvider(dispatchers)
     private var recordingJob: Job? = null
     private var isOpenedLayout = false
@@ -88,7 +89,6 @@ class Logic(
         val dpPerPixels = (density / 160.0)
         logger.d("$TAG: dp per pixels = $dpPerPixels")
 
-
         val config = RecordingConfig(
             recordOptions.client,
             window,
@@ -114,7 +114,7 @@ class Logic(
                 }
                 val windowList: List<ClientWindow> = windows.await()
                 if (windowList.any { it.displayName == config.clientWindow.displayName }) {
-                    captureLayouts(config)
+                    captureLayouts(config, isRefresh = true)
                 } else {
                     recodLayoutFromNewDevice()
                 }
@@ -123,7 +123,7 @@ class Logic(
     }
 
     private suspend fun captureLayouts(
-        config: RecordingConfig,
+        config: RecordingConfig, isRefresh: Boolean = false
     ) {
         val task = LayoutInspectorCaptureTask(layoutFileSystem, coroutineScope, logger, dispatchers)
 
@@ -134,13 +134,12 @@ class Logic(
         if (liResult.data == null || liResult.root == null) {
             output.showError(liResult.error)
         } else {
-            onSuccessCaptured(config, liResult)
+            onSuccessCaptured(config, liResult, isRefresh)
         }
     }
 
     private fun onSuccessCaptured(
-        config: RecordingConfig,
-        liResult: LayoutInspectorResult,
+        config: RecordingConfig, liResult: LayoutInspectorResult, isRefresh: Boolean = false
     ) {
         val dpPerPixels = config.dpPerPixels
         val fileNamePrefix = config.recordOptions.fileNamePrefix
@@ -158,7 +157,7 @@ class Logic(
         metaRepository.serialize()
 
         logger.d("$TAG: Received result")
-        output.showResult(LayoutFileData.fromLayoutInspectorResult(liResult), config.recordOptions.label)
+        output.showResult(LayoutFileData.fromLayoutInspectorResult(liResult), config.recordOptions.label, isRefresh)
         isOpenedLayout = true
     }
 
