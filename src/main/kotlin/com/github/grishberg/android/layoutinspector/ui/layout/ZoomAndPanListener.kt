@@ -44,6 +44,14 @@ class ZoomAndPanListener(
         }
     }
 
+    /**
+     * Sets the coordinate transform directly without additional offset corrections.
+     * Use this when copying transforms between LayoutPanels to preserve exact camera position.
+     */
+    fun setCoordinatesTransformDirect(coordinatedTransform: AffineTransform) {
+        this.coordTransform = AffineTransform(coordinatedTransform)
+    }
+
     override fun mouseClicked(e: MouseEvent) = Unit
     override fun mousePressed(e: MouseEvent) {
         val point = e.point

@@ -5,6 +5,7 @@ import com.android.layoutinspector.model.LayoutFileData
 import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.domain.MetaRepository
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
+import com.github.grishberg.android.layoutinspector.ui.LayoutsPreviewConfiguration
 import com.github.grishberg.android.layoutinspector.ui.common.SimpleComponentListener
 import com.github.grishberg.android.layoutinspector.ui.screenshottest.ScreenshotPainter
 import java.awt.Dimension
@@ -12,6 +13,7 @@ import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.event.ComponentEvent
+import java.awt.geom.AffineTransform
 import java.awt.geom.NoninvertibleTransformException
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
@@ -97,9 +99,14 @@ class LayoutPanel(
         })
     }
 
-    fun showLayoutResult(layoutData: LayoutFileData) {
+    fun showLayoutResult(layoutData: LayoutFileData, isRefresh: Boolean = false) {
         logic.showLayoutResult(layoutData)
-        fitZoom()
+        
+        // Only preserve camera position for refresh operations, reset zoom for new captures
+        if (!isRefresh) {
+            fitZoom()
+        }
+        
         repaint()
         invalidate()
     }
@@ -182,5 +189,22 @@ class LayoutPanel(
 
     fun copyScreenshotToClipboard() {
         clipboardManager.copyToClipboard(screenshot)
+    }
+
+    fun getLayoutsPreviewConfiguration(): LayoutsPreviewConfiguration {
+        val transform = AffineTransform(zoomAndPanListener.getCoordTransform())
+        this.transformedPoint
+        return LayoutsPreviewConfiguration(
+            size = logic.imageSize, transform = transform
+        )
+    }
+
+    fun setLayoutsConfigurationIfNeeded(cfg: LayoutsPreviewConfiguration) {
+        if (cfg.size != logic.imageSize) {
+            return
+        }
+
+        zoomAndPanListener.setCoordinatesTransformDirect(cfg.transform)
+        repaint()
     }
 }
