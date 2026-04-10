@@ -45,6 +45,7 @@ class NewLayoutDialog(
     private val resetConnectionButton: JButton
     private val clientsList: JBList<ClientWrapper>
     private val deviceChangedAction = DeviceChangedActions()
+    private var processesRefreshJob: Job? = null
     var result: LayoutRecordOptions? = null
         private set
 
@@ -73,6 +74,7 @@ class NewLayoutDialog(
         }
 
         showAllProcesses = JCheckBox("any processes")
+        showAllProcesses.isSelected = false
         showAllProcesses.addActionListener {
             val deviceWrapper = devicesComboBox.selectedItem as DeviceWrapper?
 
@@ -80,6 +82,17 @@ class NewLayoutDialog(
                 populateWithClients(deviceWrapper.device)
             }
         }
+
+        // Start processes refresh timer when dialog is shown
+        addWindowListener(object : java.awt.event.WindowAdapter() {
+            override fun windowOpened(e: java.awt.event.WindowEvent?) {
+                startProcessesRefreshTimer()
+            }
+
+            override fun windowClosed(e: java.awt.event.WindowEvent?) {
+                stopProcessesRefreshTimer()
+            }
+        })
 
         clientsList = JBList(clientListModel)
         val listScroll = JBScrollPane(clientsList)
@@ -255,6 +268,8 @@ class NewLayoutDialog(
 
             if (devicesComboBox.itemCount > 0) {
                 devicesComboBox.selectedIndex = 0
+                // Immediately populate clients for the first device
+                populateWithClients((devicesComboBox.selectedItem as DeviceWrapper).device)
             }
             if (devicesComboBox.itemCount == 1) {
                 clientsList.requestFocus()
@@ -338,6 +353,23 @@ class NewLayoutDialog(
                 devicesComboBox.selectedItem = null
             }
         }
+    }
+
+    private fun startProcessesRefreshTimer() {
+        processesRefreshJob = GlobalScope.launch(Dispatchers.EDT) {
+            while (isActive) {
+                delay(3000) // 3 seconds
+                val deviceWrapper = devicesComboBox.selectedItem as DeviceWrapper?
+                if (deviceWrapper != null) {
+                    populateWithClients(deviceWrapper.device)
+                }
+            }
+        }
+    }
+
+    private fun stopProcessesRefreshTimer() {
+        processesRefreshJob?.cancel()
+        processesRefreshJob = null
     }
 
     private inner class FocusPolicy : FocusTraversalPolicy() {
