@@ -42,12 +42,12 @@ intellijPlatform {
     pluginConfiguration {
         name = properties("pluginName")
         group = properties("pluginGroup")
-        changeNotes.set("Updated android studio compatibility to 2024.2.1")
+        changeNotes.set("Updated android studio compatibility to 2024.3.1.7")
         ideaVersion.sinceBuild.set(project.property("sinceBuild").toString())
         ideaVersion.untilBuild.set(provider { null })
     }
     buildSearchableOptions.set(false)
-    instrumentCode = false
+    instrumentCode = true
 }
 
 dependencies {
