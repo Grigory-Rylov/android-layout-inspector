@@ -293,7 +293,7 @@ class NewLayoutDialog(
     }
 
     private fun populateWithClients(device: IDevice) {
-        logger.d("$TAG: populateWithClients() called for device: ${device.serial}")
+        logger.d("$TAG: populateWithClients() called for device: ${device}")
         GlobalScope.launch(Dispatchers.EDT) {
             val clients = getClientsWithWindow(device, showAllProcesses.isSelected)
             clientListModel.clear()
