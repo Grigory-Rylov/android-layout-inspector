@@ -380,7 +380,7 @@ class NewLayoutDialog(
                 withContext(Dispatchers.EDT) {
                     val deviceWrapper = devicesComboBox.selectedItem as DeviceWrapper?
                     if (deviceWrapper != null) {
-                        logger.d("$TAG: timer tick - populating clients for device: ${deviceWrapper.device.serial}")
+                        logger.d("$TAG: timer tick - populating clients for device: ${deviceWrapper.device}")
                         populateWithClients(deviceWrapper.device)
                     } else {
                         logger.w("$TAG: timer tick - no device selected, skipping refresh")
