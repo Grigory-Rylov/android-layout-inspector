@@ -22,7 +22,7 @@ object TreePathUtils {
         var node: AbstractViewNode? = node
         val nodes = Lists.newArrayList<Any>()
         do {
-            nodes.add(0, node)
+            nodes.add(0, node!!)
             node = node?.parent as AbstractViewNode?
         } while (node != null && node !== root)
         if (root != null && node === root) {

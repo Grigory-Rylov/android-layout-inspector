@@ -45,6 +45,7 @@ class NewLayoutDialog(
     private val resetConnectionButton: JButton
     private val clientsList: JBList<ClientWrapper>
     private val deviceChangedAction = DeviceChangedActions()
+    private var processesRefreshJob: Job? = null
     var result: LayoutRecordOptions? = null
         private set
 
@@ -73,6 +74,7 @@ class NewLayoutDialog(
         }
 
         showAllProcesses = JCheckBox("any processes")
+        showAllProcesses.isSelected = true
         showAllProcesses.addActionListener {
             val deviceWrapper = devicesComboBox.selectedItem as DeviceWrapper?
 
@@ -80,6 +82,27 @@ class NewLayoutDialog(
                 populateWithClients(deviceWrapper.device)
             }
         }
+
+        // Start processes refresh timer when dialog is shown
+        addWindowListener(object : java.awt.event.WindowAdapter() {
+            override fun windowOpened(e: java.awt.event.WindowEvent?) {
+                logger.d("$TAG: windowOpened() - Starting process auto-refresh")
+                // Immediately populate clients for the selected device
+                val deviceWrapper = devicesComboBox.selectedItem as DeviceWrapper?
+                if (deviceWrapper != null) {
+                    logger.d("$TAG: windowOpened() - Populating clients for device: ${deviceWrapper.device}")
+                    populateWithClients(deviceWrapper.device)
+                } else {
+                    logger.w("$TAG: windowOpened() - No device selected")
+                }
+                startProcessesRefreshTimer()
+            }
+
+            override fun windowClosed(e: java.awt.event.WindowEvent?) {
+                logger.d("$TAG: windowClosed() - Stopping process auto-refresh")
+                stopProcessesRefreshTimer()
+            }
+        })
 
         clientsList = JBList(clientListModel)
         val listScroll = JBScrollPane(clientsList)
@@ -237,24 +260,31 @@ class NewLayoutDialog(
     }
 
     fun showDialog() {
+        logger.d("$TAG: showDialog() - Opening dialog")
         deviceProvider.deviceChangedActions.add(deviceChangedAction)
         setLocationRelativeTo(owner)
         result = null
         populateWithDevices()
         isVisible = true
+        logger.d("$TAG: showDialog() - Dialog closed, result: ${result != null}")
     }
 
     private fun populateWithDevices() {
+        logger.d("$TAG: populateWithDevices() - Requesting devices from provider")
         GlobalScope.launch(Dispatchers.EDT) {
             val devices = deviceProvider.requestDevices()
-            logger.d("$TAG: received ${devices.size} devices")
+            logger.d("$TAG: populateWithDevices() - received ${devices.size} devices")
             devicesComboBox.removeAllItems()
             for (device in devices) {
                 devicesComboBox.addItem(RealDeviceWrapper(device))
+                logger.d("$TAG: populateWithDevices() - added device: ${device}")
             }
 
             if (devicesComboBox.itemCount > 0) {
                 devicesComboBox.selectedIndex = 0
+                // Immediately populate clients for the first device
+                logger.d("$TAG: populateWithDevices() - selecting first device and populating clients")
+                populateWithClients((devicesComboBox.selectedItem as DeviceWrapper).device)
             }
             if (devicesComboBox.itemCount == 1) {
                 clientsList.requestFocus()
@@ -263,6 +293,7 @@ class NewLayoutDialog(
     }
 
     private fun populateWithClients(device: IDevice) {
+        logger.d("$TAG: populateWithClients() called for device: ${device}")
         GlobalScope.launch(Dispatchers.EDT) {
             val clients = getClientsWithWindow(device, showAllProcesses.isSelected)
             clientListModel.clear()
@@ -280,6 +311,7 @@ class NewLayoutDialog(
             }
             pack()
             repaint()
+            logger.d("$TAG: populateWithClients() completed, clients count: ${clients.size}")
         }
     }
 
@@ -338,6 +370,32 @@ class NewLayoutDialog(
                 devicesComboBox.selectedItem = null
             }
         }
+    }
+
+    private fun startProcessesRefreshTimer() {
+        logger.d("$TAG: startProcessesRefreshTimer() - Starting 3-second refresh timer")
+        processesRefreshJob = GlobalScope.launch(Dispatchers.Default) {
+            while (isActive) {
+                delay(3000) // 3 seconds
+                withContext(Dispatchers.EDT) {
+                    val deviceWrapper = devicesComboBox.selectedItem as DeviceWrapper?
+                    if (deviceWrapper != null) {
+                        logger.d("$TAG: timer tick - populating clients for device: ${deviceWrapper.device}")
+                        populateWithClients(deviceWrapper.device)
+                    } else {
+                        logger.w("$TAG: timer tick - no device selected, skipping refresh")
+                    }
+                }
+            }
+        }
+        logger.d("$TAG: startProcessesRefreshTimer() - Timer job started: ${processesRefreshJob?.hashCode()}")
+    }
+
+    private fun stopProcessesRefreshTimer() {
+        logger.d("$TAG: stopProcessesRefreshTimer() - Cancelling timer job: ${processesRefreshJob?.hashCode()}")
+        processesRefreshJob?.cancel()
+        processesRefreshJob = null
+        logger.d("$TAG: stopProcessesRefreshTimer() - Timer stopped")
     }
 
     private inner class FocusPolicy : FocusTraversalPolicy() {
