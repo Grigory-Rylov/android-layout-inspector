@@ -277,7 +277,7 @@ class NewLayoutDialog(
             devicesComboBox.removeAllItems()
             for (device in devices) {
                 devicesComboBox.addItem(RealDeviceWrapper(device))
-                logger.d("$TAG: populateWithDevices() - added device: ${device.serial}")
+                logger.d("$TAG: populateWithDevices() - added device: ${device}")
             }
 
             if (devicesComboBox.itemCount > 0) {
