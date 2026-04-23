@@ -30,7 +30,8 @@ class ShowLayoutInspectorAction : AsAction() {
             }
         }
         val notificationHelper = NotificationHelperImpl(project)
-        val provider = ConnectedDeviceInfoProvider(adbProvider, notificationHelper)
+        val logger = PluginLogger()
+        val provider = ConnectedDeviceInfoProvider(adbProvider, notificationHelper, logger)
 
         createUi()
 
