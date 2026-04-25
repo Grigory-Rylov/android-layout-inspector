@@ -29,9 +29,10 @@ private const val TITLE = "Select Layout recording parameters"
 class NewLayoutDialog(
     private val owner: JFrame,
     private val deviceProvider: DeviceProvider,
-    private val logger: AppLogger,
     private val settings: SettingsFacade
 ) : CloseByEscapeDialog(owner, TITLE, true), LayoutRecordOptionsInput {
+    private val logPanel = LogPanel()
+    private val logger: AppLogger = logPanel
     private val timeoutField = JNumberField(20)
     private val filePrefixField = JTextField(20)
     private val showAllProcesses: JCheckBox
@@ -132,21 +133,32 @@ class NewLayoutDialog(
             resetAdbConnection()
         }
 
-        val panelBuilder = LabeledGridBuilder()
-        panelBuilder.addLabeledComponent("device: ", devicesComboBox)
-        panelBuilder.addSingleComponent(JLabel("Applications:"))
-        panelBuilder.addSingleComponent(listScroll)
-        panelBuilder.addSingleComponent(showAllProcesses)
-        panelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
-        panelBuilder.addLabeledComponent("File name prefix: ", filePrefixField)
-        panelBuilder.addSingleComponent(secondProtocolVersion)
-        panelBuilder.addSingleComponent(dumpViewMode)
+        val leftPanel = JPanel(java.awt.BorderLayout())
+        val centerPanelBuilder = LabeledGridBuilder()
+        centerPanelBuilder.addLabeledComponent("device: ", devicesComboBox)
+        centerPanelBuilder.addSingleComponent(JLabel("Applications:"))
+        centerPanelBuilder.addSingleComponent(listScroll)
+        centerPanelBuilder.addSingleComponent(showAllProcesses)
+        centerPanelBuilder.addLabeledComponent("timeout in seconds: ", timeoutField)
+        centerPanelBuilder.addLabeledComponent("File name prefix: ", filePrefixField)
+        centerPanelBuilder.addSingleComponent(secondProtocolVersion)
+        centerPanelBuilder.addSingleComponent(dumpViewMode)
         if (deviceProvider.isReconnectionAllowed) {
-            panelBuilder.addMainAndSlaveComponent(startButton, resetConnectionButton)
+            centerPanelBuilder.addMainAndSlaveComponent(startButton, resetConnectionButton)
         } else {
-            panelBuilder.addSingleComponent(startButton)
+            centerPanelBuilder.addSingleComponent(startButton)
         }
-        contentPane = panelBuilder.content
+        leftPanel.add(centerPanelBuilder.content, java.awt.BorderLayout.CENTER)
+        
+        val rightPanel = JPanel(java.awt.BorderLayout())
+        rightPanel.add(logPanel, java.awt.BorderLayout.CENTER)
+        rightPanel.preferredSize = Dimension(350, 600)
+        
+        val mainPanel = JPanel(java.awt.BorderLayout())
+        mainPanel.add(leftPanel, java.awt.BorderLayout.CENTER)
+        mainPanel.add(rightPanel, java.awt.BorderLayout.EAST)
+        
+        contentPane = mainPanel
 
         contentPane.focusTraversalPolicy = FocusPolicy()
 
