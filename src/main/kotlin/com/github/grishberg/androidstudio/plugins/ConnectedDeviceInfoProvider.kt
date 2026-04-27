@@ -16,7 +16,7 @@ class ConnectedDeviceInfoProvider(
     private val notificationHelper: NotificationHelper,
     private var logger: AppLogger
 ) {
-    fun attachLogger(newLogger: AppLogger) {
+    override fun attachLogger(newLogger: AppLogger) {
         logger = newLogger
     }
 
