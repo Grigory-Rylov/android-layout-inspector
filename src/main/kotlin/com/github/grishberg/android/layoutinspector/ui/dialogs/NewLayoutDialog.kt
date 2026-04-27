@@ -28,7 +28,7 @@ private const val TITLE = "Select Layout recording parameters"
 
 class NewLayoutDialog(
     private val owner: JFrame,
-    private val deviceProvider: DeviceProvider,
+    private val deviceProvider: ConnectedDeviceInfoProvider,
     private val settings: SettingsFacade
 ) : CloseByEscapeDialog(owner, TITLE, true), LayoutRecordOptionsInput {
     private val logPanel = LogPanel()
@@ -51,6 +51,7 @@ class NewLayoutDialog(
         private set
 
     init {
+        deviceProvider.attachLogger(logger)
         timeoutField.value = settings.captureLayoutTimeout.toInt()
         timeoutField.addActionListener {
             startRecording()
