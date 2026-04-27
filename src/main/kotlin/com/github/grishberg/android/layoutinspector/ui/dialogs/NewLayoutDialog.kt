@@ -9,7 +9,6 @@ import com.github.grishberg.android.layoutinspector.process.providers.DeviceProv
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.JNumberField
 import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
-import com.github.grishberg.androidstudio.plugins.ConnectedDeviceInfoProvider
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.components.JBList
@@ -29,7 +28,7 @@ private const val TITLE = "Select Layout recording parameters"
 
 class NewLayoutDialog(
     private val owner: JFrame,
-    private val deviceProvider: ConnectedDeviceInfoProvider,
+    private val deviceProvider: DeviceProvider,
     private val settings: SettingsFacade
 ) : CloseByEscapeDialog(owner, TITLE, true), LayoutRecordOptionsInput {
     private val logPanel = LogPanel()
