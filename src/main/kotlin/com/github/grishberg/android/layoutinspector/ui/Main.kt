@@ -166,7 +166,7 @@ class Main(
         windowsDialog = WindowsDialog(this, settingsFacade, logger)
         clientWindowsProvider = ClientWindowsProvider(logger)
 
-        val devicesInputDialog = NewLayoutDialog(this, deviceProvider, logger, settingsFacade)
+        val devicesInputDialog = NewLayoutDialog(this, deviceProvider, settingsFacade)
 
         val coroutineScope = MainScope()
         val coroutinesDispatchers = CoroutinesDispatchersImpl()

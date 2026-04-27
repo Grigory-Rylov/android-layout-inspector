@@ -2,6 +2,7 @@ package com.github.grishberg.android.li
 
 import com.android.ddmlib.IDevice
 import com.android.layoutinspector.common.AdbFacade
+import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.common.PluginLogger
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
@@ -30,15 +31,16 @@ class ShowLayoutInspectorAction : AsAction() {
             }
         }
         val notificationHelper = NotificationHelperImpl(project)
-        val provider = ConnectedDeviceInfoProvider(adbProvider, notificationHelper)
+        val logger = PluginLogger()
+        val provider = ConnectedDeviceInfoProvider(adbProvider, notificationHelper, logger)
 
         createUi()
 
         val main = windowsManager.createWindow(
             OpenWindowMode.DEFAULT,
             settings,
-            DeviceProviderImpl(provider),
-            AdbFacadeImpl(provider, adbProvider.getAdb()),
+            DeviceProviderImpl(provider, logger),
+            AdbFacadeImpl(provider, adbProvider.getAdb(), logger),
             prepareBaseDir(project)
         )
         main.initUi()
@@ -81,7 +83,8 @@ class ShowLayoutInspectorAction : AsAction() {
     }
 
     private class DeviceProviderImpl(
-        private val provider: ConnectedDeviceInfoProvider
+        private val provider: ConnectedDeviceInfoProvider,
+        private val logger: AppLogger
     ) : DeviceProvider {
         override val isReconnectionAllowed: Boolean
             get() = false
@@ -89,11 +92,17 @@ class ShowLayoutInspectorAction : AsAction() {
         override val deviceChangedActions: MutableSet<DeviceProvider.DeviceChangedAction>
             get() = mutableSetOf()
 
+        override fun attachLogger(newLogger: AppLogger) {
+            provider.attachLogger(newLogger)
+        }
+        
         override fun reconnect() = Unit
 
         override suspend fun requestDevices(): List<IDevice> {
-            val devicesInfo = provider.provideDeviceInfo() ?: return emptyList()
-            return devicesInfo.devices
+            logger.d("=== DeviceProviderImpl.requestDevices() called ===")
+            val devicesInfo = provider.provideDeviceInfo()
+            logger.d("DeviceProviderImpl.requestDevices() returned ${devicesInfo?.devices?.size ?: 0} devices")
+            return devicesInfo?.devices ?: emptyList()
         }
 
         override fun stop() = Unit
@@ -102,14 +111,17 @@ class ShowLayoutInspectorAction : AsAction() {
     private class AdbFacadeImpl(
         private val provider: ConnectedDeviceInfoProvider,
         private val adb: AdbWrapper,
+        private val logger: AppLogger
     ) : AdbFacade {
         override fun connect() = Unit
 
         override fun connect(remoterAddress: String) = Unit
 
         override fun getDevices(): List<IDevice> {
-            val devicesInfo = provider.provideDeviceInfo() ?: return emptyList()
-            return devicesInfo.devices
+            logger.d("=== AdbFacadeImpl.getDevices() called ===")
+            val devicesInfo = provider.provideDeviceInfo()
+            logger.d("AdbFacadeImpl.getDevices() returning ${devicesInfo?.devices?.size ?: 0} devices")
+            return devicesInfo?.devices ?: emptyList()
         }
 
         override fun hasInitialDeviceList(): Boolean = true

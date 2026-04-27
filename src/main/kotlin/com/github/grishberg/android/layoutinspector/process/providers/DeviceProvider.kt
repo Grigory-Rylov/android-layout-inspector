@@ -1,13 +1,17 @@
 package com.github.grishberg.android.layoutinspector.process.providers
 
 import com.android.ddmlib.IDevice
+import com.android.layoutinspector.common.AppLogger
+
 
 interface DeviceProvider {
-    fun stop()
-    fun reconnect()
-    suspend fun requestDevices(): List<IDevice>
     val deviceChangedActions: MutableSet<DeviceChangedAction>
     val isReconnectionAllowed: Boolean
+
+    fun stop()
+    fun reconnect()
+    fun attachLogger(newLogger: AppLogger) {}
+    suspend fun requestDevices(): List<IDevice>
 
     interface DeviceChangedAction {
         fun deviceConnected(device: IDevice)
