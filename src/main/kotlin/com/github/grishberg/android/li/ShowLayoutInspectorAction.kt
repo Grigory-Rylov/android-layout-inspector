@@ -92,6 +92,10 @@ class ShowLayoutInspectorAction : AsAction() {
         override val deviceChangedActions: MutableSet<DeviceProvider.DeviceChangedAction>
             get() = mutableSetOf()
 
+        override fun attachLogger(newLogger: AppLogger) {
+            provider.attachLogger(newLogger)
+        }
+        
         override fun reconnect() = Unit
 
         override suspend fun requestDevices(): List<IDevice> {
