@@ -9,6 +9,7 @@ import com.github.grishberg.android.layoutinspector.process.providers.DeviceProv
 import com.github.grishberg.android.layoutinspector.settings.SettingsFacade
 import com.github.grishberg.android.layoutinspector.ui.common.JNumberField
 import com.github.grishberg.android.layoutinspector.ui.common.LabeledGridBuilder
+import com.github.grishberg.androidstudio.plugins.ConnectedDeviceInfoProvider
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.components.JBList
