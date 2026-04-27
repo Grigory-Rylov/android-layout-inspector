@@ -14,8 +14,12 @@ interface AdbProvider {
 class ConnectedDeviceInfoProvider(
     private val adbProvider: AdbProvider,
     private val notificationHelper: NotificationHelper,
-    private val logger: AppLogger
+    private var logger: AppLogger
 ) {
+    fun attachLogger(newLogger: AppLogger) {
+        logger = newLogger
+    }
+
     fun provideDeviceInfo(): ConnectedDeviceInfo? {
         logger.d("=== provideDeviceInfo() called ===")
         val adb = adbProvider.getAdb()
