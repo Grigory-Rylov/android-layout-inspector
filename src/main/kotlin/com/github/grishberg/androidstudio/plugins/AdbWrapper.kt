@@ -17,7 +17,7 @@ class AdbWrapperImpl(project: Project) : AdbWrapper {
             return false
         }
 
-        return androidBridge.isConnected && androidBridge.hasInitialDeviceList()
+        return androidBridge.isConnected
     }
 
     override fun connectedDevices(): List<IDevice> {
