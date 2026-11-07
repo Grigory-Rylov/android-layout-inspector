@@ -6,6 +6,8 @@ import com.android.layoutinspector.LayoutInspectorCaptureOptions
 import com.android.layoutinspector.LayoutInspectorResult
 import com.android.layoutinspector.ProtocolVersion
 import com.android.layoutinspector.common.AppLogger
+import com.github.grishberg.android.layoutinspector.compose.ComposeCaptureService
+import com.github.grishberg.android.layoutinspector.compose.ComposeTreeMerger
 import com.github.grishberg.android.layoutinspector.domain.DumpViewNode
 import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchers
 import kotlinx.coroutines.CoroutineScope
@@ -70,8 +72,44 @@ class LayoutInspectorCaptureTask(
                 layoutAsyncResult
             }
 
-        logger.d("$TAG: capturing is done, error: ${result.error}")
-        return result
+        val composeMerged = if (recordingConfig.recordOptions.composeModeEnabled && result.root != null) {
+            // Compose hierarchy comes from Android Studio's own App Inspection service; the grafted
+            // children live in memory only (.li persistence is unchanged), like the dump merge above.
+            // On failure the JDWP tree is still shown; the reason travels in result.error and Logic
+            // surfaces it as a secondary dialog.
+            try {
+                val composeRoots = scope.async(dispatchers.worker) {
+                    logger.d("$TAG: starting compose capture")
+                    ComposeCaptureService(logger).capture(
+                        deviceSerial = recordingConfig.client.device.serialNumber,
+                        pid = recordingConfig.client.clientData.pid,
+                    )
+                }.await()
+                logger.d("$TAG: compose capture done, ${composeRoots.roots.size} root(s), merging")
+                val composeMerger = ComposeTreeMerger(logger)
+                LayoutInspectorResult(
+                    composeMerger.mergeNodes(result.root, composeRoots.roots),
+                    result.previewImage,
+                    result.data,
+                    result.options,
+                    result.error,
+                )
+            } catch (t: com.github.grishberg.android.layoutinspector.compose.ComposeCaptureException) {
+                logger.e("$TAG: compose capture failed: ${t.message}", t)
+                LayoutInspectorResult(
+                    result.root,
+                    result.previewImage,
+                    result.data,
+                    result.options,
+                    t.message ?: "Jetpack Compose capture failed",
+                )
+            }
+        } else {
+            result
+        }
+
+        logger.d("$TAG: capturing is done, error: ${composeMerged.error}")
+        return composeMerged
     }
 
     private suspend fun getViewDumps(recordingConfig: RecordingConfig): DumpViewNode? {

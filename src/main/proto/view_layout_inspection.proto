@@ -1,0 +1,488 @@
+/*
+ * Copyright 2020 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+package layoutinspector.view.inspection;
+option java_package = "com.android.tools.idea.layoutinspector.view.inspection";
+
+option java_outer_classname = "LayoutInspectorViewProtocol";
+// TODO: actually use lite runtime
+// option optimize_for = LITE_RUNTIME;
+
+// ======= MESSAGES =======
+
+// A mapping of |string| to |int32|, so strings can be efficiently reused across nodes
+// Any time a text value in any of these messages has an |int32| type, it means it will do a
+// lookup in a string table on the client.
+message StringEntry {
+    int32 id = 1;
+    string str = 2;
+}
+
+message Point {
+    int32 x = 1;
+    int32 y = 2;
+}
+
+message Rect {
+    int32 x = 1;
+    int32 y = 2;
+    int32 w = 3;
+    int32 h = 4;
+}
+
+// A Quad holds the 4 corners of a polygon in drawing order, that represent the transformed shape
+// of a Rect after applying some affine or perspective transformations.
+message Quad {
+    sint32 x0 = 1;
+    sint32 y0 = 2;
+    sint32 x1 = 3;
+    sint32 y1 = 4;
+    sint32 x2 = 5;
+    sint32 y2 = 6;
+    sint32 x3 = 7;
+    sint32 y3 = 8;
+}
+
+message Bounds {
+    // The actual bounds of a view.
+    Rect layout = 1;
+    // In some cases we don't want to render the actual bounds of a view, for example if the view is rotated (View#setRotation).
+    // In this case we want to rotate the layout bounds so that they match the rotation of the view.
+    // These render bounds are not used in the rendering, except when the view is rotated.
+    Quad render = 2;
+}
+
+message ViewNode {
+    // General node properties
+    int64 id = 1;
+    repeated ViewNode children = 2;
+
+    // Resource reference associated with the view itself inside a layout
+    Resource resource = 3;
+    int32 package_name = 4;
+    int32 class_name = 5;
+
+    Bounds bounds = 6;
+
+    // Resource reference associated with view's layout
+    Resource layout_resource = 7;
+    int32 layout_flags = 8;
+
+    // View specific flags
+    enum Flag {
+        NONE = 0;
+        // If the View is a WebView or derived from WebView.
+        IS_WEBVIEW = 1;
+    }
+    int32 flags = 9;
+
+    // Type-specific node properties
+    int32 text_value = 101; // For TextView, etc.
+}
+
+message Screenshot {
+    enum Type {
+        UNKNOWN = 0;
+        NONE = 1;
+        // SKP = Skia picture, a format embedded with layout details.
+        SKP = 2;
+        // Zipped raw pixel data, used when the more-expensive SKP isn't necessary.
+        BITMAP = 3;
+    }
+    Type type = 1;
+    bytes bytes = 2;
+}
+
+// In Android, a resource id is a simple integer. This class holds the namespace, type, and name
+// of such a resource id.
+// For example, with "@android:id/textView":
+//   type: id
+//   namespace: android
+//   name: textView
+message Resource {
+    int32 type = 1;
+    int32 namespace = 2;
+    int32 name = 3;
+}
+
+// Locale information, corresponds to java.util.Locale
+message Locale {
+    int32 language = 1;
+    int32 country = 2;
+    int32 variant = 3;
+    int32 script = 4;
+}
+
+// Device configuration, corresponds to android.content.res.Configuration
+message Configuration {
+    float font_scale = 1;
+    int32 country_code = 2;
+    int32 network_code = 3;
+    Locale locale = 4;
+    int32 screen_layout = 5;
+    int32 color_mode = 6;
+    int32 touch_screen = 7;
+    int32 keyboard = 8;
+    int32 keyboard_hidden = 9;
+    int32 hard_keyboard_hidden = 10;
+    int32 navigation = 11;
+    int32 navigation_hidden = 12;
+    int32 ui_mode = 13;
+    int32 smallest_screen_width_dp = 14;
+    int32 density = 15;
+    int32 orientation = 16;
+    int32 screen_width_dp = 17; // excludes window decor
+    int32 screen_height_dp = 18; // excludes window decor
+    int32 grammatical_gender = 19;
+}
+
+
+
+// Various data about the current app, which can be used to resolve resource references for the
+// device's Configuration.
+message AppContext {
+    Resource theme = 1;
+    repeated Display display_info = 2;
+}
+
+message Display {
+    int32 id = 1;
+    // Display width in pixels.
+    int32 width = 2;
+    // Display height in pixels.
+    int32 height = 3;
+    // Display rotation in degrees: 0, 90, 180, 270.
+    int32 orientation = 4;
+}
+
+// Handles properties whose values are bit flags, e.g. "top|left"
+message FlagValue {
+    repeated int32 flag = 1;
+}
+
+// An attribute property, e.g. "text", "background", etc.
+message Property {
+    enum Type {
+        UNSPECIFIED = 0;
+        STRING = 1;
+        BOOLEAN = 2;
+        BYTE = 3;
+        CHAR = 4;
+        DOUBLE = 5;
+        FLOAT = 6;
+        INT16 = 7;
+        INT32 = 8;
+        INT64 = 9;
+        OBJECT = 10;
+        COLOR = 11;
+        GRAVITY = 12;
+        INT_ENUM = 13;
+        INT_FLAG = 14;
+        RESOURCE = 15;
+        DRAWABLE = 16;
+        ANIM = 17;
+        ANIMATOR = 18;
+        INTERPOLATOR = 19;
+        DIMENSION = 20;
+    }
+
+    Type type = 1;
+    int32 name = 2;
+    Resource source = 3;
+    repeated Resource resolution_stack = 4;
+    bool is_layout = 5;
+    int32 namespace = 6;
+
+    oneof value {
+        int32 int32_value = 101;
+        int64 int64_value = 102;
+        double double_value = 103;
+        float float_value = 104;
+        Resource resource_value = 105;
+        FlagValue flag_value = 106;
+    }
+}
+
+// A collection of all properties associated with a single view
+message PropertyGroup {
+    int64 view_id = 1;
+    Resource layout = 2;
+    repeated Property property = 3;
+}
+
+// An error code to include in error events and responses
+// These should be a subset of the error codes defined in studio_stats.proto
+enum ErrorCode {
+    UNKNOWN_ERROR_CODE = 0;
+    // The platform relies on the hardware renderer to provide rendering update callbacks and SKPs
+    NO_HARDWARE_ACCELERATION = 1;
+    // The app seems to have no UI
+    NO_ROOT_VIEWS_FOUND = 2;
+}
+
+message DrawInstruction {
+    // The uniqueDrawId of the root view containing the OverlayView that needs to draw the bounds.
+    int64 root_id = 1;
+    Rect bounds = 2;
+    // TODO(b/402148436): consider moving color out of draw instruction
+    // Color used to render these bounds, in ARGB format.
+    int32 color = 3;
+    optional Label label = 4;
+    // Thickness of the bounds stroke in dp.
+    float stroke_thickness = 5;
+}
+
+message Label {
+    string text = 1;
+    // The font size, in dp.
+    float size = 2;
+}
+
+// User input detected by on-device rendering.
+message UserInputEvent {
+    enum Type {
+        SELECTION = 0;
+        HOVER = 1;
+        RIGHT_CLICK = 2;
+        DOUBLE_CLICK = 3;
+    }
+
+    int64 root_id = 1;
+    float x = 2;
+    float y = 3;
+    Type type = 4;
+}
+
+// ======= COMMANDS, RESPONSES, AND EVENTS =======
+
+// Tells the inspector to start sending |LayoutEvent|s asynchronously
+message StartFetchCommand {
+    // If continuous, layout events will keep coming until a |StopFetchCommand| is sent.
+    // Otherwise, only a single |LayoutEvent| will be sent.
+    bool continuous = 1;
+}
+message StartFetchResponse {
+    // Empty if start is successful, otherwise an appropriate error message.
+    string error = 1;
+    // An error code if applicable
+    ErrorCode code = 2;
+}
+
+// Command to fire to stop |LayoutEvent|s from being returned.
+// If |FetchCommand| was never called, this will be a no-op.
+message StopFetchCommand {}
+message StopFetchResponse {}
+
+// Make a request to fetch properties associated with the specified View
+message GetPropertiesCommand {
+    int64 root_view_id = 1; // Used for filtering out views from unrelated layout trees
+    int64 view_id = 2;
+}
+// Data sent in response to |GetPropertiesCommand|.
+message GetPropertiesResponse {
+    repeated StringEntry strings = 1;
+    PropertyGroup property_group = 2;
+}
+
+// Sets the active screenshot type used when collecting screenshot information during a
+// layout capture.
+message UpdateScreenshotTypeCommand {
+    Screenshot.Type type = 1;
+    // Scale to apply to the screenshot size (only applies to the BITMAP type)
+    float scale = 2;
+}
+message UpdateScreenshotTypeResponse {
+}
+
+message CaptureSnapshotCommand {
+    Screenshot.Type screenshot_type = 1;
+}
+message CaptureSnapshotResponse {
+    message WindowSnapshot {
+      LayoutEvent layout = 1;
+      PropertiesEvent properties = 2;
+    }
+    repeated WindowSnapshot window_snapshots = 1;
+    WindowRootsEvent window_roots = 2;
+}
+
+message EnableBitmapScreenshotCommand {
+    bool enable = 1;
+}
+message EnableBitmapScreenshotResponse {
+}
+
+message EnableXrInspectionCommand {
+    bool enable = 1;
+}
+message EnableXrInspectionResponse {
+}
+
+message EnableOnDeviceRenderingCommand {
+    bool enable = 1;
+}
+message EnableOnDeviceRenderingResponse {
+}
+
+message DrawCommand {
+    enum Type {
+        // All the nodes currently visible on screen.
+        VISIBLE_NODES = 0;
+        HOVERED_NODES = 1;
+        SELECTED_NODES = 2;
+        RECOMPOSING_NODES = 3;
+    }
+
+    repeated DrawInstruction draw_instructions = 1;
+    Type type = 2;
+}
+message DrawResponse {
+}
+
+message DrawOverlayCommand {
+    optional bytes image = 1;
+}
+message DrawOverlayResponse {
+}
+
+// We have two separate commands for draw overlay and set alpha because each time the alpha changes
+// we don't want to have to re-send the image.
+message SetOverlayAlphaCommand {
+    // The alpha to apply to the overlay image. It's a value between 0 and 1.
+    float alpha = 1;
+}
+message SetOverlayAlphaResponse {
+}
+
+message InterceptTouchEventsCommand {
+    bool intercept = 1;
+}
+message InterceptTouchEventsResponse {
+}
+
+// An event sent for metrics logging purposes when the inspector passes certain
+// checkpoints during initial connect.
+// These should be a subset of the events in studio_stats.proto, and in the
+// same order.
+message ProgressEvent {
+    enum ProgressCheckpoint {
+        NOT_STARTED = 0;
+        // The inspector received the request to start capturing
+        START_RECEIVED = 10;
+        // The inspector registered capture callbacks successfully
+        STARTED = 20;
+        // We found root views and registered invalidation callbacks
+        ROOTS_EVENT_SENT = 30;
+        // The inspector got a callback from the platform
+        VIEW_INVALIDATION_CALLBACK = 40;
+        // The inspector captured a screenshot or serialized an SKP
+        SCREENSHOT_CAPTURED = 50;
+        // The inspector executed the view hierarchy capture code
+        VIEW_HIERARCHY_CAPTURED = 60;
+        // The inspector sent a response
+        RESPONSE_SENT = 70;
+    }
+    ProgressCheckpoint checkpoint = 1;
+}
+
+// An event containing complete layout information about a single node tree
+message LayoutEvent {
+    // A collection of all text referenced by other fields in this message
+    repeated StringEntry strings = 1;
+    AppContext app_context = 2;
+    Configuration configuration = 3;
+    RootView root_view = 4;
+    optional Screenshot screenshot = 5;
+    bool is_xr = 6;
+}
+
+message RootView {
+    ViewNode node = 1;
+    // The offset of the root view from the origin of the surface. Will always be 0,0 for
+    // the main window, but can be positive for floating windows (e.g. dialogs).
+    Point offset = 2;
+    // The id of the display this view is attached to
+    optional int32 display_id = 3;
+}
+
+// An event fired whenever a new root is added or an old root is removed.
+// Host is guaranteed to receive this at least once before the first |LayoutEvent|
+message WindowRootsEvent {
+    repeated int64 ids = 1;
+}
+
+// An event fired which contains ALL properties under a single layout tree.
+// Host will receive this right after a |LayoutEvent| when taking a layout snapshot (that is,
+// fetching once, with continuous = false).
+message PropertiesEvent {
+    int64 root_id = 1;
+    repeated StringEntry strings = 2;
+    repeated PropertyGroup property_groups = 3;
+}
+
+// An event for reporting an error message, particularly for crashes that happen off the inspector
+// thread.
+// TODO(b/176993981): The inspector framework handles crashes that happen on the inspector thread,
+//  but no support for non-inspector threads at this point. We can stop using this custom message
+//  when such support is added, however.
+message ErrorEvent {
+    string message = 1;
+}
+
+message Command {
+    oneof specialized {
+        StartFetchCommand start_fetch_command = 1;
+        StopFetchCommand stop_fetch_command = 2;
+        GetPropertiesCommand get_properties_command = 3;
+        UpdateScreenshotTypeCommand update_screenshot_type_command = 4;
+        CaptureSnapshotCommand capture_snapshot_command = 5;
+        EnableBitmapScreenshotCommand enable_bitmap_screenshot_command = 6;
+        EnableXrInspectionCommand enable_xr_inspection_command = 7;
+        EnableOnDeviceRenderingCommand enable_on_device_rendering_command = 8;
+        DrawCommand draw_command = 9;
+        InterceptTouchEventsCommand intercept_touch_events_command = 10;
+        DrawOverlayCommand draw_overlay_command = 11;
+        SetOverlayAlphaCommand set_overlay_alpha_command = 12;
+    }
+}
+
+message Response {
+    oneof specialized {
+        StartFetchResponse start_fetch_response = 1;
+        StopFetchResponse stop_fetch_response = 2;
+        GetPropertiesResponse get_properties_response = 3;
+        UpdateScreenshotTypeResponse update_screenshot_type_response = 4;
+        CaptureSnapshotResponse capture_snapshot_response = 5;
+        EnableBitmapScreenshotResponse enable_bitmap_screenshot_response = 6;
+        EnableXrInspectionResponse enable_xr_inspection_response = 7;
+        EnableOnDeviceRenderingResponse enable_on_device_rendering_response = 8;
+        DrawResponse draw_response = 9;
+        InterceptTouchEventsResponse intercept_touch_events_response = 10;
+        DrawOverlayResponse draw_overlay_response = 11;
+        SetOverlayAlphaResponse set_overlay_alpha_response = 12;
+    }
+}
+
+message Event {
+    oneof specialized {
+        ErrorEvent error_event = 1;
+        WindowRootsEvent roots_event = 2;
+        LayoutEvent layout_event = 3;
+        PropertiesEvent properties_event = 4;
+        ProgressEvent progress_event = 5;
+        UserInputEvent user_input_event = 6;
+    }
+}

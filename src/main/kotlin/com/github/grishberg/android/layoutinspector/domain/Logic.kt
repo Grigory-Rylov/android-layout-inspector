@@ -135,6 +135,11 @@ class Logic(
             output.showError(liResult.error)
         } else {
             onSuccessCaptured(config, liResult, isRefresh)
+            // A non-fatal error (compose capture failed while the view tree was captured fine)
+            // is shown after the result: the user gets both the tree and the reason.
+            if (liResult.error.isNotEmpty()) {
+                output.showError(liResult.error)
+            }
         }
     }
 

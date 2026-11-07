@@ -10,5 +10,6 @@ data class LayoutRecordOptions(
     val fileNamePrefix: String,
     val v2Enabled: Boolean,
     val dumpViewModeEnabled: Boolean,
+    val composeModeEnabled: Boolean = false,
     val label: String? = null,
 )
