@@ -13,6 +13,8 @@ import com.android.tools.idea.appinspection.inspector.api.launch.LibraryCompatib
 import com.android.tools.idea.appinspection.inspector.api.launch.MinimumArtifactCoordinate
 import com.android.tools.idea.appinspection.inspector.api.launch.RunningArtifactCoordinate
 import com.android.tools.idea.appinspection.inspector.api.process.ProcessDescriptor
+import com.android.ddmlib.CollectingOutputReceiver
+import com.android.ddmlib.IDevice
 import com.android.tools.idea.appinspection.internal.AppInspectionTarget
 import com.android.tools.idea.layoutinspector.pipeline.appinspection.view.ViewLayoutInspectorClient
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposableRoot
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withTimeout
+import com.android.tools.idea.appinspection.inspector.api.AppInspectionAgentUnattachableException
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executor
@@ -94,9 +97,12 @@ class ComposeCaptureService(private val logger: AppLogger) {
 
         /** Event-flow collection windows for the view-inspector bootstrap (ms). */
         const val ROOTS_EVENT_WINDOW_MS = 4_000L
+        private const val ATTACH_RETRY_LIMIT = 4
+        private const val ATTACH_RETRY_DELAY_MS = 4_000L
         const val FETCH_EVENT_WINDOW_MS = 10_000L
 
         private const val PROCESS_DISCOVERY_TIMEOUT_MS = 15_000L
+        private const val RELAUNCH_DISCOVERY_TIMEOUT_MS = 20_000L
         private const val COMMAND_TIMEOUT_MS = 30_000L
 
         /**
@@ -129,17 +135,20 @@ class ComposeCaptureService(private val logger: AppLogger) {
      *   picked when null.
      * @throws ComposeCaptureException with a user-presentable, actionable message.
      */
-    suspend fun capture(deviceSerial: String, pid: Int, project: Project? = null): ComposeCaptureResult {
+    suspend fun capture(
+        deviceSerial: String,
+        pid: Int,
+        project: Project? = null,
+        device: IDevice? = null,
+        packageName: String? = null,
+    ): ComposeCaptureResult {
         val apiServices = requireApiServices()
-        val process = findProcess(apiServices, deviceSerial, pid)
-        logger.d("YALI Compose: found process ${process.packageName} (pid=${process.pid}) on ${process.device.serial}")
+        val (process, relaunched) = findProcess(apiServices, deviceSerial, pid, device, packageName)
 
         try {
             val resolvedProject = resolveProject(project)
 
-            val target = runCatchingSuspend("attach to process ${process.pid}") {
-                apiServices.attachToProcess(process, "YALI compose capture")
-            }.getOrThrow()
+            val target = attachWithRetry(apiServices, process, relaunched)
 
             // The compose agent only answers for real window-root uniqueDrawingIds — learn them
             // from the view inspector first (class doc step 5); its inspector is stopped again
@@ -179,7 +188,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
             logger.d("YALI Compose: captured ${roots.size} compose root(s) for ids $rootViewIds")
             return ComposeCaptureResult(
                 deviceSerial = deviceSerial,
-                pid = pid,
+                pid = process.pid,
                 processName = process.name,
                 composeVersion = composeVersion,
                 roots = roots,
@@ -235,7 +244,14 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 }
             for (candidate in lastSeen.filter { tried.add(it.pid) }) {
                 try {
-                    return capture(candidate.device.serial, candidate.pid, project)
+                    return capture(
+                        candidate.device.serial,
+                        candidate.pid,
+                        project,
+                        packageName = candidate.packageName,
+                        // no IDevice here: candidates are already visible to App Inspection,
+                        // the restart fallback can never trigger and self-test has none handy
+                    )
                 } catch (t: Throwable) {
                     logger.w(
                         "YALI Compose: candidate ${candidate.packageName} (pid=${candidate.pid}) " +
@@ -280,23 +296,142 @@ class ComposeCaptureService(private val logger: AppLogger) {
         apiServices: AppInspectionApiServices,
         serial: String,
         pid: Int,
-    ): ProcessDescriptor {
+        device: IDevice?,
+        packageName: String?,
+    ): Pair<ProcessDescriptor, Boolean> {
         // 1) listener registration replays already-discovered processes synchronously
         val known = collectProcesses(apiServices, 250L).firstOrNull { process ->
             process.device.serial == serial && process.pid == pid && process.isRunning
         }
         if (known != null) {
-            return known
+            return known to false
         }
         // 2) the exact pid is not published (yet) - wait for its connected event
         val connected = withTimeoutOrNullCompat(PROCESS_DISCOVERY_TIMEOUT_MS) {
             awaitConnected(apiServices, serial, pid)
         }
-        return connected ?: throw ComposeCaptureException(
-            "Process $pid on device $serial is not visible to Android Studio App Inspection. " +
-                "YALI reads the Compose tree through Studio's own inspector, which only sees " +
-                "debuggable processes: make sure the app build is debuggable and the process is running."
+        if (connected != null) {
+            return connected to false
+        }
+        // 3) Studio never saw this process: App Inspection only lists processes whose debug
+        //    agent registered while AS tracked the device (AS shows "restart the app" for them).
+        //    Do exactly that - restart via adb and capture the freshly registered process.
+        if (device == null || packageName == null) {
+            throw ComposeCaptureException(notVisibleMessage(pid, serial, attempted = false))
+        }
+        logger.d(
+            "YALI Compose: pid $pid invisible to App Inspection - restarting $packageName " +
+                "on $serial so its debug agent registers (same as AS's process-restart flow)"
         )
+        runCatchingSuspend<Unit>("restart $packageName on $serial") {
+            device.executeShellCommand("am force-stop $packageName", CollectingOutputReceiver())
+            delay(500L)
+            device.executeShellCommand(
+                "monkey -p $packageName -c android.intent.category.LAUNCHER 1",
+                CollectingOutputReceiver(),
+            )
+        }.getOrThrow()
+        // The restart only "lands" once App Inspection processed the old process' death: a
+        // freshly registered listener replays the registry, which may still hold the stale
+        // descriptor until the disconnect event arrives. Wait for it to disappear first.
+        withTimeoutOrNullCompat(RELAUNCH_DISCOVERY_TIMEOUT_MS) {
+            while (collectProcesses(apiServices, 0L).any {
+                    it.device.serial == serial && it.packageName == packageName && it.isRunning
+                }
+            ) {
+                delay(300L)
+            }
+        }
+        val relaunched = withTimeoutOrNullCompat(RELAUNCH_DISCOVERY_TIMEOUT_MS) {
+            awaitConnectedPackage(apiServices, serial, packageName, previousPid = pid)
+        } ?: throw ComposeCaptureException(
+            notVisibleMessage(pid, serial, attempted = true) +
+                " Restarted $packageName once, but App Inspection did not pick it up - " +
+                "is the installed APK actually debuggable (android:debuggable=\"true\")?"
+        )
+        logger.d(
+            "YALI Compose: $packageName registered after restart with pid=${relaunched.pid}"
+        )
+        return relaunched to true
+    }
+
+    /**
+     * `attachToProcess` fails with "The agent is unattachable" while the app-side inspection
+     * agent is still booting - routinely true right after YALI relaunched the process (AS's own
+     * UI attaches seconds later, after a user click). Retries only for processes YALI restarted
+     * itself; a pre-existing process is usually attached instantly and permanently unattachable
+     * ones (system/zygote) must not burn the retry budget.
+     */
+    private suspend fun attachWithRetry(
+        apiServices: AppInspectionApiServices,
+        process: ProcessDescriptor,
+        relaunched: Boolean,
+    ): AppInspectionTarget {
+        val limit = if (relaunched) ATTACH_RETRY_LIMIT else 1
+        var attempt = 0
+        while (true) {
+            attempt++
+            try {
+                return apiServices.attachToProcess(process, "YALI compose capture")
+            } catch (t: Throwable) {
+                val unattachable = generateSequence<Throwable>(t) { it.cause }.any {
+                    it is AppInspectionAgentUnattachableException ||
+                        it.message?.contains("unattachable", ignoreCase = true) == true
+                }
+                if (!unattachable || attempt >= limit) {
+                    throw ComposeCaptureException(
+                        "Failed to attach to process ${process.pid}: ${t.message}", t
+                    )
+                }
+                logger.d(
+                    "YALI Compose: agent of pid ${process.pid} not ready " +
+                        "(attempt $attempt/$limit) - retrying in ${ATTACH_RETRY_DELAY_MS}ms"
+                )
+                delay(ATTACH_RETRY_DELAY_MS)
+            }
+        }
+    }
+
+    private fun notVisibleMessage(pid: Int, serial: String, attempted: Boolean) =
+        "Process $pid on device $serial is not visible to Android Studio App Inspection" +
+            (if (attempted) " (even after an automatic restart)" else "") +
+            ". YALI reads the Compose tree through Studio's own inspector, which only sees " +
+            "debuggable processes: make sure the app build is debuggable and the process is running."
+
+    /**
+     * Same as [awaitConnected] but by package: a restart changes the pid. The listener replay
+     * can synchronously push the *old*, just-force-stopped descriptor before its disconnect
+     * event arrives, so only a running process with a pid different from [previousPid] counts.
+     */
+    private suspend fun awaitConnectedPackage(
+        apiServices: AppInspectionApiServices,
+        serial: String,
+        packageName: String,
+        previousPid: Int,
+    ): ProcessDescriptor? {
+        val result = AtomicReference<ProcessDescriptor?>(null)
+        val listener = object : ProcessListener {
+            override val filter: (ProcessDescriptor) -> Boolean =
+                { it.device.serial == serial && it.packageName == packageName }
+
+            override fun onProcessConnected(process: ProcessDescriptor) {
+                if (process.isRunning && process.pid != previousPid) {
+                    result.set(process)
+                }
+            }
+
+            override fun onProcessDisconnected(process: ProcessDescriptor) = Unit
+        }
+        val discovery = apiServices.processDiscovery
+        discovery.addProcessListener(DIRECT_EXECUTOR, listener)
+        try {
+            while (result.get() == null) {
+                delay(100L)
+            }
+        } finally {
+            discovery.removeProcessListener(listener)
+        }
+        return result.get()
     }
 
     /** Registers a listener and collects everything the discovery service has (and pushes). */

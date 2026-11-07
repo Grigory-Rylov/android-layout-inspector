@@ -83,6 +83,8 @@ class LayoutInspectorCaptureTask(
                     ComposeCaptureService(logger).capture(
                         deviceSerial = recordingConfig.client.device.serialNumber,
                         pid = recordingConfig.client.clientData.pid,
+                        device = recordingConfig.client.device,
+                        packageName = recordingConfig.client.clientData.clientDescription,
                     )
                 }.await()
                 logger.d("$TAG: compose capture done, ${composeRoots.roots.size} root(s), merging")

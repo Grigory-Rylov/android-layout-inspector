@@ -1,18 +1,32 @@
 package com.github.grishberg.android.layoutinspector.compose
 
+import com.android.ddmlib.AndroidDebugBridge
+import com.android.ddmlib.IDevice
+import org.jetbrains.android.sdk.AndroidSdkUtils
+import com.android.layoutinspector.LayoutInspectorCaptureOptions
+import com.android.layoutinspector.common.AdbFacade
 import com.android.layoutinspector.common.PluginLogger
 import com.android.layoutinspector.model.DisplayInfo
+import com.android.layoutinspector.model.LayoutFileData
 import com.android.layoutinspector.model.ViewNode
 import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposableRoot
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposeNode
+import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
+import com.github.grishberg.android.layoutinspector.ui.OpenWindowMode
+import com.github.grishberg.android.layoutinspector.ui.WindowsManager
+import com.github.grishberg.android.li.PluginState
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
+import kotlinx.coroutines.delay
+import java.awt.image.BufferedImage
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.imageio.ImageIO
+import javax.swing.SwingUtilities
 
 /**
  * Headless self-test hook for the Compose capture pipeline (E2E verification of the whole
@@ -33,6 +47,20 @@ class ComposeSelfTestActivity : ProjectActivity {
         const val PROPERTY = "yali.compose.selftest"
         const val DEVICE_PROPERTY = "yali.compose.selftest.device"
         const val PROCESS_PROPERTY = "yali.compose.selftest.process"
+
+        /**
+         * Direct production-path capture: `serial:pid|package` — calls capture() for that exact
+         * process (not discovery-first), exercising the invisible-process auto-restart fallback
+         * exactly like the New Layout dialog flow does.
+         */
+        const val DIRECT_PROPERTY = "yali.compose.selftest.direct"
+
+        /**
+         * Seconds to keep the real YALI result window open after capture (compose tree rendered
+         * over a live device screenshot). External `import`/`xwd` screenshot of this window is
+         * visual E2E proof. Absent/0: headless JSON-only selftest.
+         */
+        const val UI_PROPERTY = "yali.compose.selftest.ui"
         const val DEFAULT_SELFTEST_DEVICE = "192.168.1.102:5555"
         private val started = AtomicBoolean(false)
     }
@@ -45,16 +73,21 @@ class ComposeSelfTestActivity : ProjectActivity {
         }
         val logger = PluginLogger()
         logger.d("YALI Compose selftest: starting, output=$path")
+        val preferredDevice = System.getProperty(DEVICE_PROPERTY) ?: DEFAULT_SELFTEST_DEVICE
+        val preferredProcess = System.getProperty(PROCESS_PROPERTY)
         try {
-            val preferredDevice = System.getProperty(DEVICE_PROPERTY, DEFAULT_SELFTEST_DEVICE)
-                .ifEmpty { null }
-            val preferredProcess = System.getProperty(PROCESS_PROPERTY, "com.example.yaliprobe")
-                .ifEmpty { null }
-            val capture = ComposeCaptureService(logger)
-                .captureFirstAvailable(preferredDevice, preferredProcess, project)
+            val capture = System.getProperty(DIRECT_PROPERTY)?.let { spec ->
+                runDirectCapture(spec, project, logger)
+            } ?: ComposeCaptureService(logger).captureFirstAvailable(
+                preferredDevice, preferredProcess, project
+            )
             val mergedTree = MergedTreeProbe.buildMergedSample(capture)
             val json = ComposeSelfTestJson.toJson(capture, mergedTree)
             File(path).writeText(json, Charsets.UTF_8)
+            val uiSeconds = System.getProperty(UI_PROPERTY)?.toIntOrNull() ?: 0
+            if (uiSeconds > 0) {
+                runUiProof(capture, project, uiSeconds, logger)
+            }
             exit(0)
         } catch (t: Throwable) {
             logger.e("YALI Compose selftest: failed", t)
@@ -67,6 +100,44 @@ class ComposeSelfTestActivity : ProjectActivity {
             }
             exit(1)
         }
+    }
+
+
+    private suspend fun runDirectCapture(
+        spec: String,
+        project: Project,
+        logger: PluginLogger,
+    ): ComposeCaptureService.ComposeCaptureResult {
+        // `serial:pid|package`; network serials contain ':' themselves -> split from the right.
+        val specWithoutPkg = spec.substringBefore('|')
+        val pkg = spec.substringAfter('|', "").ifEmpty { null }
+        val serial = specWithoutPkg.substringBeforeLast(':')
+        val pid = specWithoutPkg.substringAfterLast(':').toInt()
+        // Get the same ddmlib bridge the production dialog flows use (AdbWrapperImpl route:
+        // AndroidSdkUtils.getDebugBridge resolves AS's own initialized bridge; the extra ddmlib
+        // and profiler lookups are fallbacks). ADB init is async in the sandbox -> poll.
+        val deadline = System.currentTimeMillis() + 90_000
+        var device: IDevice? = null
+        while (device == null && System.currentTimeMillis() < deadline) {
+            val candidates: List<AndroidDebugBridge?> = listOfNotNull(
+                runCatching { AndroidSdkUtils.getDebugBridge(project) }.getOrNull(),
+                AndroidDebugBridge.getBridge(),
+                runCatching {
+                    Class.forName("com.android.tools.profiler.AndroidProfiler")
+                        .getMethod("getDebugBridge")
+                        .invoke(null) as? AndroidDebugBridge
+                }.getOrNull(),
+            ).distinctBy { System.identityHashCode(it) }
+            device = candidates.asSequence().filterNotNull()
+                .flatMap { it.devices.asSequence() }
+                .firstOrNull { it.serialNumber == serial }
+            if (device == null) {
+                delay(500L)
+            }
+        }
+        logger.d("YALI Compose selftest: direct capture serial=$serial pid=$pid pkg=$pkg " +
+            "idDevice=${device != null}")
+        return ComposeCaptureService(logger).capture(serial, pid, project, device, pkg)
     }
 
     private fun exit(code: Int) {
@@ -86,6 +157,71 @@ class ComposeSelfTestActivity : ProjectActivity {
             Runtime.getRuntime().exit(code)
         }
     }
+
+    /**
+     * Opens the production YALI result window (ui/Main) with the captured compose tree grafted
+     * under a ComposeView host and a live device screenshot as preview - exactly what a user sees
+     * after a real capture. An external screenshot of this window is end-to-end proof.
+     */
+    private suspend fun runUiProof(
+        capture: ComposeCaptureService.ComposeCaptureResult,
+        project: Project,
+        keepSeconds: Int,
+        logger: PluginLogger,
+    ) {
+        val preview = deviceScreenshot(capture.deviceSerial, logger)
+        val mergedRoot = MergedTreeProbe.buildMergedRoot(capture)
+            ?: throw IllegalStateException("no compose roots to show")
+        SwingUtilities.invokeAndWait {
+            val manager = WindowsManager(logger)
+            val baseDir = File(
+                project.basePath ?: System.getProperty("java.io.tmpdir"),
+                "captures/YALI",
+            ).apply { mkdirs() }
+            val main = manager.createWindow(
+                OpenWindowMode.DEFAULT,
+                PluginState(),
+                StubDeviceProvider,
+                StubAdbFacade,
+                baseDir,
+            )
+            main.showResult(
+                LayoutFileData(preview, mergedRoot, LayoutInspectorCaptureOptions()),
+                "YALI compose E2E proof",
+                false,
+            )
+            main.toFront()
+        }
+        logger.d("YALI Compose selftest: result window shown, keeping ${keepSeconds}s")
+        delay(keepSeconds * 1000L)
+    }
+
+    private fun deviceScreenshot(serial: String, logger: PluginLogger): BufferedImage? {
+        val sdk = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+        val adb = if (sdk != null) File(sdk, "platform-tools/adb").absolutePath else "adb"
+        return runCatching {
+            ProcessBuilder(adb, "-s", serial, "exec-out", "screencap", "-p")
+                .start().inputStream.use { ImageIO.read(it) }
+        }.onFailure { logger.e("YALI Compose selftest: screencap failed", it) }.getOrNull()
+    }
+}
+
+/** No-op providers: the proof window never captures, it only renders an already-captured tree. */
+private object StubDeviceProvider : DeviceProvider {
+    override fun stop() = Unit
+    override fun reconnect() = Unit
+    override suspend fun requestDevices(): List<IDevice> = emptyList()
+    override val deviceChangedActions = mutableSetOf<DeviceProvider.DeviceChangedAction>()
+    override val isReconnectionAllowed = false
+}
+
+private object StubAdbFacade : AdbFacade {
+    override fun isConnected() = false
+    override fun getDevices(): List<IDevice> = emptyList()
+    override fun hasInitialDeviceList() = false
+    override fun connect() = Unit
+    override fun connect(remoteAddress: String) = Unit
+    override fun stop() = Unit
 }
 
 /**
@@ -100,9 +236,10 @@ internal object MergedTreeProbe {
     private const val DECOR = "com.android.internal.policy.DecorView"
     private const val COMPOSE_VIEW = "androidx.compose.ui.platform.ComposeView"
 
-    fun buildMergedSample(capture: ComposeCaptureService.ComposeCaptureResult): List<String> {
+    /** Builds the merged tree (compose grafted under ComposeView) or null if no roots. */
+    fun buildMergedRoot(capture: ComposeCaptureService.ComposeCaptureResult): AbstractViewNode? {
         if (capture.roots.isEmpty()) {
-            return emptyList()
+            return null
         }
         val allBounds = capture.roots.flatMap { root -> root.nodes.map { it.bounds } }
         val decor = node(
@@ -121,7 +258,11 @@ internal object MergedTreeProbe {
             @Suppress("UNCHECKED_CAST")
             (decor.children as MutableList<AbstractViewNode>).add(host)
         }
-        val merged = ComposeTreeMerger(PluginLogger()).mergeNodes(decor, capture.roots)
+        return ComposeTreeMerger(PluginLogger()).mergeNodes(decor, capture.roots)
+    }
+
+    fun buildMergedSample(capture: ComposeCaptureService.ComposeCaptureResult): List<String> {
+        val merged = buildMergedRoot(capture) ?: return emptyList()
         val rows = mutableListOf<String>()
         walk(merged, 0, rows)
         return rows

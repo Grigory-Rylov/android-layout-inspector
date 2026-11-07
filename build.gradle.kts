@@ -117,6 +117,24 @@ tasks {
             // ProjectActivity only runs when a project is open; a fresh sandbox stops at the
             // Welcome frame, so self-test mode opens a throwaway (empty) directory instead.
             jvmArgs("-Didea.trust.all.projects=true")
+            // The throwaway sandbox has no Android SDK config; without an explicit adb path the
+            // ddmlib bridge never starts (and App Inspection sees no devices).
+            val adbPath = (project.findProperty("yali.adb") as String?)
+                ?: (System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT"))
+                    ?.let { File(it, "platform-tools/adb").absolutePath }
+            if (adbPath != null) {
+                jvmArgs("-Dandroid.adb.path=$adbPath")
+            }
+            // Visual proof: -Pyali.selftest.ui=<seconds> keeps the YALI result window open;
+            // an external screenshotter captures the rendered compose tree.
+            (project.findProperty("yali.selftest.ui") as String?)?.let {
+                jvmArgs("-Dyali.compose.selftest.ui=$it")
+            }
+            // Production-path restart test: -Pyali.selftest.direct=<serial>:<pid>|<package>
+            // runs capture() for that exact process (invisible -> YALI restarts it via adb).
+            (project.findProperty("yali.selftest.direct") as String?)?.let {
+                jvmArgs("-Dyali.compose.selftest.direct=$it")
+            }
             val probeDir = layout.buildDirectory.dir("yali-selftest-project").get().asFile
             doFirst { probeDir.mkdirs() }
             args = listOf(probeDir.absolutePath)
