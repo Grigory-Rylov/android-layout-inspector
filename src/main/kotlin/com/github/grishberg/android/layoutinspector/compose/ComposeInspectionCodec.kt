@@ -52,13 +52,31 @@ object ComposeInspectionCodec {
         val children: List<ComposeNode>,
     )
 
+    /**
+     * One extracted parameter / semantics property value (see proto `Parameter`). [name] is the
+     * string-table-resolved value: the parameter name for named parameters, and - matching the
+     * agent's serializer - the string value itself for STRING-typed values without a name.
+     */
+    data class ComposeParameter(
+        val type: Int,
+        val name: String,
+        val elements: List<ComposeParameter>,
+    )
+
+    /** Parameters of one composable, incl. the semantics lists that carry e.g. Text values. */
+    data class ParameterGroup(
+        val composableId: Long,
+        val parameter: List<ComposeParameter>,
+        val mergedSemantics: List<ComposeParameter>,
+        val unmergedSemantics: List<ComposeParameter>,
+    )
+
     /** Composable trees owned by one host view (usually a single AndroidComposeView). */
     data class ComposableRoot(
         val viewId: Long,
         val nodes: List<ComposeNode>,
         val viewsToSkip: List<Long>,
     )
-
     sealed class ComposeResponse {
         data class GetComposables(
             val roots: List<ComposableRoot>,
@@ -67,6 +85,12 @@ object ComposeInspectionCodec {
 
         data class UpdateSettings(
             val canDelayParameterExtractions: Boolean,
+        ) : ComposeResponse()
+
+        /** Parsed GetAllParametersResponse (semantics / parameter values keyed by composable id). */
+        data class GetAllParameters(
+            val rootViewId: Long,
+            val groups: List<ParameterGroup>,
         ) : ComposeResponse()
 
         /** The agent could not parse our command - usually an inspector/agent version mismatch. */
@@ -80,6 +104,7 @@ object ComposeInspectionCodec {
 
     private const val FIELD_GET_COMPOSABLES = 1
     private const val FIELD_UPDATE_SETTINGS = 5
+    private const val FIELD_GET_ALL_PARAMETERS = 3
 
     private const val WIRE_VARINT = 0
     private const val WIRE_LENGTH_DELIMITED = 2
@@ -105,6 +130,25 @@ object ComposeInspectionCodec {
             if (generation != 0) out.writeInt32(3, generation)
         }
         return nested(FIELD_GET_COMPOSABLES, inner)
+    }
+
+    /**
+     * Command{get_all_parameters_command{root_view_id, skip_system_composables, ...}}: asks the
+     * agent to extract the parameter / semantics values (incl. the `Text` property) for every
+     * composable of one window root. Recursion / iterable limits stay at the proto defaults.
+     */
+    fun encodeGetAllParametersCommand(
+        rootViewId: Long,
+        skipSystemComposables: Boolean = true,
+    ): ByteArray {
+        val inner = writeToMessageSize(
+            (if (rootViewId != 0L) CodedOutputStream.computeInt64Size(1, rootViewId) else 0) +
+                (if (skipSystemComposables) CodedOutputStream.computeBoolSize(2, true) else 0)
+        ) { out ->
+            if (rootViewId != 0L) out.writeInt64(1, rootViewId)
+            if (skipSystemComposables) out.writeBool(2, true)
+        }
+        return nested(FIELD_GET_ALL_PARAMETERS, inner)
     }
 
     /** Command{update_settings_command{...}} (optional; supported for completeness / counters setup). */
@@ -143,6 +187,8 @@ object ComposeInspectionCodec {
                     response = decodeGetComposablesResponse(input.readByteArray())
                 (FIELD_UPDATE_SETTINGS shl 3) or WIRE_LENGTH_DELIMITED ->
                     response = decodeUpdateSettingsResponse(input.readByteArray())
+                (FIELD_GET_ALL_PARAMETERS shl 3) or WIRE_LENGTH_DELIMITED ->
+                    response = decodeGetAllParametersResponse(input.readByteArray())
                 (100 shl 3) or WIRE_LENGTH_DELIMITED -> { // unknown_command_response
                     var commandBytes = ByteArray(0)
                     val inner = CodedInputStream.newInstance(input.readByteArray())
@@ -206,6 +252,77 @@ object ComposeInspectionCodec {
             }
         }
         return ComposeResponse.UpdateSettings(canDelay)
+    }
+
+    /**
+     * GetAllParametersResponse{int64 root_view_id = 1; repeated StringEntry strings = 2;
+     * repeated ParameterGroup parameter_groups = 3} - note the different field numbers from
+     * GetComposablesResponse (strings are field 2 here).
+     */
+    private fun decodeGetAllParametersResponse(bytes: ByteArray): ComposeResponse.GetAllParameters {
+        val strings = mutableMapOf<Int, String>()
+        val groups = mutableListOf<ParameterGroup>()
+        var rootViewId = 0L
+        val input = CodedInputStream.newInstance(bytes)
+        while (true) {
+            val tag = input.readTag()
+            if (tag == 0) {
+                break
+            }
+            when (tag) {
+                (1 shl 3) or WIRE_VARINT -> rootViewId = input.readInt64()
+                (2 shl 3) or WIRE_LENGTH_DELIMITED -> {
+                    val entry = decodeStringEntry(input.readByteArray())
+                    strings[entry.first] = entry.second
+                }
+                (3 shl 3) or WIRE_LENGTH_DELIMITED ->
+                    groups.add(decodeParameterGroup(input.readByteArray(), strings))
+                else -> input.skipField(tag)
+            }
+        }
+        return ComposeResponse.GetAllParameters(rootViewId, groups)
+    }
+
+    private fun decodeParameterGroup(bytes: ByteArray, strings: Map<Int, String>): ParameterGroup {
+        var composableId = 0L
+        val parameter = mutableListOf<ComposeParameter>()
+        val mergedSemantics = mutableListOf<ComposeParameter>()
+        val unmergedSemantics = mutableListOf<ComposeParameter>()
+        val input = CodedInputStream.newInstance(bytes)
+        while (true) {
+            val tag = input.readTag()
+            if (tag == 0) {
+                break
+            }
+            when (tag) {
+                (1 shl 3) or WIRE_VARINT -> composableId = input.readSInt64()
+                (3 shl 3) or WIRE_LENGTH_DELIMITED -> parameter.add(decodeParameter(input.readByteArray(), strings))
+                (4 shl 3) or WIRE_LENGTH_DELIMITED -> mergedSemantics.add(decodeParameter(input.readByteArray(), strings))
+                (5 shl 3) or WIRE_LENGTH_DELIMITED -> unmergedSemantics.add(decodeParameter(input.readByteArray(), strings))
+                else -> input.skipField(tag)
+            }
+        }
+        return ParameterGroup(composableId, parameter, mergedSemantics, unmergedSemantics)
+    }
+
+    private fun decodeParameter(bytes: ByteArray, strings: Map<Int, String>): ComposeParameter {
+        var type = 0
+        var name = 0
+        val elements = mutableListOf<ComposeParameter>()
+        val input = CodedInputStream.newInstance(bytes)
+        while (true) {
+            val tag = input.readTag()
+            if (tag == 0) {
+                break
+            }
+            when (tag) {
+                (1 shl 3) or WIRE_VARINT -> type = input.readInt32()
+                (2 shl 3) or WIRE_VARINT -> name = input.readInt32()
+                (3 shl 3) or WIRE_LENGTH_DELIMITED -> elements.add(decodeParameter(input.readByteArray(), strings))
+                else -> input.skipField(tag) // reference, index, value oneof
+            }
+        }
+        return ComposeParameter(type, strings[name].orEmpty(), elements)
     }
 
     private fun decodeStringEntry(bytes: ByteArray): Pair<Int, String> {

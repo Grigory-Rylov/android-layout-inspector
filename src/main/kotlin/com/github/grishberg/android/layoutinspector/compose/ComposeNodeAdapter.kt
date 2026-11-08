@@ -43,19 +43,27 @@ object ComposeNodeAdapter {
      * Adapts the top-level [nodes] of one ComposableRoot; [hostYaliNode] is the YALI node the
      * compose trees are grafted under (only used as the typed parent — bounds are absolute).
      */
-    fun adaptRootNodes(nodes: List<ComposeNode>, hostYaliNode: AbstractViewNode): List<ViewNode> =
-        nodes.map { adaptNode(it, hostYaliNode) }
+    fun adaptRootNodes(
+        nodes: List<ComposeNode>,
+        hostYaliNode: AbstractViewNode,
+        semanticTexts: Map<Long, String> = emptyMap(),
+    ): List<ViewNode> = nodes.map { adaptNode(it, hostYaliNode, semanticTexts) }
 
-    private fun adaptNode(node: ComposeNode, yaliParent: AbstractViewNode): ViewNode {
+    private fun adaptNode(
+        node: ComposeNode,
+        yaliParent: AbstractViewNode,
+        semanticTexts: Map<Long, String>,
+    ): ViewNode {
         val absX = node.bounds.left
         val absY = node.bounds.top
         val parentAbsX = yaliParent.locationOnScreenX
         val parentAbsY = yaliParent.locationOnScreenY
 
-        val properties = buildProperties(node, absX, absY)
+        val text = semanticTexts[node.id]
+        val properties = buildProperties(node, absX, absY, text)
         val viewNode = ViewNode(
             parent = yaliParent as? ViewNode,
-            name = displayName(node),
+            name = displayName(node, text),
             hash = "compose-${node.id}",
             namedProperties = properties.associateBy { it.fullName },
             properties = properties,
@@ -77,22 +85,35 @@ object ComposeNodeAdapter {
                 /* contentDesc = */ null,
             ),
         )
-        viewNode.children.addAll(node.children.map { adaptNode(it, viewNode) })
+        viewNode.children.addAll(node.children.map { adaptNode(it, viewNode, semanticTexts) })
         return viewNode
     }
 
-    /** Tree label: `<fileShort>.kt:<line>:<composableName>` (the compose agent may report paths). */
-    fun displayName(node: ComposeNode): String {
+    /**
+     * Tree label: `<fileShort>.kt:<line>:<composableName>`, plus the rendered text in quotes
+     * when the semantics carried one (the compose agent may report full paths in [ComposeNode.file]).
+     */
+    fun displayName(node: ComposeNode, text: String? = null): String {
         val fileShort = node.file
             .substringAfterLast('/')
             .removeSuffix(".kt")
             .ifEmpty { "unknown" }
-        return "$fileShort.kt:${node.line}:${node.name}"
+        val label = "$fileShort.kt:${node.line}:${node.name}"
+        return if (text == null) label else "$label(\"${displayText(text)}\")"
     }
 
-    private fun buildProperties(node: ComposeNode, absX: Int, absY: Int): List<ViewProperty> {
+    /** One line, bounded: tree rows must stay readable for long AnnotatedStrings. */
+    private fun displayText(text: String): String =
+        text.replace('\n', ' ').let { if (it.length <= 80) it else it.take(79) + "…" }
+
+    private fun buildProperties(
+        node: ComposeNode,
+        absX: Int,
+        absY: Int,
+        text: String?,
+    ): List<ViewProperty> {
         val rect = node.bounds
-        return listOf(
+        val base = listOf(
             ViewProperty(
                 "layout:getLocationOnScreen_x()", "getLocationOnScreen_x()", LAYOUT_CATEGORY,
                 absX.toString(), false, absX,
@@ -120,6 +141,10 @@ object ComposeNodeAdapter {
             ViewProperty("compose:flags", "flags", CATEGORY, formatFlags(node.flags)),
             ViewProperty("compose:view_id", "view_id", CATEGORY, node.viewId.toString()),
         )
+        if (text == null) {
+            return base
+        }
+        return listOf(ViewProperty("compose:text", "text", CATEGORY, text)) + base
     }
 
     private fun formatFlags(flags: Int): String {

@@ -34,7 +34,11 @@ class ComposeTreeMerger(private val logger: AppLogger) {
         private val COMPOSE_HOST_SIMPLE_NAMES = setOf("ComposeView", "AndroidComposeView")
     }
 
-    fun mergeNodes(layoutRootNode: AbstractViewNode, roots: List<ComposableRoot>): AbstractViewNode {
+    fun mergeNodes(
+        layoutRootNode: AbstractViewNode,
+        roots: List<ComposableRoot>,
+        semanticTexts: Map<Long, String> = emptyMap(),
+    ): AbstractViewNode {
         if (roots.isEmpty()) {
             logger.d("YALI ComposeTreeMerger: no compose roots")
             return layoutRootNode
@@ -52,23 +56,32 @@ class ComposeTreeMerger(private val logger: AppLogger) {
                 else -> bestHostMatch(root, hosts)
             }
             if (host != null) {
-                attachUnder(host, root)
+                attachUnder(host, root, semanticTexts)
             } else {
-                appendSyntheticUnderDecor(layoutRootNode, root)
+                appendSyntheticUnderDecor(layoutRootNode, root, semanticTexts)
             }
         }
         return layoutRootNode
     }
 
-    private fun attachUnder(host: AbstractViewNode, root: ComposableRoot) {
-        ComposeNodeAdapter.adaptRootNodes(root.nodes, host).forEach { addChildTo(host, it) }
+    private fun attachUnder(
+        host: AbstractViewNode,
+        root: ComposableRoot,
+        semanticTexts: Map<Long, String>,
+    ) {
+        ComposeNodeAdapter.adaptRootNodes(root.nodes, host, semanticTexts)
+            .forEach { addChildTo(host, it) }
         logger.d(
             "YALI ComposeTreeMerger: grafted view_id=${root.viewId} " +
                 "(${root.nodes.size} root composables) under ${host.name}"
         )
     }
 
-    private fun appendSyntheticUnderDecor(decorRoot: AbstractViewNode, root: ComposableRoot) {
+    private fun appendSyntheticUnderDecor(
+        decorRoot: AbstractViewNode,
+        root: ComposableRoot,
+        semanticTexts: Map<Long, String>,
+    ) {
         // compose bounds are already absolute screen pixels (see ComposeNodeAdapter doc)
         val rootBounds = unionBounds(root.nodes)
         val originX = decorRoot.locationOnScreenX
@@ -100,7 +113,9 @@ class ComposeTreeMerger(private val logger: AppLogger) {
                 0, 0, true, 0f, 0f, 0f, 0f, null,
             ),
         )
-        syntheticHost.children.addAll(ComposeNodeAdapter.adaptRootNodes(root.nodes, syntheticHost))
+        syntheticHost.children.addAll(
+            ComposeNodeAdapter.adaptRootNodes(root.nodes, syntheticHost, semanticTexts)
+        )
         addChildTo(decorRoot, syntheticHost)
         logger.d(
             "YALI ComposeTreeMerger: no compose host found, appended " +

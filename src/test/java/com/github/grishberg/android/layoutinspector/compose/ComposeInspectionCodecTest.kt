@@ -1,9 +1,11 @@
 package com.github.grishberg.android.layoutinspector.compose
 
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposeNode
+import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposeParameter
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposeRect
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposeResponse
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposableRoot
+import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ParameterGroup
 import com.google.protobuf.CodedOutputStream
 import java.io.ByteArrayOutputStream
 import junit.framework.TestCase.assertEquals
@@ -165,5 +167,79 @@ class ComposeInspectionCodecTest {
         stream.flush()
         val decoded = ComposeInspectionCodec.decodeResponse(out.toByteArray())
         assertEquals(ComposeResponse.UpdateSettings(canDelayParameterExtractions = true), decoded)
+    }
+
+    @Test
+    fun `get all parameters command exact bytes`() {
+        // Command{get_all_parameters_command{root_view_id=5, skip_system_composables=true}}
+        // field 3 length-delimited -> tag (3<<3)|2 = 0x1a; inner: 08 05 (int64) 10 01 (bool)
+        assertEquals(
+            "1a0408051001",
+            hex(ComposeInspectionCodec.encodeGetAllParametersCommand(rootViewId = 5)),
+        )
+        // proto3 defaults omitted
+        assertEquals(
+            "1a020805",
+            hex(
+                ComposeInspectionCodec.encodeGetAllParametersCommand(
+                    rootViewId = 5, skipSystemComposables = false
+                )
+            ),
+        )
+    }
+
+    @Test
+    fun `get all parameters response round trip`() {
+        val stringParam = message {
+            writeInt32(1, 1) // type STRING
+            writeInt32(2, 2) // name -> string id 2 ("Hello")
+        }
+        val textParam = message {
+            writeInt32(1, 14) // type ITERABLE
+            writeInt32(2, 1) // name -> string id 1 ("Text")
+            writeByteArray(3, stringParam) // elements
+        }
+        val group = message {
+            writeSInt64(1, 7) // composable_id (zigzag -> 0x0e)
+            writeByteArray(4, textParam) // merged_semantics
+        }
+        val response = message {
+            writeInt64(1, 42) // root_view_id
+            writeByteArray(2, message { // StringEntry strings (field 2 here, unlike GetComposables)
+                writeInt32(1, 1)
+                writeString(2, "Text")
+            })
+            writeByteArray(2, message {
+                writeInt32(1, 2)
+                writeString(2, "Hello")
+            })
+            writeByteArray(3, group) // parameter_groups
+        }
+        val decoded = ComposeInspectionCodec.decodeResponse(message { writeByteArray(3, response) })
+        assertEquals(
+            ComposeResponse.GetAllParameters(
+                rootViewId = 42,
+                groups = listOf(
+                    ParameterGroup(
+                        composableId = 7,
+                        parameter = emptyList(),
+                        mergedSemantics = listOf(
+                            ComposeParameter(14, "Text", listOf(ComposeParameter(1, "Hello", emptyList()))),
+                        ),
+                        unmergedSemantics = emptyList(),
+                    ),
+                ),
+            ),
+            decoded,
+        )
+    }
+
+    /** Helper mirroring the codec's own nesting: body of a length-delimited field. */
+    private fun message(write: CodedOutputStream.() -> Unit): ByteArray {
+        val out = ByteArrayOutputStream()
+        val stream = CodedOutputStream.newInstance(out)
+        stream.write()
+        stream.flush()
+        return out.toByteArray()
     }
 }
