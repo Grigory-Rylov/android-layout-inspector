@@ -258,7 +258,7 @@ internal object MergedTreeProbe {
             @Suppress("UNCHECKED_CAST")
             (decor.children as MutableList<AbstractViewNode>).add(host)
         }
-        return ComposeTreeMerger(PluginLogger()).mergeNodes(decor, capture.roots)
+        return ComposeTreeMerger(PluginLogger()).mergeNodes(decor, capture.roots, capture.semanticTexts)
     }
 
     fun buildMergedSample(capture: ComposeCaptureService.ComposeCaptureResult): List<String> {

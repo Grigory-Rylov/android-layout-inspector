@@ -90,7 +90,7 @@ class LayoutInspectorCaptureTask(
                 logger.d("$TAG: compose capture done, ${composeRoots.roots.size} root(s), merging")
                 val composeMerger = ComposeTreeMerger(logger)
                 LayoutInspectorResult(
-                    composeMerger.mergeNodes(result.root, composeRoots.roots),
+                    composeMerger.mergeNodes(result.root, composeRoots.roots, composeRoots.semanticTexts),
                     result.previewImage,
                     result.data,
                     result.options,

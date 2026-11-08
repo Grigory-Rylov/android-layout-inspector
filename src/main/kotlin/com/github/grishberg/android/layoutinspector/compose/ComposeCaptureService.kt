@@ -103,6 +103,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
 
         private const val PROCESS_DISCOVERY_TIMEOUT_MS = 15_000L
         private const val RELAUNCH_DISCOVERY_TIMEOUT_MS = 20_000L
+        private const val TRANSPORT_REPAIR_DISCOVERY_MS = 8_000L
         private const val COMMAND_TIMEOUT_MS = 30_000L
 
         /**
@@ -127,6 +128,8 @@ class ComposeCaptureService(private val logger: AppLogger) {
         val roots: List<ComposableRoot>,
         /** Window root view ids (View.getUniqueDrawingId) the compose agent was queried with. */
         val requestedRootViewIds: List<Long> = emptyList(),
+        /** Composable ids (see ComposeNode.id) whose `Text` semantics resolved to a value. */
+        val semanticTexts: Map<Long, String> = emptyMap(),
     )
 
     /**
@@ -186,6 +189,11 @@ class ComposeCaptureService(private val logger: AppLogger) {
 
             val roots = requestComposables(messenger, rootViewIds)
             logger.d("YALI Compose: captured ${roots.size} compose root(s) for ids $rootViewIds")
+            // Text values live in the semantics parameters, fetched in a second command per
+            // root; soft-fails, so an agent without (or with a failing) extraction still yields
+            // the full tree, just without labels.
+            val texts = fetchSemanticTexts(messenger, rootViewIds)
+            logger.d("YALI Compose: resolved semantic text for ${texts.size} composable(s)")
             return ComposeCaptureResult(
                 deviceSerial = deviceSerial,
                 pid = process.pid,
@@ -193,6 +201,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 composeVersion = composeVersion,
                 roots = roots,
                 requestedRootViewIds = rootViewIds,
+                semanticTexts = texts,
             )
         } catch (t: Throwable) {
             if (t is ComposeCaptureException) {
@@ -319,6 +328,18 @@ class ComposeCaptureService(private val logger: AppLogger) {
         if (device == null || packageName == null) {
             throw ComposeCaptureException(notVisibleMessage(pid, serial, attempted = false))
         }
+        // A stale/corrupt Studio agent cache under /data/local/tmp/perfd makes transportd fail
+        // its bind ("A port number wasn't bound" in idea.log), which then hides *every* process
+        // from App Inspection. Reset it; Studio re-pushes and relaunches the daemon on its own.
+        repairTransportDaemon(device)
+        // With transportd healthy, an already-running process usually registers without a
+        // restart; only restart the app when that grace period stays empty.
+        val afterRepair = withTimeoutOrNullCompat(TRANSPORT_REPAIR_DISCOVERY_MS) {
+            awaitConnected(apiServices, serial, pid)
+        }
+        if (afterRepair != null) {
+            return afterRepair to false
+        }
         logger.d(
             "YALI Compose: pid $pid invisible to App Inspection - restarting $packageName " +
                 "on $serial so its debug agent registers (same as AS's process-restart flow)"
@@ -392,11 +413,32 @@ class ComposeCaptureService(private val logger: AppLogger) {
         }
     }
 
+    /**
+     * Resets Android Studio's on-device inspection agent cache (`/data/local/tmp/perfd`) and
+     * kills a running transportd. Studio's TransportDeviceManager watches the daemon: once it
+     * dies (or its files vanish) the restart loop re-pushes the cache and relaunches transportd,
+     * restoring App Inspection process discovery without a manual `adb shell rm -rf`.
+     */
+    internal suspend fun repairTransportDaemon(device: IDevice) {
+        logger.d(
+            "YALI Compose: resetting Studio transportd cache (/data/local/tmp/perfd) on " +
+                device.serialNumber
+        )
+        runCatchingSuspend<Unit>("reset transport daemon cache on ${device.serialNumber}") {
+            device.executeShellCommand("rm -rf /data/local/tmp/perfd", CollectingOutputReceiver())
+            device.executeShellCommand(
+                "kill \$(pidof transport) 2>/dev/null", CollectingOutputReceiver()
+            )
+        }.onFailure { logger.w("YALI Compose: ${it.message}") }
+    }
+
     private fun notVisibleMessage(pid: Int, serial: String, attempted: Boolean) =
         "Process $pid on device $serial is not visible to Android Studio App Inspection" +
             (if (attempted) " (even after an automatic restart)" else "") +
             ". YALI reads the Compose tree through Studio's own inspector, which only sees " +
-            "debuggable processes: make sure the app build is debuggable and the process is running."
+            "debuggable processes: make sure the app build is debuggable and the process is running." +
+            (if (attempted) " The /data/local/tmp/perfd agent cache on the device was reset; if " +
+                "this persists, restart Android Studio - its transport daemon may be wedged." else "")
 
     /**
      * Same as [awaitConnected] but by package: a restart changes the pid. The listener replay
@@ -637,6 +679,45 @@ class ComposeCaptureService(private val logger: AppLogger) {
             }
         }
         return allRoots
+    }
+
+    /**
+     * `get_all_parameters_command` per window root, flattened into composable id -> `Text`
+     * semantics value via [ComposeTextExtractor]. Soft-fails by design: text is enrichment, a
+     * refusal (older agent) or extraction error must never fail the capture itself.
+     */
+    private suspend fun fetchSemanticTexts(
+        messenger: AppInspectorMessenger,
+        rootViewIds: List<Long>,
+    ): Map<Long, String> {
+        val texts = mutableMapOf<Long, String>()
+        for (rootViewId in rootViewIds) {
+            val responseBytes = runCatchingSuspend(
+                "send get_all_parameters_command for root view $rootViewId"
+            ) {
+                withTimeout(COMMAND_TIMEOUT_MS) {
+                    messenger.sendRawCommand(
+                        ComposeInspectionCodec.encodeGetAllParametersCommand(rootViewId)
+                    )
+                }
+            }.getOrElse {
+                logger.w("YALI Compose: no semantic texts for root $rootViewId: ${it.message}")
+                continue
+            }
+            when (val response = ComposeInspectionCodec.decodeResponse(responseBytes)) {
+                is ComposeResponse.GetAllParameters ->
+                    texts += ComposeTextExtractor.extract(response.groups)
+                is ComposeResponse.Unknown -> logger.w(
+                    "YALI Compose: agent rejected get_all_parameters_command for root " +
+                        "$rootViewId - compose Text values unavailable"
+                )
+                else -> logger.w(
+                    "YALI Compose: unexpected get_all_parameters response for root " +
+                        "$rootViewId: $response"
+                )
+            }
+        }
+        return texts
     }
 
     /**
