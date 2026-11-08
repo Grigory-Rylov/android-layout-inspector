@@ -35,6 +35,9 @@ class PluginState : SettingsFacade {
 
     override var isDumpViewModeEnabled: Boolean = false
 
+    // "composeMode": capture Jetpack Compose hierarchy via AS App Inspection (see compose package)
+    override var isComposeModeEnabled: Boolean = false
+
     override fun shouldShowSizeInDp(): Boolean = shouldShowSizeInDp
 
     override fun showSizeInDp(state: Boolean) {

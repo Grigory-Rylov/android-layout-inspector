@@ -3,6 +3,7 @@ package com.github.grishberg.android.layoutinspector.ui.dialogs
 import com.android.ddmlib.IDevice
 import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ClientWindow
+import com.github.grishberg.android.layoutinspector.compose.ComposeCaptureService
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptions
 import com.github.grishberg.android.layoutinspector.domain.LayoutRecordOptionsInput
 import com.github.grishberg.android.layoutinspector.process.providers.DeviceProvider
@@ -37,6 +38,7 @@ class NewLayoutDialog(
     private val showAllProcesses: JCheckBox
     private val secondProtocolVersion: JCheckBox
     private val dumpViewMode: JCheckBox
+    private val composeMode: JCheckBox
     private val clientListModel = DefaultListModel<ClientWrapper>()
 
     private val devicesModel = DevicesCompoBoxModel()
@@ -122,6 +124,14 @@ class NewLayoutDialog(
         dumpViewMode.toolTipText = "if selected, will be used layouts from uiautomator dump for ComposeView children"
         dumpViewMode.isSelected = settings.isDumpViewModeEnabled
 
+        composeMode = JCheckBox("jetpack compose (beta)")
+        composeMode.toolTipText =
+            "if selected, the Jetpack Compose hierarchy will be added under ComposeView nodes.\n" +
+                "Requires a debuggable app; uses the Android Studio layout inspector service"
+        composeMode.isSelected = settings.isComposeModeEnabled
+        // the compose capture works only when AS App Inspection services are present
+        composeMode.isEnabled = ComposeCaptureService.isAvailable()
+
         startButton = JButton("Start")
         startButton.addActionListener {
             startRecording()
@@ -141,6 +151,7 @@ class NewLayoutDialog(
         panelBuilder.addLabeledComponent("File name prefix: ", filePrefixField)
         panelBuilder.addSingleComponent(secondProtocolVersion)
         panelBuilder.addSingleComponent(dumpViewMode)
+        panelBuilder.addSingleComponent(composeMode)
         if (deviceProvider.isReconnectionAllowed) {
             panelBuilder.addMainAndSlaveComponent(startButton, resetConnectionButton)
         } else {
@@ -240,6 +251,7 @@ class NewLayoutDialog(
         val timeoutInSeconds = timeoutField.text.toInt()
         settings.isDumpViewModeEnabled = dumpViewMode.isSelected
         settings.isSecondProtocolVersionEnabled = secondProtocolVersion.isSelected
+        settings.isComposeModeEnabled = composeMode.isSelected
         result = LayoutRecordOptions(
             device = device.device,
             client = client.client,
@@ -247,7 +259,8 @@ class NewLayoutDialog(
             fileNamePrefix = filePrefixField.text.trim(),
             v2Enabled = secondProtocolVersion.isSelected,
             dumpViewModeEnabled = dumpViewMode.isSelected,
-            label = filePrefixField.text
+            composeModeEnabled = composeMode.isSelected,
+            label = filePrefixField.text,
         )
         deviceProvider.deviceChangedActions.remove(deviceChangedAction)
         isVisible = false

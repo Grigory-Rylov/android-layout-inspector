@@ -32,6 +32,9 @@
         <notificationGroup id="Support YALI Notification" displayType="STICKY_BALLOON"/>
         <notificationGroup id="Notification Group" displayType="STICKY_BALLOON"/>
         <notificationGroup id="Error Notification Group" displayType="BALLOON"/>
+        <!-- Compose capture self-test hook; no-op unless -Dyali.compose.selftest is set -->
+        <postStartupActivity
+            implementation="com.github.grishberg.android.layoutinspector.compose.ComposeSelfTestActivity"/>
     </extensions>
 
     <actions>

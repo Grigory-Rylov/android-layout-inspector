@@ -26,6 +26,23 @@ Menu Tools -> Launch YALI
 Because AS layout inspector sometimes cannot download layouts for some reasons.
 Also you can switch to *DP* dimension mode.
 
+## Jetpack Compose
+In the *New Layout* dialog select **jetpack compose (beta)**. Along with the regular view hierarchy YALI
+downloads the real Compose tree from the running app (same App Inspection service Android Studio uses)
+and grafts it under the `ComposeView` nodes:
+
+- composable names, source file and line of every call;
+- exact pixel bounds (the same PX/DP modes, distance measures and search work on compose nodes);
+- the rendered text of every `Text` composable (tree label + `compose:text` property);
+
+Requirements: the app is **debuggable** (debug build, without code shrinking), runs on the connected
+device, and uses Compose UI 1.2.1+.
+If the running process is invisible to App Inspection, YALI resets the on-device inspector
+daemon (`/data/local/tmp/perfd` cache, transportd) and restarts the app automatically, the same
+way Android Studio recovers its own process list. If the compose capture still fails (e.g. the
+app is not debuggable), YALI shows the reason and the regular view hierarchy capture works as
+before.
+
 ## Measure distance between two element
 1) Select first element by **Mouse click** - it will be select by red square
 2) Select second element by **Mouse click + Ctrl(Cmd)** - it will be select by yellow square.

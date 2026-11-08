@@ -29,6 +29,11 @@ interface SettingsFacade {
 
     var isDumpViewModeEnabled: Boolean
 
+    // key "composeMode": capture the Jetpack Compose hierarchy through Android Studio's
+    // App Inspection service (see compose/ComposeCaptureService). Persisted like dumpViewMode,
+    // via StorageService/yali-settings.xml (PluginState).
+    var isComposeModeEnabled: Boolean
+
     fun shouldShowSizeInDp(): Boolean
 
     fun showSizeInDp(state: Boolean)
