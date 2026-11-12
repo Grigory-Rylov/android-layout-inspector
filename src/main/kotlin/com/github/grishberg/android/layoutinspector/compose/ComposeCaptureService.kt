@@ -99,6 +99,14 @@ class ComposeCaptureService(private val logger: AppLogger) {
         const val ROOTS_EVENT_WINDOW_MS = 4_000L
         private const val ATTACH_RETRY_LIMIT = 4
         private const val ATTACH_RETRY_DELAY_MS = 4_000L
+
+        /**
+         * The view-inspector bootstrap intermittently dies with "Job was cancelled" (the
+         * inspector job is torn down while the agent is still booting); relaunching it
+         * immediately afterwards succeeds. Retry the whole bootstrap that many times.
+         */
+        private const val BOOTSTRAP_RETRY_LIMIT = 3
+        private const val BOOTSTRAP_RETRY_DELAY_MS = 2_000L
         const val FETCH_EVENT_WINDOW_MS = 10_000L
 
         private const val PROCESS_DISCOVERY_TIMEOUT_MS = 15_000L
@@ -724,8 +732,36 @@ class ComposeCaptureService(private val logger: AppLogger) {
      * Launches the view inspector, learns the window root ids (View.getUniqueDrawingId) from its
      * event flow and stops the inspector again. AS knows these ids the same way. [collectRootViewIds]
      * does the flow-side work and is unit-testable without a transport.
+     *
+     * The first launch intermittently fails with "Job was cancelled" while the agent is still
+     * booting; a plain relaunch succeeds, so the whole bootstrap is retried up to
+     * [BOOTSTRAP_RETRY_LIMIT] times before giving up.
      */
     private suspend fun bootstrapWindowRootViewIds(
+        apiServices: AppInspectionApiServices,
+        process: ProcessDescriptor,
+        projectName: String,
+    ): List<Long> {
+        var lastError: ComposeCaptureException? = null
+        for (attempt in 1..BOOTSTRAP_RETRY_LIMIT) {
+            try {
+                return bootstrapWindowRootViewIdsOnce(apiServices, process, projectName)
+            } catch (e: ComposeCaptureException) {
+                lastError = e
+                if (attempt < BOOTSTRAP_RETRY_LIMIT) {
+                    logger.d(
+                        "YALI Compose: view inspector bootstrap failed " +
+                            "(attempt $attempt/$BOOTSTRAP_RETRY_LIMIT): ${e.message} - " +
+                            "retrying in ${BOOTSTRAP_RETRY_DELAY_MS}ms"
+                    )
+                    delay(BOOTSTRAP_RETRY_DELAY_MS)
+                }
+            }
+        }
+        throw lastError!!
+    }
+
+    private suspend fun bootstrapWindowRootViewIdsOnce(
         apiServices: AppInspectionApiServices,
         process: ProcessDescriptor,
         projectName: String,
