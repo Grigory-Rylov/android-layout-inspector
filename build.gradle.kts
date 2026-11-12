@@ -43,7 +43,9 @@ intellijPlatform {
         name = properties("pluginName")
         group = properties("pluginGroup")
         changeNotes.set("Updated android studio compatibility to 2024.3.1.7")
-        ideaVersion.sinceBuild.set(project.property("sinceBuild").toString())
+        // No since-build: plugin.xml falls back to since-build 201 (no upper bound), so any
+        // current Android Studio can install YALI. Pass -PsinceBuild=NNN.x to pin explicitly.
+        ideaVersion.sinceBuild.set(provider { project.findProperty("sinceBuild")?.toString() })
         ideaVersion.untilBuild.set(provider { null })
     }
     buildSearchableOptions.set(false)
