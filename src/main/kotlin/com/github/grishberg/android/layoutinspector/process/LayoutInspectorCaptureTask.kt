@@ -7,11 +7,11 @@ import com.android.layoutinspector.LayoutInspectorResult
 import com.android.layoutinspector.ProtocolVersion
 import com.android.layoutinspector.common.AppLogger
 import com.github.grishberg.android.layoutinspector.compose.ComposeCaptureService
-import com.github.grishberg.android.layoutinspector.compose.ComposeTreeMerger
 import com.github.grishberg.android.layoutinspector.domain.DumpViewNode
 import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 
 private const val TAG = "LayoutInspectorCaptureTask"
 
@@ -22,7 +22,12 @@ class LayoutInspectorCaptureTask(
     private val dispatchers: CoroutinesDispatchers,
 ) {
 
-    suspend fun capture(recordingConfig: RecordingConfig): LayoutInspectorResult {
+    /**
+     * Fast phase of a capture: JDWP view hierarchy (+ optional uiautomator dump merge).
+     * The slow Jetpack Compose phase runs separately via [captureCompose] so the view tree can
+     * be shown immediately; the returned result never carries compose grafts.
+     */
+    suspend fun captureViews(recordingConfig: RecordingConfig): LayoutInspectorResult {
 
         val layoutResultAsync = scope.async(dispatchers.worker) {
             logger.d("$TAG: start capture view timeout = ${recordingConfig.timeoutInSeconds}")
@@ -72,46 +77,32 @@ class LayoutInspectorCaptureTask(
                 layoutAsyncResult
             }
 
-        val composeMerged = if (recordingConfig.recordOptions.composeModeEnabled && result.root != null) {
-            // Compose hierarchy comes from Android Studio's own App Inspection service; the grafted
-            // children live in memory only (.li persistence is unchanged), like the dump merge above.
-            // On failure the JDWP tree is still shown; the reason travels in result.error and Logic
-            // surfaces it as a secondary dialog.
-            try {
-                val composeRoots = scope.async(dispatchers.worker) {
-                    logger.d("$TAG: starting compose capture")
-                    ComposeCaptureService(logger).capture(
-                        deviceSerial = recordingConfig.client.device.serialNumber,
-                        pid = recordingConfig.client.clientData.pid,
-                        device = recordingConfig.client.device,
-                        packageName = recordingConfig.client.clientData.clientDescription,
-                    )
-                }.await()
-                logger.d("$TAG: compose capture done, ${composeRoots.roots.size} root(s), merging")
-                val composeMerger = ComposeTreeMerger(logger)
-                LayoutInspectorResult(
-                    composeMerger.mergeNodes(result.root, composeRoots.roots, composeRoots.semanticTexts),
-                    result.previewImage,
-                    result.data,
-                    result.options,
-                    result.error,
-                )
-            } catch (t: com.github.grishberg.android.layoutinspector.compose.ComposeCaptureException) {
-                logger.e("$TAG: compose capture failed: ${t.message}", t)
-                LayoutInspectorResult(
-                    result.root,
-                    result.previewImage,
-                    result.data,
-                    result.options,
-                    t.message ?: "Jetpack Compose capture failed",
-                )
-            }
-        } else {
-            result
-        }
+        logger.d("$TAG: view capturing is done, error: ${result.error}")
+        return result
+    }
 
-        logger.d("$TAG: capturing is done, error: ${composeMerged.error}")
-        return composeMerged
+    /**
+     * Slow phase of a compose-enabled capture: App Inspection based [ComposeCaptureService]
+     * running on the worker dispatcher. [onStage] receives human-readable phase updates and is
+     * invoked on a worker thread (callers must marshal to the UI thread themselves).
+     * Propagates [com.github.grishberg.android.layoutinspector.compose.ComposeCaptureException]
+     * with a user-presentable message; the caller decides how to surface it.
+     */
+    suspend fun captureCompose(
+        recordingConfig: RecordingConfig,
+        onStage: (String) -> Unit,
+    ): ComposeCaptureService.ComposeCaptureResult = withContext(dispatchers.worker) {
+        // withContext (not scope.async) so the job is a child of the *caller*: cancelling the
+        // compose phase (new capture / refresh / close) really stops this capture — otherwise an
+        // orphaned run would keep the app's inspectors busy and stopInspectors the next capture.
+        logger.d("$TAG: starting compose capture")
+        ComposeCaptureService(logger).capture(
+            deviceSerial = recordingConfig.client.device.serialNumber,
+            pid = recordingConfig.client.clientData.pid,
+            device = recordingConfig.client.device,
+            packageName = recordingConfig.client.clientData.clientDescription,
+            onStage = onStage,
+        )
     }
 
     private suspend fun getViewDumps(recordingConfig: RecordingConfig): DumpViewNode? {

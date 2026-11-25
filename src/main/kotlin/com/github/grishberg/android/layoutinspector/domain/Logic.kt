@@ -5,6 +5,8 @@ import com.android.layoutinspector.common.AppLogger
 import com.android.layoutinspector.model.ClientWindow
 import com.android.layoutinspector.model.LayoutFileData
 import com.github.grishberg.android.layoutinspector.common.CoroutinesDispatchers
+import com.github.grishberg.android.layoutinspector.compose.ComposeCaptureException
+import com.github.grishberg.android.layoutinspector.compose.ComposeTreeMerger
 import com.github.grishberg.android.layoutinspector.process.LayoutFileSystem
 import com.github.grishberg.android.layoutinspector.process.LayoutInspectorCaptureTask
 import com.github.grishberg.android.layoutinspector.process.RecordingConfig
@@ -36,6 +38,9 @@ class Logic(
 
     private val screenSizeProvider = ScreenSizeProvider(dispatchers)
     private var recordingJob: Job? = null
+
+    /** Background Jetpack Compose capture phase of the last displayed capture (see [startComposePhase]). */
+    private var composeJob: Job? = null
     private var isOpenedLayout = false
 
     private val errorHandler = CoroutineExceptionHandler { _, exception ->
@@ -52,6 +57,8 @@ class Logic(
         get() = previousRecordingConfig != null
 
     fun startRecording() {
+        composeJob?.cancel()
+        output.hideComposeProgress()
         recordingJob = coroutineScope.launch(errorHandler) {
             recodLayoutFromNewDevice()
         }
@@ -103,6 +110,8 @@ class Logic(
     }
 
     fun refreshLayout() {
+        composeJob?.cancel()
+        output.hideComposeProgress()
         previousRecordingConfig?.let { config ->
 
             recordingJob = coroutineScope.launch(errorHandler) {
@@ -125,20 +134,97 @@ class Logic(
     private suspend fun captureLayouts(
         config: RecordingConfig, isRefresh: Boolean = false
     ) {
+        logger.w(
+            "$TAG: captureLayouts start: device=${config.recordOptions.device.serialNumber} " +
+                "client=${config.recordOptions.client} compose=${config.recordOptions.composeModeEnabled} " +
+                "timeout=${config.recordOptions.timeoutInSeconds}s refresh=$isRefresh"
+        )
         val task = LayoutInspectorCaptureTask(layoutFileSystem, coroutineScope, logger, dispatchers)
 
-        val liResult = task.capture(config)
+        val liResult = task.captureViews(config)
 
         output.hideLoading()
 
         if (liResult.data == null || liResult.root == null) {
             output.showError(liResult.error)
-        } else {
-            onSuccessCaptured(config, liResult, isRefresh)
-            // A non-fatal error (compose capture failed while the view tree was captured fine)
-            // is shown after the result: the user gets both the tree and the reason.
-            if (liResult.error.isNotEmpty()) {
-                output.showError(liResult.error)
+            return
+        }
+
+        onSuccessCaptured(config, liResult, isRefresh)
+        // A non-fatal error is shown after the result: the user gets both the tree and the reason.
+        if (liResult.error.isNotEmpty()) {
+            output.showError(liResult.error)
+        }
+        // The view tree is on screen already; the slow Jetpack Compose phase continues in the
+        // background so the user can browse while it runs.
+        if (config.recordOptions.composeModeEnabled) {
+            startComposePhase(task, config, liResult)
+        }
+    }
+
+    /**
+     * Background phase of a compose-enabled capture: [LayoutInspectorCaptureTask.captureCompose]
+     * runs on the worker dispatcher while its stages are painted into the window status bar;
+     * when the compose roots arrive they are grafted into the *already displayed* tree (the merge
+     * mutates node objects in place, so node identity — and with it the user's tree selection —
+     * survives the in-place refresh). Grafted children are in memory only; the .li file saved in
+     * phase one is view-only, like the uiautomator dump grafts.
+     */
+    private fun startComposePhase(
+        task: LayoutInspectorCaptureTask,
+        config: RecordingConfig,
+        viewResult: LayoutInspectorResult,
+    ) {
+        composeJob?.cancel()
+        composeJob = coroutineScope.launch(errorHandler) {
+            output.showComposeProgress("Preparing...")
+            try {
+                // The stage callback fires on worker threads; `launch` here is scoped to *this*
+                // job, so a cancelled phase can never paint stale progress after a new one began.
+                val composeResult = task.captureCompose(config) { stage ->
+                    launch(dispatchers.ui) {
+                        output.showComposeProgress(stage)
+                    }
+                }
+                val root = viewResult.root ?: return@launch
+                // DEBUG(compose-merge): zero roots = "nothing found", vs roots+empty graft = "merge problem"
+                logger.w(
+                    "$TAG: compose phase result: ${composeResult.roots.size} root(s), " +
+                        "nodes=${composeResult.roots.sumOf { it.nodes.size }}, " +
+                        "window ids=${composeResult.requestedRootViewIds}, " +
+                        "compose ${composeResult.composeVersion}, process ${composeResult.processName}"
+                )
+                if (composeResult.roots.isEmpty()) {
+                    logger.w(
+                        "$TAG: compose agent returned NO roots for window ids " +
+                            "${composeResult.requestedRootViewIds} - nothing can be merged"
+                    )
+                }
+                val merged = ComposeTreeMerger(logger)
+                    .mergeNodes(root, composeResult.roots, composeResult.semanticTexts)
+                logger.d("$TAG: compose capture done, ${composeResult.roots.size} root(s) merged")
+                if (composeResult.roots.isNotEmpty()) {
+                    val mergedResult = LayoutInspectorResult(
+                        merged,
+                        viewResult.previewImage,
+                        viewResult.data,
+                        viewResult.options,
+                        viewResult.error,
+                    )
+                    // isRefresh = true: keep the user's camera/zoom on the in-place update.
+                    output.showResult(
+                        LayoutFileData.fromLayoutInspectorResult(mergedResult),
+                        config.recordOptions.label,
+                        isRefresh = true,
+                    )
+                }
+            } catch (t: ComposeCaptureException) {
+                logger.e(t.message.orEmpty(), t)
+                output.showError(t.message ?: "Jetpack Compose capture failed")
+            } finally {
+                // Runs on cancellation too (the finally block has no suspension point, so it
+                // completes even though the job is cancelled).
+                output.hideComposeProgress()
             }
         }
     }
@@ -168,6 +254,9 @@ class Logic(
 
     fun openFile() {
         val file = dialogsInput.showOpenFileDialogAndReturnResult() ?: return
+        // A background compose phase of the previous capture would graft into (and re-display)
+        // the old tree over the freshly opened file.
+        cancelRunningJobs()
         try {
             val capture = layoutParserInput.parseFromFile(file)
             metaRepository.restoreForFile(file.name, capture.node)
@@ -180,9 +269,22 @@ class Logic(
     }
 
     fun onLoadingDialogClosed() {
+        cancelRunningJobs()
+    }
+
+    /**
+     * Cancels everything in flight (capture and/or background compose phase) and clears their
+     * indicators. Called when the loading dialog is closed and when the window is destroyed:
+     * after the view tree is displayed there is no modal dialog anymore, so these are the only
+     * places a still-running compose capture can be stopped from.
+     */
+    fun cancelRunningJobs() {
         recordingJob?.cancel()
-        output.hideLoading()
+        composeJob?.cancel()
         recordingJob = null
+        composeJob = null
+        output.hideLoading()
+        output.hideComposeProgress()
     }
 
     fun hasOpenedLayouts() = isOpenedLayout
