@@ -8,6 +8,7 @@ import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCod
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposableRoot
 import com.github.grishberg.android.layoutinspector.domain.AbstractViewNode
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertSame
 import junit.framework.TestCase.assertTrue
 import org.junit.Test
 
@@ -133,6 +134,52 @@ class ComposeTreeMergerTest {
     }
 
     // ==== fixtures ====
+
+    @Test
+    fun `placeholder android view child is dropped when compose grafts but kept otherwise`() {
+        val decor = viewNode(null, DECOR, 0, 0, 1080, 1920)
+        val composeView = viewNode(decor, ANDROID_COMPOSE_VIEW, 0, 100, 1080, 900)
+        val placeholder = viewNode(composeView, "android.view.View", 0, 100, 1080, 900)
+        val interop = viewNode(composeView, "androidx.recyclerview.widget.RecyclerView", 0, 100, 200, 900)
+
+        val root = ComposableRoot(
+            viewId = 1,
+            nodes = listOf(composeNode(1, "App", "App.kt", 5, ComposeRect(0, 100, 1080, 900))),
+            viewsToSkip = emptyList(),
+        )
+        underTest.mergeNodes(decor, listOf(root))
+
+        assertEquals(
+            "exact android.view.View placeholder must be replaced by the graft",
+            2, composeView.children.size,
+        )
+        assertTrue(
+            "placeholder gone",
+            composeView.children.none { it === placeholder },
+        )
+        assertTrue(
+            "AndroidView interop child (a View subclass) must survive",
+            composeView.children.any { it === interop },
+        )
+        assertTrue(
+            "grafted compose node present",
+            composeView.children.any { it.name == "App.kt:5:App" },
+        )
+    }
+
+    @Test
+    fun `placeholder is kept when compose grafts nothing`() {
+        val decor = viewNode(null, DECOR, 0, 0, 1080, 1920)
+        val composeView = viewNode(decor, ANDROID_COMPOSE_VIEW, 0, 100, 1080, 900)
+        val placeholder = viewNode(composeView, "android.view.View", 0, 100, 1080, 900)
+
+        val emptyRoot = ComposableRoot(viewId = 1, nodes = emptyList(), viewsToSkip = emptyList())
+        underTest.mergeNodes(decor, listOf(emptyRoot))
+
+        assertEquals("without a graft the placeholder is the only compose hint",
+            1, composeView.children.size)
+        assertSame(placeholder, composeView.children.first())
+    }
 
     private fun viewNode(
         parent: ViewNode?,
