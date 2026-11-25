@@ -24,11 +24,16 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import com.android.tools.idea.appinspection.inspector.api.AppInspectionAgentUnattachableException
 import java.io.File
@@ -233,9 +238,9 @@ class ComposeCaptureService(private val logger: AppLogger) {
             // first answer is a stub ("empty compose hierarchy"). Parameter extraction stays
             // delayed (values are pulled explicitly per window via get_all_parameters_command);
             // soft-fail: an agent that refuses the command must not fail the capture.
-            updateSettings(messenger)
+            updateSettings(messenger, process)
 
-            val roots = requestComposables(messenger, rootViewIds, onStage)
+            val roots = requestComposables(messenger, process, rootViewIds, onStage)
             logger.w("YALI Compose: captured ${roots.size} compose root(s) for ids $rootViewIds")
             // Text values live in the semantics parameters, fetched in a second command per
             // root; soft-fails, so an agent without (or with a failing) extraction still yields
@@ -243,7 +248,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
             // decoding die on this command (see [shouldFetchTexts]) - the tree is already in
             // memory by then, so a killed app never costs the hierarchy.
             val texts = if (shouldFetchTexts(process.packageName)) {
-                fetchSemanticTexts(messenger, rootViewIds, onStage, process.packageName)
+                fetchSemanticTexts(messenger, process, rootViewIds, onStage, process.packageName)
             } else {
                 emptyMap()
             }
@@ -723,6 +728,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
      */
     private suspend fun requestComposables(
         messenger: AppInspectorMessenger,
+        process: ProcessDescriptor,
         rootViewIds: List<Long>,
         onStage: (String) -> Unit,
     ): List<ComposableRoot> {
@@ -732,7 +738,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
             var best: List<ComposableRoot> = emptyList()
             var bestNodes = 0
             for (attempt in 1..THIN_TREE_FETCH_LIMIT) {
-                val roots = fetchRootsOnce(messenger, rootViewId)
+                val roots = fetchRootsOnce(messenger, process, rootViewId)
                 val nodes = roots.sumOf { root -> root.nodes.sumOf { countComposeNodes(it) } }
                 if (nodes > bestNodes) {
                     best = roots
@@ -761,14 +767,57 @@ class ComposeCaptureService(private val logger: AppLogger) {
         return allRoots
     }
 
-    /** Sends `update_settings_command` (see call site); any failure only logs. */
-    private suspend fun updateSettings(messenger: AppInspectorMessenger) {
-        runCatchingSuspend("send update_settings_command") {
-            withTimeout(COMMAND_TIMEOUT_MS) {
-                messenger.sendRawCommand(
-                    ComposeInspectionCodec.encodeUpdateSettingsCommand(includeRecomposeCounts = true)
+    /**
+     * Sends a compose-agent command with a wall-clock bound that also works when the transport
+     * goes silent: when the inspected app dies mid-command, AS never resumes the request
+     * continuation (it is not cancellable), so `withTimeout` hangs forever instead of firing
+     * (observed in the 19:20 log: extraction after a process kill never timed out and never
+     * failed - the whole compose phase just stopped). The response is raced against the bound
+     * through a channel so the timeout always applies; the unfinished request coroutine is left
+     * running (bounded leak until AS disposes the transport). A vanished process is reported
+     * with the "app process terminated" wording so [isAppProcessTerminated] still recognizes it.
+     */
+    private suspend fun sendRawCommandBounded(
+        messenger: AppInspectorMessenger,
+        process: ProcessDescriptor,
+        command: ByteArray,
+    ): ByteArray {
+        val channel = Channel<Result<ByteArray>>(Channel.UNLIMITED)
+        val requestScope = CoroutineScope(SupervisorJob())
+        requestScope.launch {
+            try {
+                channel.send(Result.success(messenger.sendRawCommand(command)))
+            } catch (t: Throwable) {
+                channel.send(Result.failure(t))
+            }
+        }
+        val outcome = try {
+            withTimeoutOrNullCompat(COMMAND_TIMEOUT_MS) { channel.receive() }
+        } finally {
+            requestScope.cancel()
+        }
+        if (outcome == null) {
+            if (!process.isRunning) {
+                throw IllegalStateException(
+                    "The app process terminated while the compose inspector command was " +
+                        "in flight (no response and the process disappeared on the device)"
                 )
             }
+            throw java.util.concurrent.TimeoutException(
+                "Timed out after $COMMAND_TIMEOUT_MS ms waiting for the compose agent response"
+            )
+        }
+        return outcome.getOrThrow()
+    }
+
+    /** Sends `update_settings_command` (see call site); any failure only logs. */
+    private suspend fun updateSettings(messenger: AppInspectorMessenger, process: ProcessDescriptor) {
+        runCatchingSuspend("send update_settings_command") {
+            sendRawCommandBounded(
+                messenger,
+                process,
+                ComposeInspectionCodec.encodeUpdateSettingsCommand(includeRecomposeCounts = true),
+            )
         }.onSuccess { bytes ->
             when (val response = ComposeInspectionCodec.decodeResponse(bytes)) {
                 is ComposeResponse.UpdateSettings -> logger.w(
@@ -789,6 +838,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
     /** One raw `get_composables_command` round trip for [rootViewId]; failures are fatal. */
     private suspend fun fetchRootsOnce(
         messenger: AppInspectorMessenger,
+        process: ProcessDescriptor,
         rootViewId: Long,
     ): List<ComposableRoot> {
         val command = ComposeInspectionCodec.encodeGetComposablesCommand(
@@ -799,7 +849,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
         val responseBytes = runCatchingSuspend(
             "send get_composables_command for root view $rootViewId"
         ) {
-            withTimeout(COMMAND_TIMEOUT_MS) { messenger.sendRawCommand(command) }
+            sendRawCommandBounded(messenger, process, command)
         }.getOrThrow()
         return when (val response = ComposeInspectionCodec.decodeResponse(responseBytes)) {
             is ComposeResponse.GetComposables -> {
@@ -856,6 +906,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
      */
     private suspend fun fetchSemanticTexts(
         messenger: AppInspectorMessenger,
+        process: ProcessDescriptor,
         rootViewIds: List<Long>,
         onStage: (String) -> Unit,
         packageName: String,
@@ -866,11 +917,11 @@ class ComposeCaptureService(private val logger: AppLogger) {
             val responseBytes = runCatchingSuspend(
                 "send get_all_parameters_command for root view $rootViewId"
             ) {
-                withTimeout(COMMAND_TIMEOUT_MS) {
-                    messenger.sendRawCommand(
-                        ComposeInspectionCodec.encodeGetAllParametersCommand(rootViewId)
-                    )
-                }
+                sendRawCommandBounded(
+                    messenger,
+                    process,
+                    ComposeInspectionCodec.encodeGetAllParametersCommand(rootViewId),
+                )
             }.getOrElse {
                 if (isAppProcessTerminated(it)) {
                     textExtractionCrashedPackages += packageName
