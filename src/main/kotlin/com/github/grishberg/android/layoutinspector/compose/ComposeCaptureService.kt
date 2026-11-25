@@ -18,15 +18,22 @@ import com.android.ddmlib.IDevice
 import com.android.tools.idea.appinspection.internal.AppInspectionTarget
 import com.android.tools.idea.layoutinspector.pipeline.appinspection.view.ViewLayoutInspectorClient
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposableRoot
+import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposeNode
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposeResponse
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import com.android.tools.idea.appinspection.inspector.api.AppInspectionAgentUnattachableException
 import java.io.File
@@ -58,14 +65,19 @@ class ComposeCaptureException(message: String, cause: Throwable? = null) : Excep
  *     (WindowRootsEvent.ids, falling back to StartFetchCommand -> LayoutEvent.root_view.node.id);
  *     the compose agent keys its tree map by View.getUniqueDrawingId() and answers
  *     `root_view_id=0` with an EMPTY tree (verified E2E), so these ids are mandatory input;
- *  6. stopInspectors, then `launchInspector` with inspector id `layoutinspector.compose.inspection`
+ *  6. `launchInspector` with inspector id `layoutinspector.compose.inspection`
  *     and `sendRawCommand(Command{get_composables_command{root_view_id=<id>, generation=0,
  *     skip_system_composables=true}})` per root id, concatenating the non-empty responses;
  *     the compose [ComposeInspectionCodec]/Response bytes travel raw; the RawCommand /
  *     AppInspectionCommand envelope is applied *inside* DefaultAppInspectionTransport (verified from
  *     AppInspectorConnection bytecode: the payload becomes RawCommand{content} and the returned
  *     bytes are RawResponse{content}), so YALI passes/reads only the packed compose messages;
- *  7. `stopInspectors` in finally.
+ *  7. no `stopInspectors`, ever: it disposes the shared per-process AppInspection connection, its
+ *     supervisor job stays cancelled in AS's target cache and every later `launchInspector` for
+ *     that process then dies with "Job was cancelled" until AS restarts (measured: first capture
+ *     per AS session succeeds, every later one fails). Inspectors stay attached to the app for the
+ *     AS session, exactly like Live Layout Inspector; relaunching an already-running inspector id
+ *     with force=false reuses it.
  *
  * All calls are suspend and must run off the EDT (callers use a worker dispatcher).
  *
@@ -115,6 +127,26 @@ class ComposeCaptureService(private val logger: AppLogger) {
         private const val COMMAND_TIMEOUT_MS = 30_000L
 
         /**
+         * A composition carries tree data only after its first recomposition with tracking on
+         * (same "waiting for recomposition" phase the AS Layout Inspector has). Retry a stub
+         * answer this many times with this delay before giving up on the richest one.
+         */
+        private const val THIN_TREE_FETCH_LIMIT = 3
+        private const val THIN_TREE_RETRY_DELAY_MS = 800L
+        private const val THIN_TREE_NODE_THRESHOLD = 1
+
+        /** System property forcing the compose inspector artifact version; see [inspectorVersionFor]. */
+        private const val INSPECTOR_VERSION_OVERRIDE_PROPERTY = "yali.compose.inspectorVersion"
+
+        /**
+         * Packages whose text extraction (`get_all_parameters_command`) terminated the app process
+         * earlier this IDE session; extraction is skipped for them afterwards (their broken
+         * InlineClassConverter crashes on every parameter decode request - see [shouldFetchTexts]).
+         */
+        private val textExtractionCrashedPackages =
+            java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+        /**
          * Compose capture needs Android Studio's App Inspection services; used to enable/disable
          * the UI affordance outside the AS IDE (or in broken plugin setups).
          */
@@ -144,6 +176,9 @@ class ComposeCaptureService(private val logger: AppLogger) {
      * Single-shot capture for the debuggable process [pid] on device [deviceSerial].
      * @param project used for inspector artifact resolution (progress/state); any open project is
      *   picked when null.
+     * @param onStage invoked with a short human-readable description at the start of each phase
+     *   (and per window root during the fetch loops). Invoked on a worker thread — *never* the
+     *   EDT: callers that update UI must marshal to the UI thread themselves.
      * @throws ComposeCaptureException with a user-presentable, actionable message.
      */
     suspend fun capture(
@@ -152,25 +187,32 @@ class ComposeCaptureService(private val logger: AppLogger) {
         project: Project? = null,
         device: IDevice? = null,
         packageName: String? = null,
+        onStage: (String) -> Unit = {},
     ): ComposeCaptureResult {
         val apiServices = requireApiServices()
+        onStage("Looking up process in App Inspection...")
         val (process, relaunched) = findProcess(apiServices, deviceSerial, pid, device, packageName)
 
         try {
             val resolvedProject = resolveProject(project)
 
+            onStage("Attaching inspector agent...")
             val target = attachWithRetry(apiServices, process, relaunched)
 
             // The compose agent only answers for real window-root uniqueDrawingIds — learn them
             // from the view inspector first (class doc step 5); its inspector is stopped again
             // before the compose one is launched. Runs after attachToProcess: as in AS's
             // pipeline, no inspector can launch against an unattached process.
+            onStage("Detecting window roots...")
             val rootViewIds = bootstrapWindowRootViewIds(apiServices, process, resolvedProject.name)
 
+            onStage("Resolving compose inspector artifact...")
             val composeVersion = detectComposeVersion(target)
-            val (jar, coordinate) = resolveInspectorJar(composeVersion, resolvedProject)
-            logger.d(
-                "YALI Compose: inspector jar ${jar.name} for ${coordinate.toCoordinateString()} $composeVersion"
+            val inspectorVersion = inspectorVersionFor(composeVersion)
+            val (jar, coordinate) = resolveInspectorJar(inspectorVersion, resolvedProject)
+            logger.w(
+                "YALI Compose: inspector jar ${jar.name} for ${coordinate.toCoordinateString()} $inspectorVersion" +
+                    if (inspectorVersion != composeVersion) " (app compose $composeVersion)" else ""
             )
 
             // NOTE: the LibraryCompatibility coordinate is checked *inside the app* by the
@@ -180,6 +222,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
             // coordinate must always be COMPOSE_UI — exactly like Android Studio does. The
             // resolved jar coordinate (possibly ui-android) only affects maven artifact download.
             val messenger = runCatchingSuspend("launch compose inspector") {
+                onStage("Starting compose inspector...")
                 apiServices.launchInspector(
                     LaunchParameters(
                         process,
@@ -195,13 +238,26 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 )
             }.getOrThrow()
 
-            val roots = requestComposables(messenger, rootViewIds)
-            logger.d("YALI Compose: captured ${roots.size} compose root(s) for ids $rootViewIds")
+            // Enable the agent's recomposition tracking before the first fetch, like AS does:
+            // without it compositions carry no tree data until they happen to recompose, and the
+            // first answer is a stub ("empty compose hierarchy"). Parameter extraction stays
+            // delayed (values are pulled explicitly per window via get_all_parameters_command);
+            // soft-fail: an agent that refuses the command must not fail the capture.
+            updateSettings(messenger, process)
+
+            val roots = requestComposables(messenger, process, rootViewIds, onStage)
+            logger.w("YALI Compose: captured ${roots.size} compose root(s) for ids $rootViewIds")
             // Text values live in the semantics parameters, fetched in a second command per
             // root; soft-fails, so an agent without (or with a failing) extraction still yields
-            // the full tree, just without labels.
-            val texts = fetchSemanticTexts(messenger, rootViewIds)
-            logger.d("YALI Compose: resolved semantic text for ${texts.size} composable(s)")
+            // the full tree, just without labels. Builds with broken inspector parameter
+            // decoding die on this command (see [shouldFetchTexts]) - the tree is already in
+            // memory by then, so a killed app never costs the hierarchy.
+            val texts = if (shouldFetchTexts(process.packageName)) {
+                fetchSemanticTexts(messenger, process, rootViewIds, onStage, process.packageName)
+            } else {
+                emptyMap()
+            }
+            logger.w("YALI Compose: resolved semantic text for ${texts.size} composable(s)")
             return ComposeCaptureResult(
                 deviceSerial = deviceSerial,
                 pid = process.pid,
@@ -212,6 +268,9 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 semanticTexts = texts,
             )
         } catch (t: Throwable) {
+            if (t is CancellationException) {
+                throw t
+            }
             if (t is ComposeCaptureException) {
                 throw t
             }
@@ -219,8 +278,9 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 "Jetpack Compose capture failed for ${process.packageName} (pid=$pid): ${t.message}", t
             )
         } finally {
-            runCatching { apiServices.stopInspectors(process) }
-                .onFailure { logger.w("YALI Compose: could not stop inspectors for pid=$pid: ${it.message}") }
+            // Deliberately NOT stopping the inspectors here: stopInspectors disposes the shared
+            // per-process AppInspection connection, whose cancelled supervisor then poisons every
+            // later launchInspector in the AS session ("Job was cancelled", see class doc).
         }
     }
 
@@ -348,7 +408,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
         if (afterRepair != null) {
             return afterRepair to false
         }
-        logger.d(
+        logger.w(
             "YALI Compose: pid $pid invisible to App Inspection - restarting $packageName " +
                 "on $serial so its debug agent registers (same as AS's process-restart flow)"
         )
@@ -378,7 +438,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 " Restarted $packageName once, but App Inspection did not pick it up - " +
                 "is the installed APK actually debuggable (android:debuggable=\"true\")?"
         )
-        logger.d(
+        logger.w(
             "YALI Compose: $packageName registered after restart with pid=${relaunched.pid}"
         )
         return relaunched to true
@@ -412,7 +472,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
                         "Failed to attach to process ${process.pid}: ${t.message}", t
                     )
                 }
-                logger.d(
+                logger.w(
                     "YALI Compose: agent of pid ${process.pid} not ready " +
                         "(attempt $attempt/$limit) - retrying in ${ATTACH_RETRY_DELAY_MS}ms"
                 )
@@ -428,7 +488,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
      * restoring App Inspection process discovery without a manual `adb shell rm -rf`.
      */
     internal suspend fun repairTransportDaemon(device: IDevice) {
-        logger.d(
+        logger.w(
             "YALI Compose: resetting Studio transportd cache (/data/local/tmp/perfd) on " +
                 device.serialNumber
         )
@@ -582,6 +642,24 @@ class ComposeCaptureService(private val logger: AppLogger) {
     }
 
     /**
+     * Version of the compose inspector artifact to launch. Normally it must match the app's
+     * compose runtime version; `-Dyali.compose.inspectorVersion=<version>` forces a different
+     * artifact version. Needed when the version-matched inspector misreads the app's slot table
+     * (the app's inspector/tooling artifacts are repackaged or the compose compiler is not
+     * aligned with the runtime) and the agent then crashes the app while decoding parameters -
+     * lets a newer inspector be tested without waiting for the app's dependencies to be aligned.
+     */
+    private fun inspectorVersionFor(appComposeVersion: String): String {
+        val override = System.getProperty(INSPECTOR_VERSION_OVERRIDE_PROPERTY)?.trim()
+            ?.takeIf { it.isNotEmpty() } ?: return appComposeVersion
+        logger.w(
+            "YALI Compose: inspector jar version overridden to $override " +
+                "(app compose $appComposeVersion) via -D$INSPECTOR_VERSION_OVERRIDE_PROPERTY"
+        )
+        return override
+    }
+
+    /**
      * Mirrors ComposeLayoutInspectorClient.determineArtifactCoordinate: `ui-android` for
      * >= 1.5.0-beta01, `ui` before; falls back to the other coordinate when resolution fails
      * (odd version string, or maven mirror only carrying one of the artifacts).
@@ -647,46 +725,189 @@ class ComposeCaptureService(private val logger: AppLogger) {
      * ids must come from [bootstrapWindowRootViewIds]; an unknown id simply yields no roots.
      * The generation rotates per command: any value different from the previous one forces the
      * agent to regenerate (proto3 semantics: an equal generation replays the last response).
+     *
+     * A composition only carries tree data after it has recomposed once with tracking enabled,
+     * so a stub answer (0 roots, or a root tree of <= [THIN_TREE_NODE_THRESHOLD] nodes) is
+     * re-requested up to [THIN_TREE_FETCH_LIMIT] times while the app recomposes - the richest
+     * answer wins. The user can also interact with the screen during these waits (the same
+     * "waiting for recomposition" behaviour the AS Layout Inspector has).
      */
     private suspend fun requestComposables(
         messenger: AppInspectorMessenger,
+        process: ProcessDescriptor,
         rootViewIds: List<Long>,
+        onStage: (String) -> Unit,
     ): List<ComposableRoot> {
         val allRoots = mutableListOf<ComposableRoot>()
-        for (rootViewId in rootViewIds) {
-            val command = ComposeInspectionCodec.encodeGetComposablesCommand(
-                rootViewId = rootViewId,
-                skipSystemComposables = true,
-                generation = generationCounter.incrementAndGet(),
-            )
-            val responseBytes = runCatchingSuspend(
-                "send get_composables_command for root view $rootViewId"
-            ) {
-                withTimeout(COMMAND_TIMEOUT_MS) { messenger.sendRawCommand(command) }
-            }.getOrThrow()
-            when (val response = ComposeInspectionCodec.decodeResponse(responseBytes)) {
-                is ComposeResponse.GetComposables -> {
-                    logger.d(
-                        "YALI Compose: root $rootViewId -> ${response.roots.size} root(s), " +
-                            "unchanged=${response.unchanged}"
-                    )
-                    // dedupe defensively: some agents answer every id with all roots
-                    for (root in response.roots) {
-                        if (allRoots.none { it.viewId == root.viewId }) allRoots += root
-                    }
+        for ((index, rootViewId) in rootViewIds.withIndex()) {
+            onStage("Fetching Compose hierarchy: window ${index + 1}/${rootViewIds.size}...")
+            var best: List<ComposableRoot> = emptyList()
+            var bestNodes = 0
+            for (attempt in 1..THIN_TREE_FETCH_LIMIT) {
+                val roots = fetchRootsOnce(messenger, process, rootViewId)
+                val nodes = roots.sumOf { root -> root.nodes.sumOf { countComposeNodes(it) } }
+                if (nodes > bestNodes) {
+                    best = roots
+                    bestNodes = nodes
                 }
-                is ComposeResponse.UpdateSettings -> Unit // not requested; ignore
-                is ComposeResponse.Unknown -> throw ComposeCaptureException(
-                    "The compose inspector agent in the app did not understand YALI's request " +
-                        "(unknown command). This usually means the app's androidx.compose.ui version " +
-                        "is too old for this Android Studio - update Compose or use the AS Layout Inspector."
+                if (bestNodes > THIN_TREE_NODE_THRESHOLD || attempt == THIN_TREE_FETCH_LIMIT) {
+                    break
+                }
+                logger.w(
+                    "YALI Compose: window $rootViewId answered with a stub tree " +
+                        "($bestNodes node(s)) - waiting for a recomposition " +
+                        "(attempt $attempt/${THIN_TREE_FETCH_LIMIT - 1})"
                 )
-                else -> throw ComposeCaptureException(
-                    "Unexpected response from the compose inspector agent: $response"
+                onStage("Waiting for Compose recomposition data: window ${index + 1}/${rootViewIds.size}...")
+                delay(THIN_TREE_RETRY_DELAY_MS)
+            }
+            // dedupe defensively: some agents answer every id with all roots
+            for (root in best) {
+                if (allRoots.none { it.viewId == root.viewId }) allRoots += root
+                else logger.w(
+                    "YALI ComposeDbg: deduped duplicate view_id=${root.viewId} " +
+                        "from window $rootViewId answer"
                 )
             }
         }
         return allRoots
+    }
+
+    /**
+     * Sends a compose-agent command with a wall-clock bound that also works when the transport
+     * goes silent: when the inspected app dies mid-command, AS never resumes the request
+     * continuation (it is not cancellable), so `withTimeout` hangs forever instead of firing
+     * (observed in the 19:20 log: extraction after a process kill never timed out and never
+     * failed - the whole compose phase just stopped). The response is raced against the bound
+     * through a channel so the timeout always applies; the unfinished request coroutine is left
+     * running (bounded leak until AS disposes the transport). A vanished process is reported
+     * with the "app process terminated" wording so [isAppProcessTerminated] still recognizes it.
+     */
+    private suspend fun sendRawCommandBounded(
+        messenger: AppInspectorMessenger,
+        process: ProcessDescriptor,
+        command: ByteArray,
+    ): ByteArray {
+        val channel = Channel<Result<ByteArray>>(Channel.UNLIMITED)
+        val requestScope = CoroutineScope(SupervisorJob())
+        requestScope.launch {
+            try {
+                channel.send(Result.success(messenger.sendRawCommand(command)))
+            } catch (t: Throwable) {
+                channel.send(Result.failure(t))
+            }
+        }
+        val outcome = try {
+            withTimeoutOrNullCompat(COMMAND_TIMEOUT_MS) { channel.receive() }
+        } finally {
+            requestScope.cancel()
+        }
+        if (outcome == null) {
+            if (!process.isRunning) {
+                throw IllegalStateException(
+                    "The app process terminated while the compose inspector command was " +
+                        "in flight (no response and the process disappeared on the device)"
+                )
+            }
+            throw java.util.concurrent.TimeoutException(
+                "Timed out after $COMMAND_TIMEOUT_MS ms waiting for the compose agent response"
+            )
+        }
+        return outcome.getOrThrow()
+    }
+
+    /** Sends `update_settings_command` (see call site); any failure only logs. */
+    private suspend fun updateSettings(messenger: AppInspectorMessenger, process: ProcessDescriptor) {
+        runCatchingSuspend("send update_settings_command") {
+            sendRawCommandBounded(
+                messenger,
+                process,
+                ComposeInspectionCodec.encodeUpdateSettingsCommand(includeRecomposeCounts = true),
+            )
+        }.onSuccess { bytes ->
+            when (val response = ComposeInspectionCodec.decodeResponse(bytes)) {
+                is ComposeResponse.UpdateSettings -> logger.w(
+                    "YALI Compose: agent settings updated, canDelayParameterExtractions=" +
+                        response.canDelayParameterExtractions
+                )
+                else -> logger.w("YALI Compose: unexpected update_settings response: $response")
+            }
+        }.onFailure {
+            logger.w("YALI Compose: update_settings_command failed: ${it.message} - continuing without it")
+        }
+    }
+
+    /** Recursive node count of one composable subtree. */
+    private fun countComposeNodes(node: ComposeNode): Int =
+        1 + node.children.sumOf { countComposeNodes(it) }
+
+    /** One raw `get_composables_command` round trip for [rootViewId]; failures are fatal. */
+    private suspend fun fetchRootsOnce(
+        messenger: AppInspectorMessenger,
+        process: ProcessDescriptor,
+        rootViewId: Long,
+    ): List<ComposableRoot> {
+        val command = ComposeInspectionCodec.encodeGetComposablesCommand(
+            rootViewId = rootViewId,
+            skipSystemComposables = true,
+            generation = generationCounter.incrementAndGet(),
+        )
+        val responseBytes = runCatchingSuspend(
+            "send get_composables_command for root view $rootViewId"
+        ) {
+            sendRawCommandBounded(messenger, process, command)
+        }.getOrThrow()
+        return when (val response = ComposeInspectionCodec.decodeResponse(responseBytes)) {
+            is ComposeResponse.GetComposables -> {
+                logger.w(
+                    "YALI Compose: root $rootViewId -> ${response.roots.size} root(s), " +
+                        "unchanged=${response.unchanged}"
+                )
+                for (r in response.roots) {
+                    logger.w(
+                        "YALI ComposeDbg: answer to window $rootViewId: view_id=${r.viewId} " +
+                            "nodes=${r.nodes.size} total=${r.nodes.sumOf { countComposeNodes(it) }} " +
+                            "viewsToSkip=${r.viewsToSkip.size}"
+                    )
+                }
+                response.roots
+            }
+            is ComposeResponse.UpdateSettings -> emptyList() // not requested; ignore
+            is ComposeResponse.Unknown -> throw ComposeCaptureException(
+                "The compose inspector agent in the app did not understand YALI's request " +
+                    "(unknown command). This usually means the app's androidx.compose.ui version " +
+                    "is too old for this Android Studio - update Compose or use the AS Layout Inspector."
+            )
+            else -> throw ComposeCaptureException(
+                "Unexpected response from the compose inspector agent: $response"
+            )
+        }
+    }
+
+    /**
+     * Gate for the optional text-label extraction. Parameter decoding inside the injected agent
+     * (`InlineClassConverter`) crashes the app on builds whose slot table the version-matched
+     * agent misreads (verified on the 1.11.2 agent + Kotlin 2.3.21 compiler: `Color.<init>`
+     * receives the `$changed` Boolean and the exception is uncatchable from the app side), so
+     * extraction is OFF by default; `-Dyali.compose.texts=true` opts back in. Packages whose
+     * extraction killed the process are also skipped for the rest of the session.
+     */
+    private fun shouldFetchTexts(packageName: String): Boolean {
+        if (System.getProperty("yali.compose.texts")?.trim()?.equals("true", ignoreCase = true) != true) {
+            logger.w(
+                "YALI Compose: text extraction is off by default (the agent's parameter decoding " +
+                    "can crash the inspected app); enable with -Dyali.compose.texts=true if needed"
+            )
+            return false
+        }
+        if (packageName in textExtractionCrashedPackages) {
+            logger.w(
+                "YALI Compose: skipping text extraction for $packageName - it terminated the app " +
+                    "process earlier this session; capturing the tree without text labels"
+            )
+            return false
+        }
+        return true
     }
 
     /**
@@ -696,19 +917,35 @@ class ComposeCaptureService(private val logger: AppLogger) {
      */
     private suspend fun fetchSemanticTexts(
         messenger: AppInspectorMessenger,
+        process: ProcessDescriptor,
         rootViewIds: List<Long>,
+        onStage: (String) -> Unit,
+        packageName: String,
     ): Map<Long, String> {
         val texts = mutableMapOf<Long, String>()
-        for (rootViewId in rootViewIds) {
+        for ((index, rootViewId) in rootViewIds.withIndex()) {
+            onStage("Fetching text values: window ${index + 1}/${rootViewIds.size}...")
             val responseBytes = runCatchingSuspend(
                 "send get_all_parameters_command for root view $rootViewId"
             ) {
-                withTimeout(COMMAND_TIMEOUT_MS) {
-                    messenger.sendRawCommand(
-                        ComposeInspectionCodec.encodeGetAllParametersCommand(rootViewId)
-                    )
-                }
+                sendRawCommandBounded(
+                    messenger,
+                    process,
+                    ComposeInspectionCodec.encodeGetAllParametersCommand(rootViewId),
+                )
             }.getOrElse {
+                if (isAppProcessTerminated(it)) {
+                    textExtractionCrashedPackages += packageName
+                    logger.w(
+                        "YALI Compose: the app process terminated while extracting text values " +
+                            "for root $rootViewId - the app was killed by the inspector's parameter " +
+                            "extraction (broken InlineClassConverter path in this app build). " +
+                            "The Compose tree itself was already captured; text extraction is " +
+                            "disabled for $packageName this session - press Refresh to capture the " +
+                            "tree without text labels (or fix the app's inspector/compiler versions)."
+                    )
+                    return texts
+                }
                 logger.w("YALI Compose: no semantic texts for root $rootViewId: ${it.message}")
                 continue
             }
@@ -729,13 +966,13 @@ class ComposeCaptureService(private val logger: AppLogger) {
     }
 
     /**
-     * Launches the view inspector, learns the window root ids (View.getUniqueDrawingId) from its
-     * event flow and stops the inspector again. AS knows these ids the same way. [collectRootViewIds]
-     * does the flow-side work and is unit-testable without a transport.
+     * Launches the view inspector and learns the window root ids (View.getUniqueDrawingId) from
+     * its event flow. AS knows these ids the same way. [collectRootViewIds] does the flow-side
+     * work and is unit-testable without a transport.
      *
-     * The first launch intermittently fails with "Job was cancelled" while the agent is still
-     * booting; a plain relaunch succeeds, so the whole bootstrap is retried up to
-     * [BOOTSTRAP_RETRY_LIMIT] times before giving up.
+     * The launch is retried up to [BOOTSTRAP_RETRY_LIMIT] times with growing delays: a cold agent
+     * boot or a busy App Inspection service (Gradle sync/reload) cancels the first attempts; no
+     * `stopInspectors` is attempted between retries - it is what kills the connection (class doc).
      */
     private suspend fun bootstrapWindowRootViewIds(
         apiServices: AppInspectionApiServices,
@@ -749,16 +986,22 @@ class ComposeCaptureService(private val logger: AppLogger) {
             } catch (e: ComposeCaptureException) {
                 lastError = e
                 if (attempt < BOOTSTRAP_RETRY_LIMIT) {
-                    logger.d(
+                    logger.w(
                         "YALI Compose: view inspector bootstrap failed " +
                             "(attempt $attempt/$BOOTSTRAP_RETRY_LIMIT): ${e.message} - " +
-                            "retrying in ${BOOTSTRAP_RETRY_DELAY_MS}ms"
+                            "retrying in ${BOOTSTRAP_RETRY_DELAY_MS * attempt}ms"
                     )
-                    delay(BOOTSTRAP_RETRY_DELAY_MS)
+                    delay(BOOTSTRAP_RETRY_DELAY_MS * attempt)
                 }
             }
         }
-        throw lastError!!
+        throw ComposeCaptureException(
+            lastError!!.message.toString() +
+                " - App Inspection could not attach to the app process. Make sure the app is " +
+                "debuggable and running, and if a Gradle sync/reload is in progress, wait for " +
+                "it to finish and press Refresh.",
+            lastError,
+        )
     }
 
     private suspend fun bootstrapWindowRootViewIdsOnce(
@@ -803,7 +1046,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
                     "compose root views cannot be located. Does the app currently show a window?"
             )
         }
-        logger.d("YALI Compose: window root view ids: $ids")
+        logger.w("YALI Compose: window root view ids: $ids")
         return ids.toList()
     }
 
@@ -943,12 +1186,51 @@ class ComposeCaptureService(private val logger: AppLogger) {
         try {
             Result.success(block())
         } catch (t: Throwable) {
-            if (t is ComposeCaptureException) {
-                Result.failure(t)
-            } else {
-                Result.failure(ComposeCaptureException("Failed to $context: ${t.message}", t))
+            when {
+                // A real command timeout must still surface as an error...
+                t is TimeoutCancellationException ->
+                    Result.failure(ComposeCaptureException("Failed to $context: ${t.message}", t))
+                // ...but a plain job cancellation (user started a new capture / refresh / closed
+                // the window) must never be converted into an error - rethrowing keeps the
+                // coroutine machinery silent and stops retry loops immediately.
+                t is CancellationException -> throw t
+                t is ComposeCaptureException -> Result.failure(t)
+                isAppProcessTerminated(t) -> Result.failure(
+                    ComposeCaptureException(
+                        "The app process terminated during the Jetpack Compose capture " +
+                            "(the app crashed while the compose inspector was attached - " +
+                            "see adb logcat -b crash; if the stack is inside " +
+                            "androidx.compose.ui.inspection, the inspector and the app's " +
+                            "compose compiler versions are out of sync). " +
+                            "The view hierarchy shown above is complete; " +
+                            "press Refresh after the app has restarted.",
+                        t,
+                    )
+                )
+                else -> Result.failure(ComposeCaptureException("Failed to $context: ${t.message}", t))
             }
         }
+
+    /**
+     * True when the failure chain is AS's "Inspector ... was disposed, because app process
+     * terminated" - the inspected app died on the device mid-capture (crash/restart), which is
+     * outside YALI's control.
+     */
+    private fun isAppProcessTerminated(t: Throwable): Boolean {
+        var cause: Throwable? = t
+        while (cause != null) {
+            val message = cause.message
+            if (message?.contains("app process terminated", ignoreCase = true) == true ||
+                // Messenger disposed while a command was in flight: in practice only the
+                // process disappearing does this mid-command.
+                message?.contains("was disposed", ignoreCase = true) == true
+            ) {
+                return true
+            }
+            cause = cause.cause
+        }
+        return false
+    }
 
     private suspend fun <T> withTimeoutOrNullCompat(timeoutMs: Long, block: suspend () -> T?): T? =
         try {

@@ -14,4 +14,16 @@ interface LayoutResultOutput {
     fun showLoading()
 
     fun hideLoading()
+
+    /**
+     * Show (or update the text of) a progress indicator for the background Jetpack Compose
+     * capture phase. Must be called on the EDT.
+     */
+    fun showComposeProgress(text: String)
+
+    /**
+     * Hide the Jetpack Compose progress indicator. Safe to call when nothing is shown.
+     * Must be called on the EDT.
+     */
+    fun hideComposeProgress()
 }

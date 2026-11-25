@@ -153,10 +153,28 @@ class TreePanel(
     }
 
     fun showLayoutResult(resultOutput: LayoutFileData) {
-        resultOutput.node?.let {
-            model = ViewNodeTreeModel(it)
+        resultOutput.node?.let { newRoot ->
+            // The compose-merge refresh rebuilds the model around the *same* node objects: keep
+            // the user's selection across the swap when the selected node still belongs to the
+            // new tree. Fresh captures / refreshes contain new objects and behave as before.
+            val selectedNode = selectionPath?.lastPathComponent as? AbstractViewNode
+            model = ViewNodeTreeModel(newRoot)
             expandAllNodes(this)
             invalidate()
+            if (selectedNode != null && belongsToTree(selectedNode, newRoot)) {
+                val path = TreePathUtils.getPath(selectedNode)
+                selectionPath = path
+                scrollPathToVisible(path)
+            }
+        }
+    }
+
+    /** True when walking [node] up the parent chain tops out at [root], i.e. it is in that tree. */
+    private fun belongsToTree(node: AbstractViewNode, root: AbstractViewNode): Boolean {
+        var current: AbstractViewNode = node
+        while (true) {
+            val parent = current.parent as? AbstractViewNode ?: return current === root
+            current = parent
         }
     }
 

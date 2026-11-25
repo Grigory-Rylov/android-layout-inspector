@@ -77,6 +77,9 @@ class Main(
     private val propertiesPanel: PropertiesPanel
     private val logic: Logic
     private val statusLabel: JLabel
+    private val composeStatusLabel: JLabel
+    private val composeProgressBar: JProgressBar
+    private lateinit var statusBarPanel: JPanel
 
     private val splitPane1: JSplitPane
     private val splitPane2: JSplitPane
@@ -158,6 +161,8 @@ class Main(
         mainPanel.add(statusLabel, BorderLayout.SOUTH)
 
         statusDistanceLabel = JLabel()
+        composeStatusLabel = JLabel()
+        composeProgressBar = JProgressBar()
         createStatusBar(statusLabel)
 
         contentPane = mainPanel
@@ -239,6 +244,9 @@ class Main(
     }
 
     private fun close() {
+        // Cancels a running capture / background compose phase: after the view tree is displayed
+        // there is no loading dialog to close, so this is the only exit that stops them.
+        logic.cancelRunningJobs()
         windowsManager.onDestroyed(this)
         isVisible = false
         dispose()
@@ -253,6 +261,20 @@ class Main(
         statusPanel.layout = BoxLayout(statusPanel, BoxLayout.X_AXIS)
         this.statusLabel.horizontalAlignment = SwingConstants.LEFT
         statusPanel.add(statusLabel)
+
+        composeStatusLabel.horizontalAlignment = SwingConstants.LEFT
+        composeStatusLabel.isVisible = false
+        statusPanel.add(composeStatusLabel)
+
+        // indeterminate: animates by itself while visible
+        composeProgressBar.isIndeterminate = true
+        composeProgressBar.isVisible = false
+        val indicatorSize = Dimension(COMPOSE_PROGRESS_BAR_WIDTH, font.size + 4)
+        composeProgressBar.preferredSize = indicatorSize
+        composeProgressBar.maximumSize = indicatorSize
+        statusPanel.add(composeProgressBar)
+
+        statusBarPanel = statusPanel
     }
 
     fun initUi() {
@@ -517,6 +539,22 @@ class Main(
         statusLabel.text = error
     }
 
+    override fun showComposeProgress(text: String) {
+        composeStatusLabel.text = "Jetpack Compose: $text"
+        composeStatusLabel.isVisible = true
+        composeProgressBar.isVisible = true
+        statusBarPanel.revalidate()
+        statusBarPanel.repaint()
+    }
+
+    override fun hideComposeProgress() {
+        composeStatusLabel.isVisible = false
+        composeProgressBar.isVisible = false
+        composeStatusLabel.text = ""
+        statusBarPanel.revalidate()
+        statusBarPanel.repaint()
+    }
+
     private inner class TreeNodeSelectedAction : TreePanel.OnNodeSelectedAction, LayoutLogic.OnLayoutSelectedAction,
         FindDialog.OnFoundAction {
         override fun onViewNodeSelected(node: AbstractViewNode) {
@@ -688,5 +726,6 @@ class Main(
 
     private companion object {
         private const val TITLE = "Yet Another Android Layout Inspector."
+        private const val COMPOSE_PROGRESS_BAR_WIDTH = 120
     }
 }
