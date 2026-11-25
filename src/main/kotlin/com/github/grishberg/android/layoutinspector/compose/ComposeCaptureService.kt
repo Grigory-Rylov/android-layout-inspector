@@ -114,6 +114,9 @@ class ComposeCaptureService(private val logger: AppLogger) {
         private const val TRANSPORT_REPAIR_DISCOVERY_MS = 8_000L
         private const val COMMAND_TIMEOUT_MS = 30_000L
 
+        /** System property forcing the compose inspector artifact version; see [inspectorVersionFor]. */
+        private const val INSPECTOR_VERSION_OVERRIDE_PROPERTY = "yali.compose.inspectorVersion"
+
         /**
          * Compose capture needs Android Studio's App Inspection services; used to enable/disable
          * the UI affordance outside the AS IDE (or in broken plugin setups).
@@ -176,9 +179,11 @@ class ComposeCaptureService(private val logger: AppLogger) {
 
             onStage("Resolving compose inspector artifact...")
             val composeVersion = detectComposeVersion(target)
-            val (jar, coordinate) = resolveInspectorJar(composeVersion, resolvedProject)
+            val inspectorVersion = inspectorVersionFor(composeVersion)
+            val (jar, coordinate) = resolveInspectorJar(inspectorVersion, resolvedProject)
             logger.w(
-                "YALI Compose: inspector jar ${jar.name} for ${coordinate.toCoordinateString()} $composeVersion"
+                "YALI Compose: inspector jar ${jar.name} for ${coordinate.toCoordinateString()} $inspectorVersion" +
+                    if (inspectorVersion != composeVersion) " (app compose $composeVersion)" else ""
             )
 
             // NOTE: the LibraryCompatibility coordinate is checked *inside the app* by the
@@ -591,6 +596,24 @@ class ComposeCaptureService(private val logger: AppLogger) {
     }
 
     /**
+     * Version of the compose inspector artifact to launch. Normally it must match the app's
+     * compose runtime version; `-Dyali.compose.inspectorVersion=<version>` forces a different
+     * artifact version. Needed when the version-matched inspector misreads the app's slot table
+     * (the app's inspector/tooling artifacts are repackaged or the compose compiler is not
+     * aligned with the runtime) and the agent then crashes the app while decoding parameters -
+     * lets a newer inspector be tested without waiting for the app's dependencies to be aligned.
+     */
+    private fun inspectorVersionFor(appComposeVersion: String): String {
+        val override = System.getProperty(INSPECTOR_VERSION_OVERRIDE_PROPERTY)?.trim()
+            ?.takeIf { it.isNotEmpty() } ?: return appComposeVersion
+        logger.w(
+            "YALI Compose: inspector jar version overridden to $override " +
+                "(app compose $appComposeVersion) via -D$INSPECTOR_VERSION_OVERRIDE_PROPERTY"
+        )
+        return override
+    }
+
+    /**
      * Mirrors ComposeLayoutInspectorClient.determineArtifactCoordinate: `ui-android` for
      * >= 1.5.0-beta01, `ui` before; falls back to the other coordinate when resolution fails
      * (odd version string, or maven mirror only carrying one of the artifacts).
@@ -972,9 +995,12 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 isAppProcessTerminated(t) -> Result.failure(
                     ComposeCaptureException(
                         "The app process terminated during the Jetpack Compose capture " +
-                            "(the app crashed or was restarted while the compose inspector " +
-                            "was attached). The view hierarchy shown above is complete; " +
-                            "use Refresh to capture again once the app has restarted.",
+                            "(the app crashed while the compose inspector was attached - " +
+                            "see adb logcat -b crash; if the stack is inside " +
+                            "androidx.compose.ui.inspection, the inspector and the app's " +
+                            "compose compiler versions are out of sync). " +
+                            "The view hierarchy shown above is complete; " +
+                            "press Refresh after the app has restarted.",
                         t,
                     )
                 )
@@ -985,7 +1011,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
     /**
      * True when the failure chain is AS's "Inspector ... was disposed, because app process
      * terminated" - the inspected app died on the device mid-capture (crash/restart), which is
-     * outside YALI's control and needs a retry, not a YALI fix.
+     * outside YALI's control.
      */
     private fun isAppProcessTerminated(t: Throwable): Boolean {
         var cause: Throwable? = t
