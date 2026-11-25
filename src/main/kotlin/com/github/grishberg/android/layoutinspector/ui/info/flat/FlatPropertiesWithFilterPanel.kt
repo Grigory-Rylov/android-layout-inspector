@@ -315,6 +315,30 @@ class FlatPropertiesWithFilterPanel(
 
         }
 
+        // Identity hash from the capture stream: stable while the app process lives,
+        // changes when the view instance is recreated. Absent for dump/compose nodes.
+        val instanceHash = node.hash
+        if (IDENTITY_HASH.matches(instanceHash)) {
+            val instanceProperty = ViewProperty(
+                "view instance",
+                "instance",
+                category = null,
+                value = "${node.name}@$instanceHash",
+                isSizeProperty = false,
+            )
+
+            rows.add(
+                RowInfoImpl(
+                    property = instanceProperty,
+                    sizeInDp = false,
+                    roundDp = false,
+                    dpPerPixels = 0.0,
+                    alterName = "instance",
+                    isSummary = true,
+                )
+            )
+        }
+
         result["Summary"] = rows
     }
 
@@ -613,6 +637,7 @@ class FlatPropertiesWithFilterPanel(
     }
 
     private companion object {
+        private val IDENTITY_HASH = Regex("^[0-9a-f]{1,16}$")
         const val PFLAG3_IS_LAID_OUT: Int = 0x4
         const val PFLAG_FORCE_LAYOUT: Int = 0x00001000
         private const val PFLAG_PRESSED = 0x00004000
