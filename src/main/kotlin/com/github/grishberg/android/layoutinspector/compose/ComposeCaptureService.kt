@@ -980,16 +980,37 @@ class ComposeCaptureService(private val logger: AppLogger) {
             } catch (e: ComposeCaptureException) {
                 lastError = e
                 if (attempt < BOOTSTRAP_RETRY_LIMIT) {
+                    // "Job was cancelled" = AS's cached per-process inspector connection is dead
+                    // (its supervisor was cancelled when the app restarted / the project
+                    // reloaded); relaunching on the same cached connection cancels instantly
+                    // forever. stopInspectors drops the cached connection so the retry launches
+                    // a fresh one.
+                    val staleConnection = generateSequence(e as Throwable?) { it.cause }
+                        .any { it.message?.contains("Job was cancelled") == true }
+                    if (staleConnection) {
+                        logger.w(
+                            "YALI Compose: dropping the cached inspector connection before retry"
+                        )
+                        runCatchingSuspend("stop inspectors to reset the inspector connection") {
+                            withTimeoutOrNullCompat(5_000) { apiServices.stopInspectors(process) }
+                        }
+                    }
                     logger.w(
                         "YALI Compose: view inspector bootstrap failed " +
                             "(attempt $attempt/$BOOTSTRAP_RETRY_LIMIT): ${e.message} - " +
-                            "retrying in ${BOOTSTRAP_RETRY_DELAY_MS}ms"
+                            "retrying in ${BOOTSTRAP_RETRY_DELAY_MS * attempt}ms"
                     )
-                    delay(BOOTSTRAP_RETRY_DELAY_MS)
+                    delay(BOOTSTRAP_RETRY_DELAY_MS * attempt)
                 }
             }
         }
-        throw lastError!!
+        throw ComposeCaptureException(
+            lastError!!.message.toString() +
+                " - App Inspection could not attach to the app process. Make sure the app is " +
+                "debuggable and running, and if a Gradle sync/reload is in progress, wait for " +
+                "it to finish and press Refresh.",
+            lastError,
+        )
     }
 
     private suspend fun bootstrapWindowRootViewIdsOnce(
