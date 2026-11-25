@@ -40,17 +40,17 @@ class ComposeTreeMerger(private val logger: AppLogger) {
         semanticTexts: Map<Long, String> = emptyMap(),
     ): AbstractViewNode {
         if (roots.isEmpty()) {
-            logger.d("YALI ComposeTreeMerger: no compose roots")
+            logger.w("YALI ComposeTreeMerger: no compose roots")
             return layoutRootNode
         }
         val hosts = collectHosts(layoutRootNode).toMutableList()
 
         // DEBUG(compose-merge): temporary diagnostics - every node whose class name mentions
         // "Compose", exact-match hosts and near-misses (subclasses are NOT hosts today).
-        logger.d("YALI ComposeDbg: ${roots.size} compose root(s) to graft")
-        logger.d("YALI ComposeDbg: compose-like nodes in JDWP tree: " +
+        logger.w("YALI ComposeDbg: ${roots.size} compose root(s) to graft")
+        logger.w("YALI ComposeDbg: compose-like nodes in JDWP tree: " +
             collectComposeLike(layoutRootNode).joinToString(" | ") { it.debugDesc() })
-        logger.d("YALI ComposeDbg: exact-match hosts after collect: " +
+        logger.w("YALI ComposeDbg: exact-match hosts after collect: " +
             hosts.joinToString(" | ") { it.debugDesc() })
 
         // when one host is nested inside another (ComposeView contains AndroidComposeView),
@@ -60,14 +60,14 @@ class ComposeTreeMerger(private val logger: AppLogger) {
         }
         hosts.removeAll(nested.toSet())
         if (nested.isNotEmpty()) {
-            logger.d("YALI ComposeDbg: dropped nested hosts: " +
+            logger.w("YALI ComposeDbg: dropped nested hosts: " +
                 nested.joinToString(" | ") { it.debugDesc() })
         }
-        logger.d("YALI ComposeTreeMerger: ${roots.size} compose root(s), ${hosts.size} compose host(s)")
+        logger.w("YALI ComposeTreeMerger: ${roots.size} compose root(s), ${hosts.size} compose host(s)")
 
         for (root in roots) {
             val rootBounds = unionBounds(root.nodes)
-            logger.d(
+            logger.w(
                 "YALI ComposeDbg: root view_id=${root.viewId} nodes=${root.nodes.size} " +
                     "skip=${root.viewsToSkip.size} bounds=(${rootBounds.left},${rootBounds.top} " +
                     "${rootBounds.width}x${rootBounds.height})"
@@ -84,7 +84,7 @@ class ComposeTreeMerger(private val logger: AppLogger) {
                 else -> bestHostMatch(root, hosts)
             }
             if (host != null) {
-                logger.d("YALI ComposeDbg: root view_id=${root.viewId} -> host ${host.debugDesc()}")
+                logger.w("YALI ComposeDbg: root view_id=${root.viewId} -> host ${host.debugDesc()}")
                 attachUnder(host, root, semanticTexts)
             } else {
                 logger.w("YALI ComposeDbg: root view_id=${root.viewId} -> NO host at all, " +
@@ -115,7 +115,7 @@ class ComposeTreeMerger(private val logger: AppLogger) {
     ) {
         ComposeNodeAdapter.adaptRootNodes(root.nodes, host, semanticTexts)
             .forEach { addChildTo(host, it) }
-        logger.d(
+        logger.w(
             "YALI ComposeTreeMerger: grafted view_id=${root.viewId} " +
                 "(${root.nodes.size} root composables) under ${host.name}"
         )
@@ -161,7 +161,7 @@ class ComposeTreeMerger(private val logger: AppLogger) {
             ComposeNodeAdapter.adaptRootNodes(root.nodes, syntheticHost, semanticTexts)
         )
         addChildTo(decorRoot, syntheticHost)
-        logger.d(
+        logger.w(
             "YALI ComposeTreeMerger: no compose host found, appended " +
                 "'${syntheticHost.name}' under ${decorRoot.name}"
         )
@@ -198,7 +198,7 @@ class ComposeTreeMerger(private val logger: AppLogger) {
             }
         }
         // DEBUG(compose-merge)
-        logger.d("YALI ComposeDbg: bestHostMatch for root view_id=${root.viewId}$scores")
+        logger.w("YALI ComposeDbg: bestHostMatch for root view_id=${root.viewId}$scores")
         if (bestScore <= 0.0) {
             logger.w(
                 "YALI ComposeDbg: root view_id=${root.viewId} overlaps NO host (bestScore=0) - " +
