@@ -129,6 +129,14 @@ class ComposeCaptureService(private val logger: AppLogger) {
         private const val INSPECTOR_VERSION_OVERRIDE_PROPERTY = "yali.compose.inspectorVersion"
 
         /**
+         * Packages whose text extraction (`get_all_parameters_command`) terminated the app process
+         * earlier this IDE session; extraction is skipped for them afterwards (their broken
+         * InlineClassConverter crashes on every parameter decode request - see [shouldFetchTexts]).
+         */
+        private val textExtractionCrashedPackages =
+            java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+        /**
          * Compose capture needs Android Studio's App Inspection services; used to enable/disable
          * the UI affordance outside the AS IDE (or in broken plugin setups).
          */
@@ -231,8 +239,14 @@ class ComposeCaptureService(private val logger: AppLogger) {
             logger.w("YALI Compose: captured ${roots.size} compose root(s) for ids $rootViewIds")
             // Text values live in the semantics parameters, fetched in a second command per
             // root; soft-fails, so an agent without (or with a failing) extraction still yields
-            // the full tree, just without labels.
-            val texts = fetchSemanticTexts(messenger, rootViewIds, onStage)
+            // the full tree, just without labels. Builds with broken inspector parameter
+            // decoding die on this command (see [shouldFetchTexts]) - the tree is already in
+            // memory by then, so a killed app never costs the hierarchy.
+            val texts = if (shouldFetchTexts(process.packageName)) {
+                fetchSemanticTexts(messenger, rootViewIds, onStage, process.packageName)
+            } else {
+                emptyMap()
+            }
             logger.w("YALI Compose: resolved semantic text for ${texts.size} composable(s)")
             return ComposeCaptureResult(
                 deviceSerial = deviceSerial,
@@ -815,6 +829,27 @@ class ComposeCaptureService(private val logger: AppLogger) {
     }
 
     /**
+     * Gate for the optional text-label extraction. `-Dyali.compose.texts=false` turns it off
+     * globally; after an extraction has killed the app process once for a package, every later
+     * capture of that package skips it (the crash happens inside the app, so asking once is the
+     * only way to learn - afterwards the tree is always captured, just without text labels).
+     */
+    private fun shouldFetchTexts(packageName: String): Boolean {
+        if (System.getProperty("yali.compose.texts")?.trim()?.equals("false", ignoreCase = true) == true) {
+            logger.w("YALI Compose: text extraction disabled via -Dyali.compose.texts=false")
+            return false
+        }
+        if (packageName in textExtractionCrashedPackages) {
+            logger.w(
+                "YALI Compose: skipping text extraction for $packageName - it terminated the app " +
+                    "process earlier this session; capturing the tree without text labels"
+            )
+            return false
+        }
+        return true
+    }
+
+    /**
      * `get_all_parameters_command` per window root, flattened into composable id -> `Text`
      * semantics value via [ComposeTextExtractor]. Soft-fails by design: text is enrichment, a
      * refusal (older agent) or extraction error must never fail the capture itself.
@@ -823,6 +858,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
         messenger: AppInspectorMessenger,
         rootViewIds: List<Long>,
         onStage: (String) -> Unit,
+        packageName: String,
     ): Map<Long, String> {
         val texts = mutableMapOf<Long, String>()
         for ((index, rootViewId) in rootViewIds.withIndex()) {
@@ -836,6 +872,18 @@ class ComposeCaptureService(private val logger: AppLogger) {
                     )
                 }
             }.getOrElse {
+                if (isAppProcessTerminated(it)) {
+                    textExtractionCrashedPackages += packageName
+                    logger.w(
+                        "YALI Compose: the app process terminated while extracting text values " +
+                            "for root $rootViewId - the app was killed by the inspector's parameter " +
+                            "extraction (broken InlineClassConverter path in this app build). " +
+                            "The Compose tree itself was already captured; text extraction is " +
+                            "disabled for $packageName this session - press Refresh to capture the " +
+                            "tree without text labels (or fix the app's inspector/compiler versions)."
+                    )
+                    return texts
+                }
                 logger.w("YALI Compose: no semantic texts for root $rootViewId: ${it.message}")
                 continue
             }
