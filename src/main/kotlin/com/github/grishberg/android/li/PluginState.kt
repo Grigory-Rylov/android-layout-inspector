@@ -21,6 +21,9 @@ class PluginState : SettingsFacade {
 
     override var lastProcessName: String = ""
 
+    // serial of the device the last recording was started from (see SettingsFacade)
+    override var lastDeviceSerial: String = ""
+
     override var lastWindowName: String = ""
 
     override var lastFilter: String = ""

@@ -17,6 +17,10 @@ interface SettingsFacade {
 
     var lastProcessName: String
 
+    // key "lastDeviceSerial": adb serial of the device the last recording was started from;
+    // NewLayoutDialog preselects it when that device is still in the devices list.
+    var lastDeviceSerial: String
+
     var lastWindowName: String
 
     var lastFilter: String

@@ -248,6 +248,7 @@ class NewLayoutDialog(
         val client = clientListModel[currentClientIndex]
         settings.lastProcessName = client.toString()
         val device = devicesComboBox.selectedItem as DeviceWrapper
+        settings.lastDeviceSerial = device.device.serialNumber
         val timeoutInSeconds = timeoutField.text.toInt()
         settings.isDumpViewModeEnabled = dumpViewMode.isSelected
         settings.isSecondProtocolVersionEnabled = secondProtocolVersion.isSelected
@@ -294,9 +295,24 @@ class NewLayoutDialog(
             }
 
             if (devicesComboBox.itemCount > 0) {
-                devicesComboBox.selectedIndex = 0
-                // Immediately populate clients for the first device
-                logger.d("$TAG: populateWithDevices() - selecting first device and populating clients")
+                // Preselect the device the previous recording was started from when it is still
+                // connected; otherwise fall back to the first one.
+                var index = 0
+                if (settings.lastDeviceSerial.isNotEmpty()) {
+                    val remembered = (0 until devicesComboBox.itemCount).firstOrNull {
+                        (devicesComboBox.getItemAt(it) as DeviceWrapper).device.serialNumber ==
+                            settings.lastDeviceSerial
+                    }
+                    if (remembered != null) {
+                        index = remembered
+                    }
+                }
+                devicesComboBox.selectedIndex = index
+                // Immediately populate clients for the selected device
+                logger.d(
+                    "$TAG: populateWithDevices() - selecting device index $index " +
+                        "(remembered: ${settings.lastDeviceSerial}) and populating clients"
+                )
                 populateWithClients((devicesComboBox.selectedItem as DeviceWrapper).device)
             }
             if (devicesComboBox.itemCount == 1) {
