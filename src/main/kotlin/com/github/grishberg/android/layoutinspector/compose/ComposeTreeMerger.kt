@@ -44,25 +44,69 @@ class ComposeTreeMerger(private val logger: AppLogger) {
             return layoutRootNode
         }
         val hosts = collectHosts(layoutRootNode).toMutableList()
+
+        // DEBUG(compose-merge): temporary diagnostics - every node whose class name mentions
+        // "Compose", exact-match hosts and near-misses (subclasses are NOT hosts today).
+        logger.d("YALI ComposeDbg: ${roots.size} compose root(s) to graft")
+        logger.d("YALI ComposeDbg: compose-like nodes in JDWP tree: " +
+            collectComposeLike(layoutRootNode).joinToString(" | ") { it.debugDesc() })
+        logger.d("YALI ComposeDbg: exact-match hosts after collect: " +
+            hosts.joinToString(" | ") { it.debugDesc() })
+
         // when one host is nested inside another (ComposeView contains AndroidComposeView),
         // only the innermost host is usable - attaching to both would duplicate the subtree
-        hosts.removeAll { outer -> hosts.any { inner -> inner !== outer && isDescendant(inner, outer) } }
+        val nested = hosts.filter { outer ->
+            hosts.any { inner -> inner !== outer && isDescendant(inner, outer) }
+        }
+        hosts.removeAll(nested.toSet())
+        if (nested.isNotEmpty()) {
+            logger.d("YALI ComposeDbg: dropped nested hosts: " +
+                nested.joinToString(" | ") { it.debugDesc() })
+        }
         logger.d("YALI ComposeTreeMerger: ${roots.size} compose root(s), ${hosts.size} compose host(s)")
 
         for (root in roots) {
+            val rootBounds = unionBounds(root.nodes)
+            logger.d(
+                "YALI ComposeDbg: root view_id=${root.viewId} nodes=${root.nodes.size} " +
+                    "skip=${root.viewsToSkip.size} bounds=(${rootBounds.left},${rootBounds.top} " +
+                    "${rootBounds.width}x${rootBounds.height})"
+            )
+            if (root.nodes.isEmpty()) {
+                logger.w(
+                    "YALI ComposeDbg: root view_id=${root.viewId} has EMPTY composable list - " +
+                        "nothing to graft (agent returned an empty tree for this host)"
+                )
+            }
             val host = when {
                 hosts.isEmpty() -> null
                 hosts.size == 1 -> hosts.first()
                 else -> bestHostMatch(root, hosts)
             }
             if (host != null) {
+                logger.d("YALI ComposeDbg: root view_id=${root.viewId} -> host ${host.debugDesc()}")
                 attachUnder(host, root, semanticTexts)
             } else {
+                logger.w("YALI ComposeDbg: root view_id=${root.viewId} -> NO host at all, " +
+                    "appending synthetic node under decor root")
                 appendSyntheticUnderDecor(layoutRootNode, root, semanticTexts)
             }
         }
         return layoutRootNode
     }
+
+    /** DEBUG(compose-merge): nodes whose type name contains "Compose" (hosts + near-miss subclasses). */
+    private fun collectComposeLike(node: AbstractViewNode, result: MutableList<AbstractViewNode> = mutableListOf()): List<AbstractViewNode> {
+        if (node.typeAsString.contains("Compose", ignoreCase = true)) {
+            result.add(node)
+        }
+        node.children.forEach { collectComposeLike(it, result) }
+        return result
+    }
+
+    /** DEBUG(compose-merge): one-line node descriptor for diagnostics. */
+    private fun AbstractViewNode.debugDesc(): String =
+        "$typeAsString@$hash (${locationOnScreenX},${locationOnScreenY} ${width}x$height)"
 
     private fun attachUnder(
         host: AbstractViewNode,
@@ -137,6 +181,7 @@ class ComposeTreeMerger(private val logger: AppLogger) {
         var best: AbstractViewNode? = null
         var bestScore = 0.0
         var bestArea = Long.MAX_VALUE
+        val scores = StringBuilder()
         for (host in hosts) {
             val overlapW = (minOf(rootBounds.right, host.locationOnScreenX + host.width) -
                 maxOf(rootBounds.left, host.locationOnScreenX)).coerceAtLeast(0).toLong()
@@ -144,11 +189,22 @@ class ComposeTreeMerger(private val logger: AppLogger) {
                 maxOf(rootBounds.top, host.locationOnScreenY)).coerceAtLeast(0).toLong()
             val score = (overlapW * overlapH).toDouble() / rootArea
             val hostArea = host.width.toLong() * host.height.toLong()
+            scores.append("; ").append(host.debugDesc()).append(" overlap=")
+                .append(String.format("%.3f", score))
             if (score > bestScore || (score == bestScore && hostArea < bestArea)) {
                 bestScore = score
                 bestArea = hostArea
                 best = host
             }
+        }
+        // DEBUG(compose-merge)
+        logger.d("YALI ComposeDbg: bestHostMatch for root view_id=${root.viewId}$scores")
+        if (bestScore <= 0.0) {
+            logger.w(
+                "YALI ComposeDbg: root view_id=${root.viewId} overlaps NO host (bestScore=0) - " +
+                    "falling back to first host, graft may land in the wrong place: " +
+                    (best?.debugDesc() ?: "null")
+            )
         }
         return best ?: hosts.first()
     }

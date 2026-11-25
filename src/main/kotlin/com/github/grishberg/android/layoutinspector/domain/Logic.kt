@@ -182,6 +182,19 @@ class Logic(
                     }
                 }
                 val root = viewResult.root ?: return@launch
+                // DEBUG(compose-merge): zero roots = "nothing found", vs roots+empty graft = "merge problem"
+                logger.d(
+                    "$TAG: compose phase result: ${composeResult.roots.size} root(s), " +
+                        "nodes=${composeResult.roots.sumOf { it.nodes.size }}, " +
+                        "window ids=${composeResult.requestedRootViewIds}, " +
+                        "compose ${composeResult.composeVersion}, process ${composeResult.processName}"
+                )
+                if (composeResult.roots.isEmpty()) {
+                    logger.w(
+                        "$TAG: compose agent returned NO roots for window ids " +
+                            "${composeResult.requestedRootViewIds} - nothing can be merged"
+                    )
+                }
                 val merged = ComposeTreeMerger(logger)
                     .mergeNodes(root, composeResult.roots, composeResult.semanticTexts)
                 logger.d("$TAG: compose capture done, ${composeResult.roots.size} root(s) merged")

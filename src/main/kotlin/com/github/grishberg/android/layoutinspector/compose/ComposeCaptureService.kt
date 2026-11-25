@@ -681,9 +681,20 @@ class ComposeCaptureService(private val logger: AppLogger) {
                         "YALI Compose: root $rootViewId -> ${response.roots.size} root(s), " +
                             "unchanged=${response.unchanged}"
                     )
+                    // DEBUG(compose-merge): per-answer root detail + what dedupe dropped
+                    for (r in response.roots) {
+                        logger.d(
+                            "YALI ComposeDbg: answer to window $rootViewId: view_id=${r.viewId} " +
+                                "nodes=${r.nodes.size} viewsToSkip=${r.viewsToSkip.size}"
+                        )
+                    }
                     // dedupe defensively: some agents answer every id with all roots
                     for (root in response.roots) {
                         if (allRoots.none { it.viewId == root.viewId }) allRoots += root
+                        else logger.d(
+                            "YALI ComposeDbg: deduped duplicate view_id=${root.viewId} " +
+                                "from window $rootViewId answer"
+                        )
                     }
                 }
                 is ComposeResponse.UpdateSettings -> Unit // not requested; ignore
