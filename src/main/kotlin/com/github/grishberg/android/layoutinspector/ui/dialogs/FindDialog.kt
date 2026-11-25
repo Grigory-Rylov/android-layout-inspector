@@ -144,6 +144,12 @@ class FindDialog(
     }
 
     fun updateRootNode(root: AbstractViewNode?) {
+        // The compose-merge refresh shows the same root object (in-place graft): keep the current
+        // search results instead of wiping them mid-session. Any new capture/refresh/open brings a
+        // new object, so this only skips the no-op.
+        if (root === rootNode) {
+            return
+        }
         rootNode = root
         resultLabel.text = FIND_LABEL_DEFAULT_TEXT
         results.clear()

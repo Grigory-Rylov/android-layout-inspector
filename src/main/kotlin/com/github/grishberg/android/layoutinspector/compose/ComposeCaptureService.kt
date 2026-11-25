@@ -144,6 +144,9 @@ class ComposeCaptureService(private val logger: AppLogger) {
      * Single-shot capture for the debuggable process [pid] on device [deviceSerial].
      * @param project used for inspector artifact resolution (progress/state); any open project is
      *   picked when null.
+     * @param onStage invoked with a short human-readable description at the start of each phase
+     *   (and per window root during the fetch loops). Invoked on a worker thread — *never* the
+     *   EDT: callers that update UI must marshal to the UI thread themselves.
      * @throws ComposeCaptureException with a user-presentable, actionable message.
      */
     suspend fun capture(
@@ -152,21 +155,26 @@ class ComposeCaptureService(private val logger: AppLogger) {
         project: Project? = null,
         device: IDevice? = null,
         packageName: String? = null,
+        onStage: (String) -> Unit = {},
     ): ComposeCaptureResult {
         val apiServices = requireApiServices()
+        onStage("Looking up process in App Inspection...")
         val (process, relaunched) = findProcess(apiServices, deviceSerial, pid, device, packageName)
 
         try {
             val resolvedProject = resolveProject(project)
 
+            onStage("Attaching inspector agent...")
             val target = attachWithRetry(apiServices, process, relaunched)
 
             // The compose agent only answers for real window-root uniqueDrawingIds — learn them
             // from the view inspector first (class doc step 5); its inspector is stopped again
             // before the compose one is launched. Runs after attachToProcess: as in AS's
             // pipeline, no inspector can launch against an unattached process.
+            onStage("Detecting window roots...")
             val rootViewIds = bootstrapWindowRootViewIds(apiServices, process, resolvedProject.name)
 
+            onStage("Resolving compose inspector artifact...")
             val composeVersion = detectComposeVersion(target)
             val (jar, coordinate) = resolveInspectorJar(composeVersion, resolvedProject)
             logger.d(
@@ -180,6 +188,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
             // coordinate must always be COMPOSE_UI — exactly like Android Studio does. The
             // resolved jar coordinate (possibly ui-android) only affects maven artifact download.
             val messenger = runCatchingSuspend("launch compose inspector") {
+                onStage("Starting compose inspector...")
                 apiServices.launchInspector(
                     LaunchParameters(
                         process,
@@ -195,12 +204,12 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 )
             }.getOrThrow()
 
-            val roots = requestComposables(messenger, rootViewIds)
+            val roots = requestComposables(messenger, rootViewIds, onStage)
             logger.d("YALI Compose: captured ${roots.size} compose root(s) for ids $rootViewIds")
             // Text values live in the semantics parameters, fetched in a second command per
             // root; soft-fails, so an agent without (or with a failing) extraction still yields
             // the full tree, just without labels.
-            val texts = fetchSemanticTexts(messenger, rootViewIds)
+            val texts = fetchSemanticTexts(messenger, rootViewIds, onStage)
             logger.d("YALI Compose: resolved semantic text for ${texts.size} composable(s)")
             return ComposeCaptureResult(
                 deviceSerial = deviceSerial,
@@ -651,9 +660,11 @@ class ComposeCaptureService(private val logger: AppLogger) {
     private suspend fun requestComposables(
         messenger: AppInspectorMessenger,
         rootViewIds: List<Long>,
+        onStage: (String) -> Unit,
     ): List<ComposableRoot> {
         val allRoots = mutableListOf<ComposableRoot>()
-        for (rootViewId in rootViewIds) {
+        for ((index, rootViewId) in rootViewIds.withIndex()) {
+            onStage("Fetching Compose hierarchy: window ${index + 1}/${rootViewIds.size}...")
             val command = ComposeInspectionCodec.encodeGetComposablesCommand(
                 rootViewId = rootViewId,
                 skipSystemComposables = true,
@@ -697,9 +708,11 @@ class ComposeCaptureService(private val logger: AppLogger) {
     private suspend fun fetchSemanticTexts(
         messenger: AppInspectorMessenger,
         rootViewIds: List<Long>,
+        onStage: (String) -> Unit,
     ): Map<Long, String> {
         val texts = mutableMapOf<Long, String>()
-        for (rootViewId in rootViewIds) {
+        for ((index, rootViewId) in rootViewIds.withIndex()) {
+            onStage("Fetching text values: window ${index + 1}/${rootViewIds.size}...")
             val responseBytes = runCatchingSuspend(
                 "send get_all_parameters_command for root view $rootViewId"
             ) {
