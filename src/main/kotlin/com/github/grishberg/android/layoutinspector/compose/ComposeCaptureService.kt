@@ -879,14 +879,19 @@ class ComposeCaptureService(private val logger: AppLogger) {
     }
 
     /**
-     * Gate for the optional text-label extraction. `-Dyali.compose.texts=false` turns it off
-     * globally; after an extraction has killed the app process once for a package, every later
-     * capture of that package skips it (the crash happens inside the app, so asking once is the
-     * only way to learn - afterwards the tree is always captured, just without text labels).
+     * Gate for the optional text-label extraction. Parameter decoding inside the injected agent
+     * (`InlineClassConverter`) crashes the app on builds whose slot table the version-matched
+     * agent misreads (verified on the 1.11.2 agent + Kotlin 2.3.21 compiler: `Color.<init>`
+     * receives the `$changed` Boolean and the exception is uncatchable from the app side), so
+     * extraction is OFF by default; `-Dyali.compose.texts=true` opts back in. Packages whose
+     * extraction killed the process are also skipped for the rest of the session.
      */
     private fun shouldFetchTexts(packageName: String): Boolean {
-        if (System.getProperty("yali.compose.texts")?.trim()?.equals("false", ignoreCase = true) == true) {
-            logger.w("YALI Compose: text extraction disabled via -Dyali.compose.texts=false")
+        if (System.getProperty("yali.compose.texts")?.trim()?.equals("true", ignoreCase = true) != true) {
+            logger.w(
+                "YALI Compose: text extraction is off by default (the agent's parameter decoding " +
+                    "can crash the inspected app); enable with -Dyali.compose.texts=true if needed"
+            )
             return false
         }
         if (packageName in textExtractionCrashedPackages) {
