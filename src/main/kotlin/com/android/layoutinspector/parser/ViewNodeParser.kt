@@ -62,12 +62,20 @@ object ViewNodeParser {
         var lastNode: ViewNode? = null
         var lastWhitespaceCount = Integer.MIN_VALUE
         val stack = Stack<ViewNode>()
+        // The device writes each property as `<name>=<byteLength>:<utf8Value>`, so offsets are
+        // BYTE offsets. Decoding the stream byte-per-char (ISO-8859-1) keeps the parser's char
+        // indices aligned with them; individual values are UTF-8 decoded in
+        // [loadPropertiesAndCreateNode]. Decoding the whole stream as UTF-8 used to shift every
+        // offset after any non-ASCII value (Cyrillic text) and crashed substring bounds.
         val input = BufferedReader(
-            InputStreamReader(ByteArrayInputStream(bytes), Charsets.UTF_8)
+            InputStreamReader(ByteArrayInputStream(bytes), Charsets.ISO_8859_1)
         )
         for (line in input.lines().collect(MergeNewLineCollector)) {
             if ("DONE.".equals(line, ignoreCase = true)) {
                 break
+            }
+            if (line.isEmpty()) {
+                continue
             }
             // determine parent through the level of nesting by counting whitespaces
             var whitespaceCount = 0
@@ -109,6 +117,14 @@ object ViewNodeParser {
         val name = data.substring(0, delimIndex)
         data = data.substring(delimIndex + 1)
         delimIndex = data.indexOf(' ')
+        if (delimIndex < 0) {
+            // "Name@hash" with no properties after the hash
+            val hash = data
+            val node = ViewNode(parent, name, hash)
+            node.index = parent?.children?.size ?: 0
+            parent?.let { it.children.add(node) }
+            return node
+        }
         val hash = data.substring(0, delimIndex)
 
         val node = if (data.length > delimIndex + 1) {
@@ -142,7 +158,14 @@ object ViewNodeParser {
             val length = Integer.parseInt(data.substring(index + 1, index2))
             start = index2 + 1 + length
             if (!skippedProperties.contains(fullName)) {
-                val value = data.substring(index2 + 1, index2 + 1 + length)
+                // `value` is the raw byte-per-char window written by the device; non-ASCII
+                // values (e.g. Cyrillic text) must be re-decoded from UTF-8 to be readable.
+                val raw = data.substring(index2 + 1, index2 + 1 + length)
+                val value = if (raw.any { it.code > 0x7F }) {
+                    String(raw.toByteArray(Charsets.ISO_8859_1), Charsets.UTF_8)
+                } else {
+                    raw
+                }
                 val property = ViewPropertyParser.parse(fullName, value)
                 properties.add(property)
                 namedProperties[property.fullName] = property

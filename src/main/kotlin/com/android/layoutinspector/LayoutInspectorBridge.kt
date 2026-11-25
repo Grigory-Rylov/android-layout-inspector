@@ -47,8 +47,10 @@ object LayoutInspectorBridge {
             logger.d("$TAG parse hierarchy done. root is $root")
 
         } catch (e: StringIndexOutOfBoundsException) {
+            logger.e("$TAG: failed to parse the view hierarchy stream: ${e.message}", e)
             return LayoutInspectorResult.createErrorResult("Unexpected error: $e")
         } catch (e: IOException) {
+            logger.e(TAG, e)
             return LayoutInspectorResult.createErrorResult("Unexpected error: $e")
         }
         if (root == null) {
