@@ -134,6 +134,11 @@ class Logic(
     private suspend fun captureLayouts(
         config: RecordingConfig, isRefresh: Boolean = false
     ) {
+        logger.w(
+            "$TAG: captureLayouts start: device=${config.recordOptions.device.serialNumber} " +
+                "client=${config.recordOptions.client} compose=${config.recordOptions.composeModeEnabled} " +
+                "timeout=${config.recordOptions.timeoutInSeconds}s refresh=$isRefresh"
+        )
         val task = LayoutInspectorCaptureTask(layoutFileSystem, coroutineScope, logger, dispatchers)
 
         val liResult = task.captureViews(config)

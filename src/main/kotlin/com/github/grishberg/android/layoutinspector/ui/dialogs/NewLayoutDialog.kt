@@ -92,7 +92,7 @@ class NewLayoutDialog(
                 // Immediately populate clients for the selected device
                 val deviceWrapper = devicesComboBox.selectedItem as DeviceWrapper?
                 if (deviceWrapper != null) {
-                    logger.d("$TAG: windowOpened() - Populating clients for device: ${deviceWrapper.device}")
+                    logger.w("$TAG: windowOpened() - Populating clients for device: ${deviceWrapper.device}")
                     populateWithClients(deviceWrapper.device)
                 } else {
                     logger.w("$TAG: windowOpened() - No device selected")
@@ -274,24 +274,24 @@ class NewLayoutDialog(
     }
 
     fun showDialog() {
-        logger.d("$TAG: showDialog() - Opening dialog")
+        logger.w("$TAG: showDialog() - Opening dialog")
         deviceProvider.deviceChangedActions.add(deviceChangedAction)
         setLocationRelativeTo(owner)
         result = null
         populateWithDevices()
         isVisible = true
-        logger.d("$TAG: showDialog() - Dialog closed, result: ${result != null}")
+        logger.w("$TAG: showDialog() - Dialog closed, result: ${result != null}")
     }
 
     private fun populateWithDevices() {
-        logger.d("$TAG: populateWithDevices() - Requesting devices from provider")
+        logger.w("$TAG: populateWithDevices() - Requesting devices from provider")
         GlobalScope.launch(Dispatchers.EDT) {
             val devices = deviceProvider.requestDevices()
-            logger.d("$TAG: populateWithDevices() - received ${devices.size} devices")
+            logger.w("$TAG: populateWithDevices() - received ${devices.size} devices")
             devicesComboBox.removeAllItems()
             for (device in devices) {
                 devicesComboBox.addItem(RealDeviceWrapper(device))
-                logger.d("$TAG: populateWithDevices() - added device: ${device}")
+                logger.w("$TAG: populateWithDevices() - added device: ${device}")
             }
 
             if (devicesComboBox.itemCount > 0) {
@@ -309,7 +309,7 @@ class NewLayoutDialog(
                 }
                 devicesComboBox.selectedIndex = index
                 // Immediately populate clients for the selected device
-                logger.d(
+                logger.w(
                     "$TAG: populateWithDevices() - selecting device index $index " +
                         "(remembered: ${settings.lastDeviceSerial}) and populating clients"
                 )
@@ -322,7 +322,7 @@ class NewLayoutDialog(
     }
 
     private fun populateWithClients(device: IDevice) {
-        logger.d("$TAG: populateWithClients() called for device: ${device}")
+        logger.w("$TAG: populateWithClients() called for device: ${device}")
         GlobalScope.launch(Dispatchers.EDT) {
             val clients = getClientsWithWindow(device, showAllProcesses.isSelected)
             clientListModel.clear()
@@ -340,7 +340,7 @@ class NewLayoutDialog(
             }
             pack()
             repaint()
-            logger.d("$TAG: populateWithClients() completed, clients count: ${clients.size}")
+            logger.w("$TAG: populateWithClients() completed, clients count: ${clients.size}")
         }
     }
 
@@ -355,7 +355,7 @@ class NewLayoutDialog(
             for (c in clients) {
                 if (allProcesses) {
                     val element = ClientWrapper(c)
-                    logger.d("$TAG: found client: $element")
+                    logger.w("$TAG: found client: $element")
                     clientsWithWindow.add(element)
                     continue
                 }
@@ -366,7 +366,7 @@ class NewLayoutDialog(
 
                     if (windows.isNotEmpty()) {
                         val element = ClientWrapper(c)
-                        logger.d("$TAG: found client: $element, windows count: ${windows.size}")
+                        logger.w("$TAG: found client: $element, windows count: ${windows.size}")
                         clientsWithWindow.add(element)
                     }
                 } catch (e: Exception) {

@@ -1151,7 +1151,12 @@ class ComposeCaptureService(private val logger: AppLogger) {
     private fun isAppProcessTerminated(t: Throwable): Boolean {
         var cause: Throwable? = t
         while (cause != null) {
-            if (cause.message?.contains("app process terminated", ignoreCase = true) == true) {
+            val message = cause.message
+            if (message?.contains("app process terminated", ignoreCase = true) == true ||
+                // Messenger disposed while a command was in flight: in practice only the
+                // process disappearing does this mid-command (stopInspectors runs in finally).
+                message?.contains("was disposed", ignoreCase = true) == true
+            ) {
                 return true
             }
             cause = cause.cause
