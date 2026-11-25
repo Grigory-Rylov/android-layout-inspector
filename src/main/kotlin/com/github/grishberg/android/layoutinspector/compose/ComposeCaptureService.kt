@@ -65,14 +65,19 @@ class ComposeCaptureException(message: String, cause: Throwable? = null) : Excep
  *     (WindowRootsEvent.ids, falling back to StartFetchCommand -> LayoutEvent.root_view.node.id);
  *     the compose agent keys its tree map by View.getUniqueDrawingId() and answers
  *     `root_view_id=0` with an EMPTY tree (verified E2E), so these ids are mandatory input;
- *  6. stopInspectors, then `launchInspector` with inspector id `layoutinspector.compose.inspection`
+ *  6. `launchInspector` with inspector id `layoutinspector.compose.inspection`
  *     and `sendRawCommand(Command{get_composables_command{root_view_id=<id>, generation=0,
  *     skip_system_composables=true}})` per root id, concatenating the non-empty responses;
  *     the compose [ComposeInspectionCodec]/Response bytes travel raw; the RawCommand /
  *     AppInspectionCommand envelope is applied *inside* DefaultAppInspectionTransport (verified from
  *     AppInspectorConnection bytecode: the payload becomes RawCommand{content} and the returned
  *     bytes are RawResponse{content}), so YALI passes/reads only the packed compose messages;
- *  7. `stopInspectors` in finally.
+ *  7. no `stopInspectors`, ever: it disposes the shared per-process AppInspection connection, its
+ *     supervisor job stays cancelled in AS's target cache and every later `launchInspector` for
+ *     that process then dies with "Job was cancelled" until AS restarts (measured: first capture
+ *     per AS session succeeds, every later one fails). Inspectors stay attached to the app for the
+ *     AS session, exactly like Live Layout Inspector; relaunching an already-running inspector id
+ *     with force=false reuses it.
  *
  * All calls are suspend and must run off the EDT (callers use a worker dispatcher).
  *
@@ -273,8 +278,9 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 "Jetpack Compose capture failed for ${process.packageName} (pid=$pid): ${t.message}", t
             )
         } finally {
-            runCatching { apiServices.stopInspectors(process) }
-                .onFailure { logger.w("YALI Compose: could not stop inspectors for pid=$pid: ${it.message}") }
+            // Deliberately NOT stopping the inspectors here: stopInspectors disposes the shared
+            // per-process AppInspection connection, whose cancelled supervisor then poisons every
+            // later launchInspector in the AS session ("Job was cancelled", see class doc).
         }
     }
 
@@ -960,13 +966,13 @@ class ComposeCaptureService(private val logger: AppLogger) {
     }
 
     /**
-     * Launches the view inspector, learns the window root ids (View.getUniqueDrawingId) from its
-     * event flow and stops the inspector again. AS knows these ids the same way. [collectRootViewIds]
-     * does the flow-side work and is unit-testable without a transport.
+     * Launches the view inspector and learns the window root ids (View.getUniqueDrawingId) from
+     * its event flow. AS knows these ids the same way. [collectRootViewIds] does the flow-side
+     * work and is unit-testable without a transport.
      *
-     * The first launch intermittently fails with "Job was cancelled" while the agent is still
-     * booting; a plain relaunch succeeds, so the whole bootstrap is retried up to
-     * [BOOTSTRAP_RETRY_LIMIT] times before giving up.
+     * The launch is retried up to [BOOTSTRAP_RETRY_LIMIT] times with growing delays: a cold agent
+     * boot or a busy App Inspection service (Gradle sync/reload) cancels the first attempts; no
+     * `stopInspectors` is attempted between retries - it is what kills the connection (class doc).
      */
     private suspend fun bootstrapWindowRootViewIds(
         apiServices: AppInspectionApiServices,
@@ -980,21 +986,6 @@ class ComposeCaptureService(private val logger: AppLogger) {
             } catch (e: ComposeCaptureException) {
                 lastError = e
                 if (attempt < BOOTSTRAP_RETRY_LIMIT) {
-                    // "Job was cancelled" = AS's cached per-process inspector connection is dead
-                    // (its supervisor was cancelled when the app restarted / the project
-                    // reloaded); relaunching on the same cached connection cancels instantly
-                    // forever. stopInspectors drops the cached connection so the retry launches
-                    // a fresh one.
-                    val staleConnection = generateSequence(e as Throwable?) { it.cause }
-                        .any { it.message?.contains("Job was cancelled") == true }
-                    if (staleConnection) {
-                        logger.w(
-                            "YALI Compose: dropping the cached inspector connection before retry"
-                        )
-                        runCatchingSuspend("stop inspectors to reset the inspector connection") {
-                            withTimeoutOrNullCompat(5_000) { apiServices.stopInspectors(process) }
-                        }
-                    }
                     logger.w(
                         "YALI Compose: view inspector bootstrap failed " +
                             "(attempt $attempt/$BOOTSTRAP_RETRY_LIMIT): ${e.message} - " +
@@ -1231,7 +1222,7 @@ class ComposeCaptureService(private val logger: AppLogger) {
             val message = cause.message
             if (message?.contains("app process terminated", ignoreCase = true) == true ||
                 // Messenger disposed while a command was in flight: in practice only the
-                // process disappearing does this mid-command (stopInspectors runs in finally).
+                // process disappearing does this mid-command.
                 message?.contains("was disposed", ignoreCase = true) == true
             ) {
                 return true
