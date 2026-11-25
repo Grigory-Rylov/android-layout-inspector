@@ -32,6 +32,14 @@ class ComposeTreeMerger(private val logger: AppLogger) {
 
     companion object {
         private val COMPOSE_HOST_SIMPLE_NAMES = setOf("ComposeView", "AndroidComposeView")
+
+        /**
+         * Class of the placeholder node the JDWP tree shows inside a compose host: Compose draws
+         * itself instead of building a View hierarchy, so the host exposes one plain
+         * `android.view.View` child covering its content. Dropped once real compose nodes are
+         * grafted (see [attachUnder]).
+         */
+        private const val COMPOSE_PLACEHOLDER_CLASS = "android.view.View"
     }
 
     fun mergeNodes(
@@ -69,8 +77,27 @@ class ComposeTreeMerger(private val logger: AppLogger) {
         root: ComposableRoot,
         semanticTexts: Map<Long, String>,
     ) {
-        ComposeNodeAdapter.adaptRootNodes(root.nodes, host, semanticTexts)
-            .forEach { addChildTo(host, it) }
+        val adapted = ComposeNodeAdapter.adaptRootNodes(root.nodes, host, semanticTexts)
+        if (adapted.isNotEmpty()) {
+            // A compose host's `android.view.View` child in the JDWP tree is only the shadow of
+            // the compose content (Compose draws itself, it is not a View hierarchy). Once the
+            // real compose nodes are grafted the placeholder just duplicates the subtree in the
+            // UI, so it is dropped. Exact class name only: AndroidView interop children (real
+            // View subclasses) are kept.
+            val placeholders = host.children.filter { it.name == COMPOSE_PLACEHOLDER_CLASS }
+            if (placeholders.isNotEmpty()) {
+                @Suppress("UNCHECKED_CAST")
+                val mutable = host.children as? MutableList<AbstractViewNode>
+                if (mutable != null) {
+                    mutable.removeAll(placeholders.toSet())
+                    logger.d(
+                        "YALI ComposeTreeMerger: removed ${placeholders.size} " +
+                            "`android.view.View` placeholder(s) under ${host.name}"
+                    )
+                }
+            }
+        }
+        adapted.forEach { addChildTo(host, it) }
         logger.d(
             "YALI ComposeTreeMerger: grafted view_id=${root.viewId} " +
                 "(${root.nodes.size} root composables) under ${host.name}"
