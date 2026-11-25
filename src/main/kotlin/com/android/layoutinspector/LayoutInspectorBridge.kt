@@ -43,6 +43,7 @@ object LayoutInspectorBridge {
         val root: ViewNode?
         try {
             logger.d("$TAG parse hierarchy")
+            ViewNodeParser.lineErrorLogger = { logger.w(it) }
             root = ViewNodeParser.parse(hierarchy, options.version)
             logger.d("$TAG parse hierarchy done. root is $root")
 

@@ -56,4 +56,33 @@ class ViewNodeParserTest {
         assertEquals("hello", root.getProperty("text")?.value)
         assertEquals("ok", root.getProperty("tag")?.value)
     }
+
+    @Test
+    fun parseRecoversFromRawCarriageReturnInsideValue() {
+        // The device escapes only '\n'; a raw '\r' inside a value splits the stream line and is
+        // NOT marked - the parser must re-join the fragment (the crash from the 17:29 log).
+        val value = "Первый\rвторой"
+        val props = "text=${value.toByteArray(Charsets.UTF_8).size},$value" +
+            ":id=${"com.test:id/title".toByteArray(Charsets.UTF_8).size},com.test:id/title"
+        val stream = "  com.foo.View@abc $props\nDONE."
+
+        val root = ViewNodeParser.parse(stream.toByteArray(Charsets.UTF_8))!!
+
+        assertEquals("com.foo.View", root.name)
+        // the separator byte is restored when re-joining (CR -> LF, same length)
+        assertEquals("Первый\nвторой", root.getProperty("text")?.value)
+        assertEquals("com.test:id/title", root.getProperty("id")?.value)
+    }
+
+    @Test
+    fun parseSkipsUndiagnosableGarbageInsteadOfFailing() {
+        val stream = deviceLine(0, "android.view.View", "text" to "ok") +
+            "!!! binary garbage without at sign @@ at all\n" +
+            deviceLine(4, "android.widget.Button", "text" to "Btn") +
+            "DONE."
+
+        val root = ViewNodeParser.parse(stream.toByteArray(Charsets.UTF_8))
+
+        assertNotNull(root)
+    }
 }
