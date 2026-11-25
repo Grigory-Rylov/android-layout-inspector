@@ -18,10 +18,12 @@ import com.android.ddmlib.IDevice
 import com.android.tools.idea.appinspection.internal.AppInspectionTarget
 import com.android.tools.idea.layoutinspector.pipeline.appinspection.view.ViewLayoutInspectorClient
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposableRoot
+import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposeNode
 import com.github.grishberg.android.layoutinspector.compose.ComposeInspectionCodec.ComposeResponse
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -113,6 +115,15 @@ class ComposeCaptureService(private val logger: AppLogger) {
         private const val RELAUNCH_DISCOVERY_TIMEOUT_MS = 20_000L
         private const val TRANSPORT_REPAIR_DISCOVERY_MS = 8_000L
         private const val COMMAND_TIMEOUT_MS = 30_000L
+
+        /**
+         * A composition carries tree data only after its first recomposition with tracking on
+         * (same "waiting for recomposition" phase the AS Layout Inspector has). Retry a stub
+         * answer this many times with this delay before giving up on the richest one.
+         */
+        private const val THIN_TREE_FETCH_LIMIT = 3
+        private const val THIN_TREE_RETRY_DELAY_MS = 800L
+        private const val THIN_TREE_NODE_THRESHOLD = 1
 
         /** System property forcing the compose inspector artifact version; see [inspectorVersionFor]. */
         private const val INSPECTOR_VERSION_OVERRIDE_PROPERTY = "yali.compose.inspectorVersion"
@@ -209,6 +220,13 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 )
             }.getOrThrow()
 
+            // Enable the agent's recomposition tracking before the first fetch, like AS does:
+            // without it compositions carry no tree data until they happen to recompose, and the
+            // first answer is a stub ("empty compose hierarchy"). Parameter extraction stays
+            // delayed (values are pulled explicitly per window via get_all_parameters_command);
+            // soft-fail: an agent that refuses the command must not fail the capture.
+            updateSettings(messenger)
+
             val roots = requestComposables(messenger, rootViewIds, onStage)
             logger.w("YALI Compose: captured ${roots.size} compose root(s) for ids $rootViewIds")
             // Text values live in the semantics parameters, fetched in a second command per
@@ -226,6 +244,9 @@ class ComposeCaptureService(private val logger: AppLogger) {
                 semanticTexts = texts,
             )
         } catch (t: Throwable) {
+            if (t is CancellationException) {
+                throw t
+            }
             if (t is ComposeCaptureException) {
                 throw t
             }
@@ -679,6 +700,12 @@ class ComposeCaptureService(private val logger: AppLogger) {
      * ids must come from [bootstrapWindowRootViewIds]; an unknown id simply yields no roots.
      * The generation rotates per command: any value different from the previous one forces the
      * agent to regenerate (proto3 semantics: an equal generation replays the last response).
+     *
+     * A composition only carries tree data after it has recomposed once with tracking enabled,
+     * so a stub answer (0 roots, or a root tree of <= [THIN_TREE_NODE_THRESHOLD] nodes) is
+     * re-requested up to [THIN_TREE_FETCH_LIMIT] times while the app recomposes - the richest
+     * answer wins. The user can also interact with the screen during these waits (the same
+     * "waiting for recomposition" behaviour the AS Layout Inspector has).
      */
     private suspend fun requestComposables(
         messenger: AppInspectorMessenger,
@@ -688,50 +715,103 @@ class ComposeCaptureService(private val logger: AppLogger) {
         val allRoots = mutableListOf<ComposableRoot>()
         for ((index, rootViewId) in rootViewIds.withIndex()) {
             onStage("Fetching Compose hierarchy: window ${index + 1}/${rootViewIds.size}...")
-            val command = ComposeInspectionCodec.encodeGetComposablesCommand(
-                rootViewId = rootViewId,
-                skipSystemComposables = true,
-                generation = generationCounter.incrementAndGet(),
-            )
-            val responseBytes = runCatchingSuspend(
-                "send get_composables_command for root view $rootViewId"
-            ) {
-                withTimeout(COMMAND_TIMEOUT_MS) { messenger.sendRawCommand(command) }
-            }.getOrThrow()
-            when (val response = ComposeInspectionCodec.decodeResponse(responseBytes)) {
-                is ComposeResponse.GetComposables -> {
-                    logger.w(
-                        "YALI Compose: root $rootViewId -> ${response.roots.size} root(s), " +
-                            "unchanged=${response.unchanged}"
-                    )
-                    // DEBUG(compose-merge): per-answer root detail + what dedupe dropped
-                    for (r in response.roots) {
-                        logger.w(
-                            "YALI ComposeDbg: answer to window $rootViewId: view_id=${r.viewId} " +
-                                "nodes=${r.nodes.size} viewsToSkip=${r.viewsToSkip.size}"
-                        )
-                    }
-                    // dedupe defensively: some agents answer every id with all roots
-                    for (root in response.roots) {
-                        if (allRoots.none { it.viewId == root.viewId }) allRoots += root
-                        else logger.w(
-                            "YALI ComposeDbg: deduped duplicate view_id=${root.viewId} " +
-                                "from window $rootViewId answer"
-                        )
-                    }
+            var best: List<ComposableRoot> = emptyList()
+            var bestNodes = 0
+            for (attempt in 1..THIN_TREE_FETCH_LIMIT) {
+                val roots = fetchRootsOnce(messenger, rootViewId)
+                val nodes = roots.sumOf { root -> root.nodes.sumOf { countComposeNodes(it) } }
+                if (nodes > bestNodes) {
+                    best = roots
+                    bestNodes = nodes
                 }
-                is ComposeResponse.UpdateSettings -> Unit // not requested; ignore
-                is ComposeResponse.Unknown -> throw ComposeCaptureException(
-                    "The compose inspector agent in the app did not understand YALI's request " +
-                        "(unknown command). This usually means the app's androidx.compose.ui version " +
-                        "is too old for this Android Studio - update Compose or use the AS Layout Inspector."
+                if (bestNodes > THIN_TREE_NODE_THRESHOLD || attempt == THIN_TREE_FETCH_LIMIT) {
+                    break
+                }
+                logger.w(
+                    "YALI Compose: window $rootViewId answered with a stub tree " +
+                        "($bestNodes node(s)) - waiting for a recomposition " +
+                        "(attempt $attempt/${THIN_TREE_FETCH_LIMIT - 1})"
                 )
-                else -> throw ComposeCaptureException(
-                    "Unexpected response from the compose inspector agent: $response"
+                onStage("Waiting for Compose recomposition data: window ${index + 1}/${rootViewIds.size}...")
+                delay(THIN_TREE_RETRY_DELAY_MS)
+            }
+            // dedupe defensively: some agents answer every id with all roots
+            for (root in best) {
+                if (allRoots.none { it.viewId == root.viewId }) allRoots += root
+                else logger.w(
+                    "YALI ComposeDbg: deduped duplicate view_id=${root.viewId} " +
+                        "from window $rootViewId answer"
                 )
             }
         }
         return allRoots
+    }
+
+    /** Sends `update_settings_command` (see call site); any failure only logs. */
+    private suspend fun updateSettings(messenger: AppInspectorMessenger) {
+        runCatchingSuspend("send update_settings_command") {
+            withTimeout(COMMAND_TIMEOUT_MS) {
+                messenger.sendRawCommand(
+                    ComposeInspectionCodec.encodeUpdateSettingsCommand(includeRecomposeCounts = true)
+                )
+            }
+        }.onSuccess { bytes ->
+            when (val response = ComposeInspectionCodec.decodeResponse(bytes)) {
+                is ComposeResponse.UpdateSettings -> logger.w(
+                    "YALI Compose: agent settings updated, canDelayParameterExtractions=" +
+                        response.canDelayParameterExtractions
+                )
+                else -> logger.w("YALI Compose: unexpected update_settings response: $response")
+            }
+        }.onFailure {
+            logger.w("YALI Compose: update_settings_command failed: ${it.message} - continuing without it")
+        }
+    }
+
+    /** Recursive node count of one composable subtree. */
+    private fun countComposeNodes(node: ComposeNode): Int =
+        1 + node.children.sumOf { countComposeNodes(it) }
+
+    /** One raw `get_composables_command` round trip for [rootViewId]; failures are fatal. */
+    private suspend fun fetchRootsOnce(
+        messenger: AppInspectorMessenger,
+        rootViewId: Long,
+    ): List<ComposableRoot> {
+        val command = ComposeInspectionCodec.encodeGetComposablesCommand(
+            rootViewId = rootViewId,
+            skipSystemComposables = true,
+            generation = generationCounter.incrementAndGet(),
+        )
+        val responseBytes = runCatchingSuspend(
+            "send get_composables_command for root view $rootViewId"
+        ) {
+            withTimeout(COMMAND_TIMEOUT_MS) { messenger.sendRawCommand(command) }
+        }.getOrThrow()
+        return when (val response = ComposeInspectionCodec.decodeResponse(responseBytes)) {
+            is ComposeResponse.GetComposables -> {
+                logger.w(
+                    "YALI Compose: root $rootViewId -> ${response.roots.size} root(s), " +
+                        "unchanged=${response.unchanged}"
+                )
+                for (r in response.roots) {
+                    logger.w(
+                        "YALI ComposeDbg: answer to window $rootViewId: view_id=${r.viewId} " +
+                            "nodes=${r.nodes.size} total=${r.nodes.sumOf { countComposeNodes(it) }} " +
+                            "viewsToSkip=${r.viewsToSkip.size}"
+                    )
+                }
+                response.roots
+            }
+            is ComposeResponse.UpdateSettings -> emptyList() // not requested; ignore
+            is ComposeResponse.Unknown -> throw ComposeCaptureException(
+                "The compose inspector agent in the app did not understand YALI's request " +
+                    "(unknown command). This usually means the app's androidx.compose.ui version " +
+                    "is too old for this Android Studio - update Compose or use the AS Layout Inspector."
+            )
+            else -> throw ComposeCaptureException(
+                "Unexpected response from the compose inspector agent: $response"
+            )
+        }
     }
 
     /**
@@ -991,6 +1071,13 @@ class ComposeCaptureService(private val logger: AppLogger) {
             Result.success(block())
         } catch (t: Throwable) {
             when {
+                // A real command timeout must still surface as an error...
+                t is TimeoutCancellationException ->
+                    Result.failure(ComposeCaptureException("Failed to $context: ${t.message}", t))
+                // ...but a plain job cancellation (user started a new capture / refresh / closed
+                // the window) must never be converted into an error - rethrowing keeps the
+                // coroutine machinery silent and stops retry loops immediately.
+                t is CancellationException -> throw t
                 t is ComposeCaptureException -> Result.failure(t)
                 isAppProcessTerminated(t) -> Result.failure(
                     ComposeCaptureException(
