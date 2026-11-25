@@ -43,12 +43,15 @@ object LayoutInspectorBridge {
         val root: ViewNode?
         try {
             logger.d("$TAG parse hierarchy")
+            ViewNodeParser.lineErrorLogger = { logger.w(it) }
             root = ViewNodeParser.parse(hierarchy, options.version)
             logger.d("$TAG parse hierarchy done. root is $root")
 
         } catch (e: StringIndexOutOfBoundsException) {
+            logger.e("$TAG: failed to parse the view hierarchy stream: ${e.message}", e)
             return LayoutInspectorResult.createErrorResult("Unexpected error: $e")
         } catch (e: IOException) {
+            logger.e(TAG, e)
             return LayoutInspectorResult.createErrorResult("Unexpected error: $e")
         }
         if (root == null) {

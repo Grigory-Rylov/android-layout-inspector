@@ -35,6 +35,19 @@ import java.util.function.Supplier
 import java.util.stream.Collector
 
 object ViewNodeParser {
+
+    /**
+     * A line that starts a node: `<indent>Name@hash[ props]`. Anything else seen mid-stream is
+     * a fragment of a property value that contained an unescaped line break (see
+     * [MergeNewLineCollector]).
+     */
+    private val NODE_LINE = Regex("""^\s*[^\s@]+@\S+( .*)?$""")
+    private const val DONE_LINE = "DONE."
+
+    /** Optional sink for per-line parse failures; the bridge wires it to the plugin logger. */
+    @Volatile
+    @JvmStatic
+    var lineErrorLogger: ((String) -> Unit)? = null
     /** Parses the flat string representation of a view node and returns the root node.  */
     @Throws(IOException::class, StringIndexOutOfBoundsException::class)
     @JvmStatic
@@ -54,6 +67,15 @@ object ViewNodeParser {
         return ViewNodeV2Parser().parse(bytes)
     }
 
+    /**
+     * True when the failure chain is a corrupt/garbled line (bad offsets or numbers): such a
+     * line must be skipped, not kill the whole capture.
+     */
+    private fun isCorruptLine(t: Throwable): Boolean =
+        t is IndexOutOfBoundsException ||
+            t is NumberFormatException ||
+            t is IllegalArgumentException
+
     private fun parseV1ViewNode(
         bytes: ByteArray,
         skippedProperties: Collection<String>
@@ -62,12 +84,20 @@ object ViewNodeParser {
         var lastNode: ViewNode? = null
         var lastWhitespaceCount = Integer.MIN_VALUE
         val stack = Stack<ViewNode>()
+        // The device writes each property as `<name>=<byteLength>,<utf8Value>` separated by `:`,
+        // so offsets are BYTE offsets. Decoding the stream byte-per-char (ISO-8859-1) keeps the
+        // parser's char indices aligned with them; individual values are UTF-8 decoded in
+        // [loadPropertiesAndCreateNode]. Decoding the whole stream as UTF-8 used to shift every
+        // offset after any non-ASCII value (Cyrillic text) and crashed substring bounds.
         val input = BufferedReader(
-            InputStreamReader(ByteArrayInputStream(bytes), Charsets.UTF_8)
+            InputStreamReader(ByteArrayInputStream(bytes), Charsets.ISO_8859_1)
         )
         for (line in input.lines().collect(MergeNewLineCollector)) {
-            if ("DONE.".equals(line, ignoreCase = true)) {
+            if (DONE_LINE.equals(line, ignoreCase = true)) {
                 break
+            }
+            if (line.isEmpty()) {
+                continue
             }
             // determine parent through the level of nesting by counting whitespaces
             var whitespaceCount = 0
@@ -87,9 +117,22 @@ object ViewNodeParser {
             if (!stack.isEmpty()) {
                 parent = stack.peek()
             }
-            lastNode = createViewNode(parent, line.trim(), skippedProperties)
+            // One corrupt line (device escapes only '\n'; values may still carry '\r', and
+            // stream glitches happen) must not kill the whole capture - skip the node and keep
+            // its children attached one level up.
+            val node = try {
+                createViewNode(parent, line.trim(), skippedProperties)
+            } catch (e: Exception) {
+                if (!isCorruptLine(e)) throw e
+                lineErrorLogger?.invoke(
+                    "YALI: skipping corrupt hierarchy line: " +
+                        "\"${line.take(160)}\" (${e.javaClass.simpleName}: ${e.message})"
+                )
+                continue
+            }
+            lastNode = node
             if (root == null) {
-                root = lastNode
+                root = node
             }
         }
         root?.updateNodeDrawn(true)
@@ -109,6 +152,14 @@ object ViewNodeParser {
         val name = data.substring(0, delimIndex)
         data = data.substring(delimIndex + 1)
         delimIndex = data.indexOf(' ')
+        if (delimIndex < 0) {
+            // "Name@hash" with no properties after the hash
+            val hash = data
+            val node = ViewNode(parent, name, hash)
+            node.index = parent?.children?.size ?: 0
+            parent?.let { it.children.add(node) }
+            return node
+        }
         val hash = data.substring(0, delimIndex)
 
         val node = if (data.length > delimIndex + 1) {
@@ -142,7 +193,14 @@ object ViewNodeParser {
             val length = Integer.parseInt(data.substring(index + 1, index2))
             start = index2 + 1 + length
             if (!skippedProperties.contains(fullName)) {
-                val value = data.substring(index2 + 1, index2 + 1 + length)
+                // `value` is the raw byte-per-char window written by the device; non-ASCII
+                // values (e.g. Cyrillic text) must be re-decoded from UTF-8 to be readable.
+                val raw = data.substring(index2 + 1, index2 + 1 + length)
+                val value = if (raw.any { it.code > 0x7F }) {
+                    String(raw.toByteArray(Charsets.ISO_8859_1), Charsets.UTF_8)
+                } else {
+                    raw
+                }
                 val property = ViewPropertyParser.parse(fullName, value)
                 properties.add(property)
                 namedProperties[property.fullName] = property
@@ -186,6 +244,16 @@ object ViewNodeParser {
             // add the original line because we need to keep the spacing to determine hierarchy
             if (newLine.startsWith("\\n")) {
                 stringGroup[stringGroup.lastIndex] = stringGroup.last() + line
+            } else if (
+                stringGroup.isNotEmpty() &&
+                !DONE_LINE.equals(line, ignoreCase = true) &&
+                !NODE_LINE.matches(line)
+            ) {
+                // A property value contained an unescaped line break the device did not mark
+                // (e.g. a raw '\r' inside text): the rest of the value starts here and is NOT a
+                // node line. Re-join it with the newline readLine() consumed, so the declared
+                // byte lengths keep their offsets.
+                stringGroup[stringGroup.lastIndex] = stringGroup.last() + "\n" + line
             } else {
                 stringGroup.add(line)
             }
