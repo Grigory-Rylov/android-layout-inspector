@@ -323,7 +323,8 @@ class FlatPropertiesWithFilterPanel(
                 "view instance",
                 "instance",
                 category = null,
-                value = "${node.name}@$instanceHash",
+                // short class name like in the tree: `VkFadeText@e5275b0`, not the FQCN
+                value = "${node.name.substringAfterLast('.')}@$instanceHash",
                 isSizeProperty = false,
             )
 
